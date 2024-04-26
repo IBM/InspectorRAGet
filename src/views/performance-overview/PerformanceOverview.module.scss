@@ -1,0 +1,122 @@
+/**
+ *
+ * Copyright 2023-2024 InspectorRAGet Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ **/
+
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/colors' as *;
+
+.page {
+  display: flex;
+  flex-direction: column;
+}
+
+.selectors {
+  display: flex;
+  align-items: baseline;
+  column-gap: $spacing-09;
+}
+
+.aggregatorSelector {
+  margin-left: $spacing-05;
+  width: 15%;
+}
+
+.row {
+  display: flex;
+  margin-top: $spacing-05;
+}
+
+.center {
+  justify-content: center;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  row-gap: $spacing-03;
+}
+
+.seperator {
+  border: 1px dotted black;
+  margin: 0 $spacing-03;
+}
+
+.performanceOverviewGraph {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  row-gap: $spacing-03;
+}
+
+.performanceTable {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-03;
+}
+
+.tableCell {
+  display: flex;
+  column-gap: $spacing-03;
+  align-items: center;
+}
+
+.disclaimers {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-01;
+  font-size: 14px;
+  line-height: 18px;
+  color: $gray-60;
+}
+
+.disclaimerSparkline {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.legendLow {
+  color: #fa4d56;
+}
+
+.legendMedium {
+  color: #f1c21b;
+}
+
+.legendHigh {
+  color: #42be65;
+}
+
+.warningContainer {
+  width: 100%;
+  margin: $spacing-09 0;
+  display: flex;
+  column-gap: $spacing-03;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.warningContainerIcon {
+  color: $gray-50;
+}
+
+.warningContainerText {
+  font-size: 26px;
+  line-height: 28px;
+  color: $gray-50;
+}

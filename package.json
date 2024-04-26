@@ -1,0 +1,60 @@
+{
+  "name": "InspectorRAGet",
+  "version": "1.0.0-beta",
+  "private": true,
+  "description": "An Introspection Platform for RAG Evaluation",
+  "author": "kpfadnis@us.ibm.com",
+  "license": "ISC",
+  "scripts": {
+    "postinstall": "husky install",
+    "dev": "next dev",
+    "build": "next build && node ./scripts/license",
+    "start": "next start",
+    "lint": "next lint && stylelint \"**/*.{css,scss}\"",
+    "format": "prettier --write ."
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "yarn build"
+    }
+  },
+  "devDependencies": {
+    "@next/eslint-plugin-next": "^13.4.2",
+    "@types/node": "18.16.3",
+    "cross-env": "^7.0.3",
+    "eslint": "^8.23.0",
+    "eslint-config-next": "^13.1.6",
+    "eslint-config-prettier": "^8.8.0",
+    "husky": "^8.0.3",
+    "prepend-file": "^2.0.1",
+    "prettier": "^3.0.3",
+    "sass": "^1.54.3",
+    "typescript": "^5.0.4",
+    "stylelint": "16.2.1",
+    "stylelint-config-standard-scss": "13.0.0"
+  },
+  "dependencies": {
+    "@carbon/colors": "^11.4.0",
+    "@carbon/themes": "^11.8.0",
+    "@carbon/icons-react": "^11.34.1",
+    "@carbon/pictograms-react": "^11.49.0",
+    "@carbon/charts": "^1.7.4",
+    "@carbon/charts-react": "^1.7.4",
+    "@carbon/react": "^1.17.0",
+    "d3": "^7.8.4",
+    "date-fns": "^2.30.0",
+    "dompurify": "3.0.8",
+    "html-react-parser": "^5.1.1",
+    "lodash": "^4.17.4",
+    "next": "^14.1.1",
+    "prop-types": "^15.7.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-intl": "^6.1.0",
+    "react-markdown": "^8.0.7",
+    "rehype-raw": "^7.0.0",
+    "remark-gfm": "^3.0.1",
+    "statistics.js": "^1.0.0",
+    "uuid": "^9.0.1"
+  }
+}

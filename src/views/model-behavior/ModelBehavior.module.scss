@@ -1,0 +1,180 @@
+/**
+ *
+ * Copyright 2023-2024 InspectorRAGet Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ **/
+
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/colors' as *;
+
+.page {
+  display: flex;
+  flex-direction: column;
+}
+
+.selectors {
+  display: flex;
+  align-items: baseline;
+  column-gap: $spacing-09;
+}
+
+.agreementSelector {
+  width: 15%;
+}
+
+.modelSelector {
+  width: 20%;
+}
+
+.metricSelector {
+  width: 15%;
+}
+
+.allowedValueSelector {
+  width: 20%;
+}
+
+.annotatorSelector {
+  width: 15%;
+}
+
+.tagContainer {
+  display: flex;
+  row-gap: $spacing-02;
+  align-items: baseline;
+}
+
+.filtersBtnTooltip {
+  margin-top: $spacing-03;
+  align-self: center;
+}
+
+.filtersBtn {
+  display: flex;
+  column-gap: $spacing-04;
+  padding: $spacing-03;
+  color: black !important;
+}
+
+.filtersBtnElements {
+  display: flex;
+  column-gap: $spacing-04;
+  align-items: center;
+}
+
+.filtersBtnCaptionElements {
+  display: flex;
+  column-gap: $spacing-02;
+  align-items: center;
+}
+
+.filters {
+  margin: $spacing-03 0 $spacing-03 $spacing-05;
+  padding: $spacing-05;
+  display: none;
+  align-items: baseline;
+  column-gap: $spacing-09;
+  box-shadow: 0 0 5px 2px $gray-40;
+}
+
+.visible {
+  display: flex;
+  animation: fade-in 0.5s;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.filterSelector {
+  max-width: 25%;
+}
+
+.row {
+  margin: $spacing-05 0;
+}
+
+.graphsContainer {
+  margin: $spacing-03 0;
+  display: flex;
+  justify-content: space-around;
+}
+
+.graphsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $spacing-05 $spacing-09;
+}
+
+.graphsFlex {
+  margin: $spacing-03 0;
+  display: flex;
+  justify-content: space-around;
+}
+
+.graph {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-03;
+  align-items: center;
+}
+
+.graphTitle {
+  display: flex;
+  column-gap: $spacing-02;
+}
+
+.tasksContainerWarning {
+  margin: $spacing-09 0;
+  display: flex;
+  column-gap: $spacing-03;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.tasksContainerWarningIcon {
+  color: $gray-40;
+}
+
+.tasksContainerWarningText {
+  font-size: 20px;
+  line-height: 24px;
+  color: $gray-40;
+}
+
+.warningContainer {
+  width: 100%;
+  margin: $spacing-09 0;
+  display: flex;
+  column-gap: $spacing-03;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.warningContainerIcon {
+  color: $gray-50;
+}
+
+.warningContainerText {
+  font-size: 26px;
+  line-height: 28px;
+  color: $gray-50;
+}

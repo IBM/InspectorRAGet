@@ -1,0 +1,9 @@
+# Deployment
+yaml
+
+# Development
+.prettierignore
+.prettierrc
+
+# Documentation
+README.md

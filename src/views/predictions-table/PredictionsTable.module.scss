@@ -1,0 +1,91 @@
+/**
+ *
+ * Copyright 2023-2024 InspectorRAGet Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ **/
+
+@import '@carbon/react/scss/spacing';
+@import '@carbon/react/scss/colors';
+
+.page {
+  height: 83vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.selectors {
+  display: flex;
+  column-gap: $spacing-09;
+}
+
+.modelSelector {
+  width: 40%;
+}
+
+.toggle {
+  width: 10%;
+}
+
+.hintContainer {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  column-gap: $spacing-02;
+  margin: $spacing-05 0;
+}
+
+.hintContainerIcon {
+  color: #f1c21b;
+}
+
+.hintContainerText {
+  font-size: 16px;
+  line-height: 20px;
+  color: #f1c21b;
+}
+
+.warningContainer {
+  width: 100%;
+  margin: $spacing-09 0;
+  display: flex;
+  column-gap: $spacing-03;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.warningContainerIcon {
+  color: $gray-50;
+}
+
+.warningContainerText {
+  font-size: 26px;
+  line-height: 28px;
+  color: $gray-50;
+}
+
+.table {
+  height: 95%;
+  overflow: auto;
+}
+
+.pagination {
+  border-top: 1px solid var(--cds-border-subtle) !important;
+}
+
+.targetSeparator {
+  padding: $spacing-03 0;
+}

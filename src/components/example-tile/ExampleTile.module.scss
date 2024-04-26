@@ -1,0 +1,116 @@
+/**
+ *
+ * Copyright 2023-2024 InspectorRAGet Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ **/
+
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/colors' as *;
+
+.tile {
+  display: flex;
+  flex-direction: column;
+}
+
+.skeletonTitle {
+  width: 50%;
+}
+
+.heading {
+  display: flex;
+  column-gap: $spacing-03;
+}
+
+.icon {
+  width: 16px;
+  height: 16px;
+}
+
+.title {
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 20px;
+}
+
+.block {
+  display: flex;
+  margin-top: $spacing-03;
+}
+
+.divider {
+  border-right: 1px solid #d8d8d8;
+  flex: 0 0 1px;
+  margin: 0 1rem;
+}
+
+.information {
+  display: flex;
+  flex: 1 0 70%;
+  min-width: 40%;
+  column-gap: $spacing-12;
+  align-items: baseline;
+}
+
+.actions {
+  display: flex;
+  flex: 1 1 30%;
+  align-items: baseline;
+  justify-content: space-evenly;
+}
+
+.artifactEvaluations {
+  flex-direction: column;
+}
+
+.artifactAnnotators {
+  flex-direction: column;
+}
+
+.artifactMetrics {
+  display: flex;
+  flex-direction: column;
+}
+
+.artifactModels {
+  display: flex;
+  flex-direction: column;
+}
+
+.artifactDuration {
+  display: flex;
+  flex-direction: column;
+}
+
+.artifactHeader {
+  display: flex;
+  column-gap: $spacing-02;
+  align-items: center;
+}
+
+.artifactTitle {
+  font-size: 14px;
+  line-height: 16px;
+  color: var(--cds-text-helper);
+}
+
+.artifactValue {
+  font-size: 14px;
+  line-height: 16px;
+  margin-top: $spacing-02;
+}
+
+.listItem {
+  color: var(--cds-background) !important;
+}
