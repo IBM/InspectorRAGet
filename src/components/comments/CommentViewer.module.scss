@@ -1,0 +1,92 @@
+/**
+ *
+ * Copyright 2023-2024 InspectorRAGet Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ **/
+
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/colors' as *;
+
+.viewer {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-05;
+}
+
+.comment {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-04;
+  border-bottom: solid 1px var(--cds-border-strong-01);
+}
+
+.commentHeader {
+  display: flex;
+  font-size: 14px;
+  font-weight: 300;
+  justify-content: space-between;
+}
+
+.commentHeaderAuthor {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-02;
+  align-items: center;
+}
+
+.commentHeaderProvenance {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.commentTag {
+  max-width: 8rem;
+}
+
+.commentHeaderTimestamp {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-02;
+  align-items: center;
+}
+
+.label {
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1rem;
+  letter-spacing: 0.32px;
+}
+
+.commentBody {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-02;
+}
+
+.commentBodyHeader {
+  font-size: 14px;
+  font-weight: 300;
+}
+
+.commentActions {
+  display: flex;
+  justify-content: space-around;
+}
+
+.commentBtn {
+  display: flex;
+  column-gap: $spacing-03;
+}

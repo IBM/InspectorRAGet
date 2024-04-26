@@ -1,0 +1,23 @@
+# MacOS
+.DS_Store
+
+# Visual Studio code
+.vscode
+
+# IDE
+.idea/
+
+# NPM
+node_modules
+
+# NPM lock files
+package-lock.json
+
+# Next files
+.next
+
+# Husky files
+.husky
+
+# Dist files
+dist

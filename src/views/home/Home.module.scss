@@ -1,0 +1,73 @@
+/**
+ *
+ * Copyright 2023-2024 InspectorRAGet Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ **/
+
+@use '@carbon/styles/scss/spacing' as *;
+@use '@carbon/styles/scss/utilities/convert' as *;
+
+.root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.leadspaceWrapper {
+  margin-left: 5%;
+  width: 60%;
+}
+
+.leadspace {
+  margin-top: 20%;
+  margin-bottom: $spacing-07;
+
+  > p {
+    font-size: rem(16px);
+    line-height: 1.5;
+    font-weight: 400;
+    letter-spacing: 0;
+
+    a:global(.cds--link) {
+      font-size: inherit;
+      font-weight: inherit;
+      line-height: inherit;
+      letter-spacing: inherit;
+      text-decoration: none;
+    }
+  }
+}
+
+.heading {
+  font-size: rem(42px);
+  line-height: rem(50px);
+  font-weight: 400;
+  letter-spacing: 0;
+  margin-bottom: $spacing-07;
+}
+
+.cards {
+  margin: 0 5% 7%;
+}
+
+.cardsList {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.annoucements {
+  margin-left: 5%;
+}

@@ -1,0 +1,4835 @@
+{
+  "example_id": "d634446aacfb9d28a473aa758e70d8c3",
+  "name": "ClapNQ (Context Relevance)",
+  "models": [
+    {
+      "model_id": "model_a",
+      "name": "Model A",
+      "owner": "InspectorRAGet Team",
+      "release_date": "2024-04-25"
+    }
+  ],
+  "metrics": [
+    {
+      "name": "RougeL",
+      "display_name": "Rouge-L",
+      "description": "RougeL score based on word overlap",
+      "author": "algorithm",
+      "type": "numerical",
+      "aggregator": "average",
+      "range": [0, 1, 0.1]
+    },
+    {
+      "name": "Recall",
+      "display_name": "Recall",
+      "description": "Recall score based on word overlap",
+      "author": "algorithm",
+      "type": "numerical",
+      "aggregator": "average",
+      "range": [0, 1, 0.1]
+    },
+    {
+      "name": "Bert-Rec",
+      "display_name": "Bert-Rec",
+      "description": "Bert-Rec score based on word overlap",
+      "author": "algorithm",
+      "type": "numerical",
+      "aggregator": "average",
+      "range": [-1, 1, 0.4]
+    },
+    {
+      "name": "Bert-KPrec",
+      "display_name": "Bert-KPrec",
+      "description": "Bert-KPrec score based on word overlap",
+      "author": "algorithm",
+      "type": "numerical",
+      "aggregator": "average",
+      "range": [-1, 1, 0.4]
+    },
+    {
+      "name": "Extractiveness_RougeL",
+      "display_name": "Extractiveness (RougeL)",
+      "description": "Extractiveness score based on RougeL",
+      "author": "algorithm",
+      "type": "numerical",
+      "aggregator": "average",
+      "range": [0, 1, 0.1]
+    },
+    {
+      "name": "Length",
+      "display_name": "Length",
+      "description": "Length in terms of characters",
+      "author": "algorithm",
+      "type": "numerical",
+      "aggregator": "average",
+      "range": [0, 3000, 300]
+    },
+    {
+      "name": "answerability_accuracy",
+      "display_name": "Answerability (Accuracy)",
+      "description": "Accuracy score for predicted vs gold class for answerability",
+      "author": "algorithm",
+      "type": "categorical",
+      "aggregator": "majority",
+      "values": [
+        {
+          "value": "True Positive",
+          "display_value": "True Positive",
+          "numeric_value": 1
+        },
+        {
+          "value": "True Negative",
+          "display_value": "True Negative",
+          "numeric_value": 1
+        },
+        {
+          "value": "False Positive",
+          "display_value": "False Positive",
+          "numeric_value": 0
+        },
+        {
+          "value": "False Negative",
+          "display_value": "False Negative",
+          "numeric_value": 0
+        }
+      ]
+    },
+    {
+      "name": "fm_groundedness",
+      "display_name": "Groundedness (LLM-as-a-Judge)",
+      "description": "Groundedness score rated by foundation model",
+      "author": "algorithm",
+      "type": "categorical",
+      "aggregator": "majority",
+      "values": [
+        {
+          "value": "Error",
+          "display_value": "Error",
+          "numeric_value": 0.5
+        },
+        {
+          "value": "No",
+          "display_value": "No",
+          "numeric_value": 0
+        },
+        {
+          "value": "Unsure",
+          "display_value": "Unsure",
+          "numeric_value": 0.5
+        },
+        {
+          "value": "Yes",
+          "display_value": "Yes",
+          "numeric_value": 1
+        }
+      ]
+    },
+    {
+      "name": "fm_groundedness_reason",
+      "display_name": "Groundedness Reason (LLM-as-a-Judge)",
+      "description": "Explanation for Groundedness score rated by foundation model",
+      "author": "algorithm",
+      "type": "text"
+    },
+    {
+      "name": "fm_pertinence",
+      "display_name": "Pertinence (LLM-as-a-Judge)",
+      "description": "Pertinence score rated by foundation model",
+      "author": "algorithm",
+      "type": "categorical",
+      "aggregator": "majority",
+      "values": [
+        {
+          "value": "Error",
+          "display_value": "Error",
+          "numeric_value": 0.5
+        },
+        {
+          "value": "No",
+          "display_value": "No",
+          "numeric_value": 0
+        },
+        {
+          "value": "Unsure",
+          "display_value": "Unsure",
+          "numeric_value": 0.5
+        },
+        {
+          "value": "Yes",
+          "display_value": "Yes",
+          "numeric_value": 1
+        }
+      ]
+    },
+    {
+      "name": "naturalness",
+      "display_name": "Naturalness",
+      "description": "The response is coherent, natural, and not dismissive.",
+      "author": "human",
+      "type": "categorical",
+      "aggregator": "majority",
+      "values": [
+        {
+          "value": "1",
+          "display_value": "No",
+          "numeric_value": 1
+        },
+        {
+          "value": "2",
+          "display_value": "Mostly No",
+          "numeric_value": 2
+        },
+        {
+          "value": "3",
+          "display_value": "Mostly Yes",
+          "numeric_value": 3
+        },
+        {
+          "value": "4",
+          "display_value": "Yes",
+          "numeric_value": 4
+        }
+      ]
+    },
+    {
+      "name": "naturalness_reason",
+      "display_name": "Naturalness Score Explanation",
+      "description": "Annotator feedback explaining their score for naturalness",
+      "author": "human",
+      "type": "text"
+    },
+    {
+      "name": "appropriateness",
+      "display_name": "Appropriateness",
+      "description": "The response provides appropriate amount of useful information.",
+      "author": "human",
+      "type": "categorical",
+      "aggregator": "majority",
+      "values": [
+        {
+          "value": "1",
+          "display_value": "No",
+          "numeric_value": 1
+        },
+        {
+          "value": "2",
+          "display_value": "Mostly No",
+          "numeric_value": 2
+        },
+        {
+          "value": "3",
+          "display_value": "Mostly Yes",
+          "numeric_value": 3
+        },
+        {
+          "value": "4",
+          "display_value": "Yes",
+          "numeric_value": 4
+        }
+      ]
+    },
+    {
+      "name": "appropriateness_reason",
+      "display_name": "Appropriateness Score Explanation",
+      "description": "Annotator feedback explaining their score for appropriateness",
+      "author": "human",
+      "type": "text"
+    },
+    {
+      "name": "faithfulness",
+      "display_name": "Faithfulness",
+      "description": "The response is faithful and grounded on the context.",
+      "author": "human",
+      "type": "categorical",
+      "aggregator": "majority",
+      "values": [
+        {
+          "value": "1",
+          "display_value": "No",
+          "numeric_value": 1
+        },
+        {
+          "value": "2",
+          "display_value": "Mostly No",
+          "numeric_value": 2
+        },
+        {
+          "value": "3",
+          "display_value": "Mostly Yes",
+          "numeric_value": 3
+        },
+        {
+          "value": "4",
+          "display_value": "Yes",
+          "numeric_value": 4
+        }
+      ]
+    },
+    {
+      "name": "faithfulness_reason",
+      "display_name": "Faithfulness Score Explanation",
+      "description": "Annotator feedback explaining their score for faithfulness",
+      "author": "human",
+      "type": "text"
+    }
+  ],
+  "documents": [
+    {
+      "document_id": "834247650_2286-3122",
+      "text": "After learning that Unser is staying on , Hale calls in the Bureau of Alcohol , Tobacco , Firearms and Explosives to see if they can circumvent Unser . He soon became sexually involved with Agent June Stahl , which is against department regulations . One of their encounters was witnessed by Jax Teller while he was breaking Cherry out of the County Jail . The two lovers fell out , however , over Stahl 's decision to delude SAMCRO into believing that Opie Winston was an informant and her locking Hale out of the investigation . When Stahl removed Opie 's protective detail , Hale ( after much convincing from Unser ) decided to inform the SAMCRO that Opie was not a `` rat . '' The information came too late to prevent the murder of Opie 's wife , Donna . At the crime scene , Hale icily informed Stahl , `` This blood 's on you . ''",
+      "title": "David Hale (Sons of Anarchy)"
+    },
+    {
+      "document_id": "834247650_5658-6168",
+      "text": "In the second - season finale , perhaps adopting some of Unser 's attitude , Hale appeared unconcerned with what SAMCRO did to A.J. Weston and Ethan Zobelle as long as it was not done in Charming . Ethan Zobelle , cornered in a deli outside of Charming by SAMCRO , called Hale for help . Hale lied and told Zobelle that the sheriffs were on the way , but after hanging up he made no effort to inform the local sheriffs . He was last seen consoling a distraught Tara Knowles over the kidnapping of Abel Teller .",
+      "title": "David Hale (Sons of Anarchy)"
+    },
+    {
+      "document_id": "837510524_3821-4350",
+      "text": "Cornelia Hale , character from W.I.T.C.H. Daniel Hale , character from Prison Break David Hale , the Deputy Chief in Sons of Anarchy . Derek Hale , Laura Hale , Talia Hale , Peter Hale , Cora Hale , and Malia ( Hale ) Tate , characters from the MTV cult television series Teen Wolf . Jasper Hale and Rosalie Hale , characters from Twilight novel series . John Hale , character from The Crucible . Margaret Hale , heroine of North and South . Steve Hale , character from Full House . Saxton Hale , character from Team Fortress 2 .",
+      "title": "Hale (surname)"
+    },
+    {
+      "document_id": "854291373_38492-38710",
+      "text": "The Roman Empire was eventually divided between the Western Roman Empire which fell in 476 AD and the Eastern Roman Empire ( also called the Byzantine Empire ) which lasted until the fall of Constantinople in 1453 AD .",
+      "title": "History of democracy"
+    },
+    {
+      "document_id": "804622010_2184-3139",
+      "text": "The Byzantine Empire , also referred to as the Eastern Roman Empire , was the continuation of the Roman Empire in the East during Late Antiquity and the Middle Ages , when its capital city was Constantinople ( modern - day Istanbul , which had been founded as Byzantium ) . It survived the fragmentation and fall of the Western Roman Empire in the 5th century AD and continued to exist for an additional thousand years until it fell to the Ottoman Turks in 1453 . During most of its existence , the empire was the most powerful economic , cultural , and military force in Europe . Both `` Byzantine Empire '' and `` Eastern Roman Empire '' are historiographical terms created after the end of the realm ; its citizens continued to refer to their empire as the Roman Empire ( Greek : \u0392\u03b1\u03c3\u03b9\u03bb\u03b5\u03af\u03b1 \u03c4\u1ff6\u03bd \u1fec\u03c9\u03bc\u03b1\u03af\u03c9\u03bd , tr . Basileia t\u00f4n Rh\u014dmai\u014dn ; Latin : Imperium Romanum ) , or Romania ( \u1fec\u03c9\u03bc\u03b1\u03bd\u03af\u03b1 ) , and to themselves as `` Romans '' .",
+      "title": "Byzantine Empire"
+    },
+    {
+      "document_id": "804622010_8948-9517",
+      "text": "Although the Byzantine Empire had a multi-ethnic character during most of its history and preserved Romano - Hellenistic traditions , it became identified by its western and northern contemporaries with its increasingly predominant Greek element . The occasional use of the term `` Empire of the Greeks '' ( Latin : Imperium Graecorum ) in the West to refer to the Eastern Roman Empire and of the Byzantine Emperor as Imperator Graecorum ( Emperor of the Greeks ) were also used to separate it from the prestige of the Roman Empire within the new kingdoms of the West .",
+      "title": "Byzantine Empire"
+    },
+    {
+      "document_id": "800323045_74-628",
+      "text": "Brigitte Macron Spouse of the President of the French Republic Incumbent Assumed office 14 May 2017 President Emmanuel Macron Preceded by Julie Gayet ( as Partner of the President of France ) Personal details Brigitte Marie - Claude Trogneux ( 1953 - 04 - 13 ) 13 April 1953 ( age 64 ) Amiens , Somme , France Spouse ( s ) Andr\u00e9 - Louis Auzi\u00e8re ( m . 1974 ; div. 2006 ) Emmanuel Macron ( m . 2007 ) Relations Jean - Michel Macron ( father - in - law ) Children Parents Simone Pujol Jean Trogneux Residence \u00c9lys\u00e9e Palace Occupation High school teacher",
+      "title": "Brigitte Macron"
+    },
+    {
+      "document_id": "800323045_629-1135",
+      "text": "Brigitte Marie - Claude Macron ( French pronunciation : \u200b ( bri. \u0292it ma. \u0281i klod ma. k\u0281\u0254\u1dc9 ) ; n\u00e9e Trogneux , pronounced ( t\u0281\u0254. \u0272\u00f8 ) , previously Auzi\u00e8re , French pronunciation : \u200b ( o. zj\u025b\u02d0\u0281 ) ; born 13 April 1953 ) is the wife and former high school teacher of Emmanuel Macron , the President of the French Republic . In 2015 , to help support her husband in his political career , she ended her career as a teacher of literature at the elite lyc\u00e9e Saint - Louis de Gonzague in Paris .",
+      "title": "Brigitte Macron"
+    },
+    {
+      "document_id": "800323045_2461-2793",
+      "text": "In 2017 , Brigitte Macron played an active role in her husband 's presidential campaign ; a top adviser was quoted as saying that `` her presence is essential for him '' . Emmanuel Macron stated that upon his winning of the French presidency , his wife `` will have the role that she always had with me , she will not be hidden '' .",
+      "title": "Brigitte Macron"
+    },
+    {
+      "document_id": "826942928_588-1047",
+      "text": "`` The Reverend Mr. Black '' is a 1963 song by Billy Edd Wheeler , Mike Stoller , and Jerry Leiber . The chorus came from the 1931 folk song , `` The Lonesome Valley , '' a version of which appears in the 2000 film , O Brother , Where Art Thou ? . It was recorded by The Kingston Trio in 1963 for their album The Kingston Trio No. 16 and became a top - ten hit for them on the Billboard Hot 100 . Johnny Cash covered the song in 1981 for his album The Baron .",
+      "title": "The Reverend Mr. Black"
+    },
+    {
+      "document_id": "826942928_315-587",
+      "text": "`` The Reverend Mr. Black '' Single by The Kingston Trio from the album The Kingston Trio No. 16 B - side `` One More Round '' Released 1963 ( 1963 ) Format 7 - inch single Genre Folk Length 4 : 43 Label Capitol Songwriter ( s ) Billy Edd Wheeler Jerry Leiber Mike Stoller",
+      "title": "The Reverend Mr. Black"
+    },
+    {
+      "document_id": "826942928_58-314",
+      "text": "This article needs additional citations for verification . Please help improve this article by adding citations to reliable sources . Unsourced material may be challenged and removed . ( January 2017 ) ( Learn how and when to remove this template message )",
+      "title": "The Reverend Mr. Black"
+    },
+    {
+      "document_id": "836192773_8246-8728",
+      "text": "PlayStation 3 was first released in Japan on November 11 , 2006 , at 07 : 00 . According to Media Create , 81,639 PS3 systems were sold within 24 hours of its introduction in Japan . Soon after its release in Japan , PS3 was released in North America on November 17 , 2006 . Reports of violence surrounded the release of PS3 . A customer was shot , campers were robbed at gunpoint , customers were shot in a drive - by shooting with BB guns , and 60 campers fought over 10 systems .",
+      "title": "PlayStation 3"
+    },
+    {
+      "document_id": "836192773_8729-9552",
+      "text": "The console was originally planned for a global release through November , but at the start of September the release in Europe and the rest of the world was delayed until March . With it being a somewhat last - minute delay , some companies had taken deposits for pre-orders , at which Sony informed customers that they were eligible for full refunds or could continue the pre-order . On January 24 , 2007 , Sony announced that PlayStation 3 would go on sale on March 23 , 2007 , in Europe , Australia , the Middle East , Africa and New Zealand . The system sold about 600,000 units in its first two days . On March 7 , 2007 , the 60 GB PlayStation 3 launched in Singapore with a price of S $ 799 . The console was launched in South Korea on June 16 , 2007 , as a single version equipped with an 80 GB hard drive and IPTV .",
+      "title": "PlayStation 3"
+    },
+    {
+      "document_id": "836192773_45157-46033",
+      "text": "PlayStation 3 's initial production cost is estimated by iSuppli to have been US $ 805.85 for the 20 GB model and US $840.35 for the 60 GB model . However , they were priced at US $499 and US $599 respectively , meaning that units may have been sold at an estimated loss of $306 or $241 depending on model , if the cost estimates were correct , and thus may have contributed to Sony 's games division posting an operating loss of \u00a5 232.3 billion ( US $1.97 billion ) in the fiscal year ending March 2007 . In April 2007 , soon after these results were published , Ken Kutaragi , President of Sony Computer Entertainment , announced plans to retire . Various news agencies , including The Times and The Wall Street Journal reported that this was due to poor sales , while SCEI maintains that Kutaragi had been planning his retirement for six months prior to the announcement .",
+      "title": "PlayStation 3"
+    },
+    {
+      "document_id": "824030591_1791-3187",
+      "text": "When the house is flooded due to a flash flood , Peter orders Meg to get a case of beer , but she drowns . Peter saves her , and they find out that Meg has fallen into a coma , prompting Peter to rethink his constant cruel behavior towards her . When Meg recovers , Peter swears to become a better father . She starts dating a medical intern named Michael Milano , to whom she awoke at the hospital . Peter spies on them to make sure Michael will not hurt Meg ; however , this behavior ends up driving Michael away . Later , Meg shocks the family when she announces that she is pregnant . Peter concludes that the only thing to do is force Michael to marry her , and heads to his house with a shotgun ; however , after learning of Meg 's pregnancy , Michael turns out to be completely willing . Lois tells Meg `` There are other options , '' but Meg does n't want to get an abortion . Meg decides to go through with it , until the wedding ceremony , where she reveals to Lois that she just found out she is not actually pregnant , instead , she had her period and assumes she read the pregnancy test wrong . Lois suggests that Meg tell Michael the truth , and says that if Michael really cares about her , he will still understand and stay . When she tells him , however , Michael bails out completely without a word . The episode ends with Peter introducing a live action clip of Conway Twitty .",
+      "title": "Peter's Daughter"
+    },
+    {
+      "document_id": "824030591_525-876",
+      "text": "`` Peter 's Daughter '' is the eighth episode of the sixth season of Family Guy and originally aired November 25 , 2007 . When a flood hits Quahog , Meg winds up in the hospital in a coma , and an over-protective Peter vows he will take extra care of her . As a side plot , Stewie and Brian decide to renovate a wrecked house and sell it to get rich .",
+      "title": "Peter's Daughter"
+    },
+    {
+      "document_id": "821374809_3542-4053",
+      "text": "As the four pack up their respective apartments -- Rachel , in particular , displeased about having to switch -- Phoebe returns home and takes a pregnancy test , though it is too soon for a result . Later with packing complete , Rachel finally refuses to move as Frank and Alice come by with another pregnancy test . The boys and the girls begin to argue along with Ross , which is cut short when Phoebe emerges from the bathroom and joyfully announces she is pregnant , the mood turning to one of celebration .",
+      "title": "The One with the Embryos"
+    },
+    {
+      "document_id": "836794862_714-1443",
+      "text": "A morpheme is the smallest grammatical unit in a language . In other words , it is the smallest meaningful unit of a language . The linguistics field of study dedicated to morphemes is called morphology . A morpheme is not identical to a word , and the principal difference between the two is that a morpheme may or may not stand alone , whereas a word , by definition , is freestanding . When a morpheme stands by itself , it is considered as a root because it has a meaning of its own ( e.g. the morpheme cat ) and when it depends on another morpheme to express an idea , it is an affix because it has a grammatical function ( e.g. the -- s in cats to indicate that it is plural ) . Every word comprises one or more morphemes .",
+      "title": "Morpheme"
+    },
+    {
+      "document_id": "836794862_9057-9201",
+      "text": "In generative grammar , the definition of a morpheme depends heavily on whether syntactic trees have morphemes as leaves or features as leaves .",
+      "title": "Morpheme"
+    },
+    {
+      "document_id": "836794862_2856-3364",
+      "text": "Derivational morphemes , when combined with a root , change either the semantic meaning or part of speech of the affected word . For example , in the word happiness , the addition of the bound morpheme - ness to the root happy changes the word from an adjective ( happy ) to a noun ( happiness ) . In the word unkind , un - functions as a derivational morpheme , for it inverts the meaning of the word formed by the root kind . Generally , the affixes used with a root word are bound morphemes . Inflectional",
+      "title": "Morpheme"
+    },
+    {
+      "document_id": "857079653_3862-4507",
+      "text": "Each conference 's bracket is fixed ; there is no reseeding . All rounds are best - of - seven series ; the team that has four wins advances to the next round . All rounds , including the NBA Finals , are in a 2 -- 2 -- 1 -- 1 -- 1 format . Home court advantage in any round does not necessarily belong to the higher - seeded team , but instead to the team with the better regular season record . If two teams with the same record meet in a round , standard tiebreaker rules are used . The rule for determining home court advantage in the NBA Finals is winning percentage , then head to head record , followed by record vs. opposite conference .",
+      "title": "2018 NBA Playoffs"
+    },
+    {
+      "document_id": "799489619_18840-19104",
+      "text": "Highest Effective Field Goal Percentage ( Similar to FG % , but adds an additional parameter . This parameter adjusts for the fact that 3 - point field goals are worth 50 percent more than 2 - point field goals . Formula is eFG % = ( FGM + ( 0.5 x 3PTM ) ) / FGA )",
+      "title": "NBA post-season records"
+    },
+    {
+      "document_id": "826237932_8631-8920",
+      "text": "On NBA floors , two hash marks are drawn at the end lines near the key to mark the area known as the lower defensive box . A defensive player is allowed to draw a charging foul within the restricted arc if the offensive player receives the ball and / or starts his drive within this area .",
+      "title": "Basketball court"
+    },
+    {
+      "document_id": "843757803_4704-4804",
+      "text": "To stop a combustion reaction , one of the three elements of the fire - triangle has to be removed .",
+      "title": "Fire triangle"
+    },
+    {
+      "document_id": "843757803_460-1137",
+      "text": "The triangle illustrates the three elements a fire needs to ignite : heat , fuel , and an oxidizing agent ( usually oxygen ) . A fire naturally occurs when the elements are present and combined in the right mixture , meaning that fire is actually an event rather than a thing . A fire can be prevented or extinguished by removing any one of the elements in the fire triangle . For example , covering a fire with a fire blanket removes the oxygen part of the triangle and can extinguish a fire . In large fires where firefighters are called in , decreasing the amount of oxygen is not usually an option because there is no effective way to make that happen in an extended area .",
+      "title": "Fire triangle"
+    },
+    {
+      "document_id": "843757803_1439-2082",
+      "text": "The fire tetrahedron represents the addition of a component in the chemical chain reaction , to the three already present in the fire triangle . Once a fire has started , the resulting exothermic chain reaction sustains the fire and allows it to continue until or unless at least one of the elements of the fire is blocked . Foam can be used to deny the fire the oxygen it needs . Water can be used to lower the temperature of the fuel below the ignition point or to remove or disperse the fuel . Halon can be used to remove free radicals and create a barrier of inert gas in a direct attack on the chemical reaction responsible for the fire .",
+      "title": "Fire triangle"
+    },
+    {
+      "document_id": "852484941_14789-15346",
+      "text": "The Celtic languages form a branch of the larger Indo - European family . By the time speakers of Celtic languages entered history around 400 BC , they were already split into several language groups , and spread over much of Western continental Europe , the Iberian Peninsula , Ireland and Britain . The Greek historian Ephorus of Cyme in Asia Minor , writing in the 4th century BC , believed that the Celts came from the islands off the mouth of the Rhine and were `` driven from their homes by the frequency of wars and the violent rising of the sea '' .",
+      "title": "Celts"
+    },
+    {
+      "document_id": "852484941_4164-5668",
+      "text": "The history of pre-Celtic Europe and the exact relationship between ethnic , linguistic and cultural factors in the Celtic world remains uncertain and controversial . The exact geographic spread of the ancient Celts is disputed ; in particular , the ways in which the Iron Age inhabitants of Great Britain and Ireland should be regarded as Celts have become a subject of controversy . According to one theory , the common root of the Celtic languages , the Proto - Celtic language , arose in the Late Bronze Age Urnfield culture of Central Europe , which flourished from around 1200 BC . According to a theory proposed in the 19th century , the first people to adopt cultural characteristics regarded as Celtic were the people of the Iron Age Hallstatt culture in central Europe ( c. 800 -- 450 BC ) , named for the rich grave finds in Hallstatt , Austria . Thus this area is sometimes called the `` Celtic homeland '' . By or during the later La T\u00e8ne period ( c. 450 BC to the Roman conquest ) , this Celtic culture was supposed to have expanded by trans - cultural diffusion or migration to the British Isles ( Insular Celts ) , France and the Low Countries ( Gauls ) , Bohemia , Poland and much of Central Europe , the Iberian Peninsula ( Celtiberians , Celtici , Lusitanians and Gallaeci ) and northern Italy ( Golasecca culture and Cisalpine Gauls ) and , following the Celtic settlement of Eastern Europe beginning in 279 BC , as far east as central Anatolia ( Galatians ) in modern - day Turkey .",
+      "title": "Celts"
+    },
+    {
+      "document_id": "852484941_13779-14098",
+      "text": "Continental Celts are the Celtic - speaking people of mainland Europe and Insular Celts are the Celtic - speaking peoples of the British and Irish islands and their descendants . The Celts of Brittany derive their language from migrating insular Celts , mainly from Wales and Cornwall , and so are grouped accordingly .",
+      "title": "Celts"
+    },
+    {
+      "document_id": "826061047_5506-6627",
+      "text": "Together with colleagues in the Department of Pathology at the University of Pittsburgh , Omalu published his findings in the journal Neurosurgery in 2005 in a paper titled `` Chronic Traumatic Encephalopathy in a National Football League Player . '' In it , Omalu called for further study of the disease : `` We herein report the first documented case of long - term neurodegenerative changes in a retired professional NFL player consistent with chronic traumatic encephalopathy ( CTE ) . This case draws attention to a disease that remains inadequately studied in the cohort of professional football players , with unknown true prevalence rates . '' Omalu believed the National Football League ( NFL ) doctors would be `` pleased '' to read it and that his research could be used to `` fix the problem . '' The paper received little attention initially , but members of the NFL 's Mild Traumatic Brain Injury ( MTBI ) Committee later called for its retraction in May 2006 . Their letter requesting the retraction characterized Omalu 's description of CTE as `` completely wrong '' and called the paper `` a failure . ''",
+      "title": "Bennet Omalu"
+    },
+    {
+      "document_id": "826061047_7591-7998",
+      "text": "In summer 2007 , Bailes presented his and Omalu 's findings to NFL Commissioner Roger Goodell at a league - wide concussion summit . Bailes later said that the research was `` dismissed '' . The NFL 's MTBI committee chair , Dr. Ira Casson , told the press : `` In my opinion , the only scientifically valid evidence of a chronic encephalopathy in athletes is in boxers and in some Steeplechase jockeys . ''",
+      "title": "Bennet Omalu"
+    },
+    {
+      "document_id": "826061047_6951-7590",
+      "text": "In November 2006 , Omalu published a second Neurosurgery paper based on his findings in the brain of former NFL player Terry Long , who suffered from depression and committed suicide in 2005 . Though Long died at 45 , Omalu found tau protein concentrations more consistent with `` a 90 - year - old brain with advanced Alzheimer 's . '' As with Mike Webster , Omalu asserted that Long 's football career had caused later brain damage and depression . Omalu also found evidence of CTE in the brains of retired NFL players Justin Strzelczyk ( d . 2004 at 36 years old ) , Andre Waters ( d . 2006 at 44 ) , and Tom McHale ( d . 2008 at 45 ) .",
+      "title": "Bennet Omalu"
+    },
+    {
+      "document_id": "797382264_1800-2307",
+      "text": "The name of Segovia is of Celtiberian origin . The first inhabitants named the city Segobriga . This name comes from two terms of the Celtiberian language of the Celtic branch of Indo - European . The term Sego means `` victory '' ( the prefix is also present in other city names such as Segeda and Segontia , cf . German `` Sieg '' or Dutch `` zege '' ) and the suffix - briga would mean `` city '' or `` strength '' . So the name might be translated as `` City of the victory '' or `` Victorious city '' .",
+      "title": "Segovia"
+    },
+    {
+      "document_id": "797382264_1121-1299",
+      "text": "Segovia ( / s\u026a\u02c8\u0261o\u028avi\u0259 / ; Spanish pronunciation : ( se\u02c8\u0263o\u03b2ja ) ) is a city in the autonomous region of Castile and Le\u00f3n , Spain . It is the capital of Segovia Province .",
+      "title": "Segovia"
+    },
+    {
+      "document_id": "797382264_2308-2463",
+      "text": "Under the Romans and Arabs , the city was called Segovia ( \u03a3\u03b5\u03b3\u03bf\u03c5\u03b2\u03af\u03b1 , Ptolomeo ii. 6 . \u00a7 56 ) and \u0160iq\u016bbiyyah ( \u0634\u0642\u0648\u0628\u064a\u0629 \u200e ) respectively .",
+      "title": "Segovia"
+    },
+    {
+      "document_id": "813917407_16977-17586",
+      "text": "The nuclear force is a residual effect of the more fundamental strong force , or strong interaction . The strong interaction is the attractive force that binds the elementary particles called quarks together to form the nucleons ( protons and neutrons ) themselves . This more powerful force is mediated by particles called gluons . Gluons hold quarks together with a force like that of electric charge , but of far greater strength . Quarks , gluons and their dynamics are mostly confined within nucleons , but residual influences extend slightly beyond nucleon boundaries to give rise to the nuclear force .",
+      "title": "Nuclear force"
+    },
+    {
+      "document_id": "813917407_2619-3117",
+      "text": "The nuclear force ( or nucleon -- nucleon interaction or residual strong force ) is a force that acts between the protons and neutrons of atoms . Neutrons and protons , both nucleons , are affected by the nuclear force almost identically . Since protons have charge + 1 e , they experience an electric force that tends to push them apart , but at short range the attractive nuclear force is strong enough to overcome the electromagnetic force . The nuclear force binds nucleons into atomic nuclei .",
+      "title": "Nuclear force"
+    },
+    {
+      "document_id": "813917407_272-1760",
+      "text": "Nuclear physics Nucleus Nucleons ( p , n ) Nuclear matter Nuclear force Nuclear structure Nuclear reaction Models of the nucleus ( show ) Liquid drop Nuclear shell model Interacting boson model Ab initio Nuclides ' classification ( show ) Isotopes -- equal Z Isobars -- equal A Isotones -- equal N Isodiaphers -- equal N \u2212 Z Isomers -- equal all the above Mirror nuclei -- Z \u2194 N Stable Magic Even / odd Halo Nuclear stability ( show ) Binding energy p -- n ratio Drip line Island of stability Valley of stability Radioactive decay ( show ) Alpha \u03b1 Beta \u03b2 ( 2\u03b2 , \u03b2 ) K / L capture Isomeric ( Gamma \u03b3 Internal conversion ) Spontaneous fission Cluster decay Neutron emission Proton emission Decay energy Decay chain Decay product Radiogenic nuclide Nuclear fission ( show ) Spontaneous Products ( pair breaking ) Photofission Capturing processes ( show ) electron neutron ( s r ) proton ( p rp ) High energy processes ( show ) Spallation ( by cosmic ray ) Photodisintegration Nucleosynthesis and nuclear astrophysics ( show ) Nuclear fusion Processes : Stellar Big Bang Supernova Nuclides : Primordial Cosmogenic Artificial High energy nuclear physics ( show ) Quark -- gluon plasma RHIC LHC Scientists ( show ) Alvarez Becquerel Bethe A. Bohr N. Bohr Chadwick Cockcroft Ir. Curie Fr. Curie Pi. Curie Sk\u0142odowska - Curie Davisson Fermi Hahn Jensen Lawrence Mayer Meitner Oliphant Oppenheimer Proca Purcell Rabi Rutherford Soddy Strassmann Szil\u00e1rd Teller Thomson Walton Wigner Force",
+      "title": "Nuclear force"
+    },
+    {
+      "document_id": "844352160_72-907",
+      "text": "Simba The Lion King character Simba as he appears as a cub in the first film First appearance The Lion King ( 1994 ) Created by Irene Mecchi Jonathan Roberts Linda Woolverton Voiced by Matthew Broderick ( adult , in 3 films ) Jonathan Taylor Thomas ( cub ) Joseph Williams ( singing , adult ) Jason Weaver ( singing , cub ) Matt Weinberg ( cub in The Lion King 11\u20442 ) Cam Clarke ( various sequels and merchandise ) Rob Lowe ( The Lion Guard ) Donald Glover ( adult in The Lion King ( 2019 film ) JD McCrary ( cub in The Lion King ( 2019 film ) Information Species Lion Gender Male Family Mufasa ( father , deceased ) Sarabi ( mother ) Bunga ( adoptive brother ) Sarafina ( mother - in - law ) Kovu ( son - in - law ) Spouse ( s ) Nala ( wife ) Children Kopa ( son ) Kiara ( daughter ) Kion ( son ) Relatives Scar ( uncle , deceased )",
+      "title": "Simba"
+    },
+    {
+      "document_id": "854473906_3996-4256",
+      "text": "Simba ( voiced by Rob Lowe ) -- A lion who is Mufasa 's son , Nala 's mate , Scar 's nephew , and Kion and Kiara 's father . He is the King of the Pride Lands and the leader of his Pride . Simba and Bunga share a history of having lived with Timon and Pumbaa .",
+      "title": "The Lion Guard"
+    },
+    {
+      "document_id": "844352160_5377-6367",
+      "text": "Matthew Broderick provided the speaking voice of Adult Simba . The first actor to be assigned to The Lion King , Broderick learned of the role while he was on vacation in Ireland , where he received a telephone call from his agent informing him that the directors were interested in casting him as Simba . At the time , Broderick was well known for portraying the title character in Ferris Bueller 's Day Off ( 1986 ) . The directors decided to cast him as Simba because they felt that he was `` perfect '' for the role ; according to producer Don Hahn , Broderick 's voice resembled `` the kind of character who could be irresponsible and likeable , but you also felt that he could come back in a very heroic way . '' Jonathan Taylor Thomas , who was starring as Randy Taylor on the television sitcom Home Improvement at the time , was cast as the speaking voice of Young Simba . His appearance and personality would later serve as creative inspiration for supervising animator Mark Henn .",
+      "title": "Simba"
+    },
+    {
+      "document_id": "842402029_13680-14607",
+      "text": "After coming into contact with experimental chemicals and spending some time in a coma , Jessica emerged with superhuman abilities . She possesses superhuman strength , as well as flight , and can block mind control . She shows the capacity to lift a two - ton police car with little effort . Her strength allowed her to lift up a giant - sized Goliath by the nostrils and toss him a short distance , break Atlas ' nose , and render her fellow superheroine Jessica Drew unconscious with a single punch to the face . She later withstood being punched by a human on Mutant - Growth Hormone and sustained only mild bruising and a bloody nose and was able to recover in moments after being shocked by Jessica Drew 's venom blasts . Despite this resistance to harm , Jessica sustained severe injuries , including a damaged spine and neck , a detached retina , and a broken nose after being attacked by both the Vision and Iron Man .",
+      "title": "Jessica Jones"
+    },
+    {
+      "document_id": "842402029_15182-15282",
+      "text": "In addition to her superhuman powers , Jessica is a skilled detective and investigative journalist .",
+      "title": "Jessica Jones"
+    },
+    {
+      "document_id": "842402029_14608-14891",
+      "text": "Jessica is also able to fly , and while she was able to fly quite well during her early years as a heroine , she has admitted that her flying ability degenerated while she was no longer an active hero . She has since displayed improved flying ability after joining the New Avengers .",
+      "title": "Jessica Jones"
+    },
+    {
+      "document_id": "854125397_827-1136",
+      "text": "Siberia ( / sa\u026a\u02c8b\u026a\u0259ri\u0259 / ; Russian : \u0421\u0438\u0431\u0438\u0301\u0440\u044c , tr . Sibir ' , IPA : ( sj\u026a\u02c8bjirj ) ( listen ) ) is an extensive geographical region , and by the broadest definition is also known as Eurasia and North Asia . Siberia has historically been a part of modern Russia since the 16th and 17th centuries .",
+      "title": "Siberia"
+    },
+    {
+      "document_id": "854125397_20898-21349",
+      "text": "The term `` Siberia '' has a long history . Its meaning has gradually changed during ages . Historically , Siberia was defined as the whole part of Russia to the east of Ural Mountains , including the Russian Far East . According to this definition , Siberia extended eastward from the Ural Mountains to the Pacific coast , and southward from the Arctic Ocean to the border of Russian Central Asia and the national borders of both Mongolia and China .",
+      "title": "Siberia"
+    },
+    {
+      "document_id": "854125397_1137-2107",
+      "text": "The territory of Siberia extends eastwards from the Ural Mountains to the watershed between the Pacific and Arctic drainage basins . The Yenisei River conditionally divides Siberia into two parts , Western and Eastern . Siberia stretches southwards from the Arctic Ocean to the hills of north - central Kazakhstan and to the national borders of Mongolia and China . With an area of 13.1 million square kilometres ( 5,100,000 sq mi ) , Siberia accounts for 77 % of Russia 's land area , but it is home to approximately 36 million people -- 27 % of the country 's population . This is equivalent to an average population density of about 3 inhabitants per square kilometre ( 7.8 / sq mi ) ( approximately equal to that of Australia ) , making Siberia one of the most sparsely populated regions on Earth . If it were a country by itself , it would still be the largest country in area , but in population it would be the world 's 35th - largest and Asia 's 14th - largest .",
+      "title": "Siberia"
+    },
+    {
+      "document_id": "804966384_609-1422",
+      "text": "Dada ( / \u02c8d\u0251\u02d0d\u0251\u02d0 / ) or Dadaism was an art movement of the European avant - garde in the early 20th century , with early centers in Z\u00fcrich , Switzerland at the Cabaret Voltaire ( circa 1916 ) ; New York Dada began circa 1915 , and after 1920 Dada flourished in Paris . Developed in reaction to World War I , the Dada movement consisted of artists who rejected the logic , reason , and aestheticism of modern capitalist society , instead expressing nonsense , irrationality , and anti-bourgeois protest in their works . The art of the movement spanned visual , literary , and sound media , including collage , sound poetry , cut - up writing , and sculpture . Dadaist artists expressed their discontent with violence , war , and nationalism , and maintained political affinities with the radical left . Cover",
+      "title": "Dada"
+    },
+    {
+      "document_id": "804966384_5241-5632",
+      "text": "Many Dadaists believed that the ' reason ' and ' logic ' of bourgeois capitalist society had led people into war . They expressed their rejection of that ideology in artistic expression that appeared to reject logic and embrace chaos and irrationality . For example , George Grosz later recalled that his Dadaist art was intended as a protest `` against this world of mutual destruction . ''",
+      "title": "Dada"
+    },
+    {
+      "document_id": "804966384_4264-4724",
+      "text": "Dada was an informal international movement , with participants in Europe and North America . The beginnings of Dada correspond to the outbreak of World War I . For many participants , the movement was a protest against the bourgeois nationalist and colonialist interests , which many Dadaists believed were the root cause of the war , and against the cultural and intellectual conformity -- in art and more broadly in society -- that corresponded to the war .",
+      "title": "Dada"
+    },
+    {
+      "document_id": "800332980_9599-9762",
+      "text": "On September 7 , 1962 President Kennedy formally expanded the Cuban embargo to include all Cuban trade , except for non-subsidized sale of food and medicines . The",
+      "title": "United States embargo against Cuba"
+    },
+    {
+      "document_id": "800332980_257-1955",
+      "text": "The United States embargo against Cuba ( in Cuba called el bloqueo , `` the blockade '' ) is a commercial , economic , and financial embargo imposed by the United States on Cuba . An embargo was first imposed by the United States on sale of arms to Cuba on March 14 , 1958 , during the Fulgencio Batista regime . Again on October 19 , 1960 ( almost two years after the Batista regime was deposed by the Cuban Revolution ) the U.S. placed an embargo on exports to Cuba except for food and medicine after Cuba nationalized American - owned Cuban oil refineries without compensation . On February 7 , 1962 the embargo was extended to include almost all imports . Currently , the Cuban embargo is enforced mainly through six statutes : the Trading with the Enemy Act of 1917 , the Foreign Assistance Act of 1961 , the Cuban Assets Control Regulations of 1963 , the Cuban Democracy Act of 1992 , the Helms -- Burton Act of 1996 , and the Trade Sanctions Reform and Export Enhancement Act of 2000 . The stated purpose of the Cuban Democracy Act of 1992 is to maintain sanctions on Cuba as long as the Cuban government refuses to move toward `` democratization and greater respect for human rights '' . The Helms -- Burton Act further restricted United States citizens from doing business in or with Cuba , and mandated restrictions on giving public or private assistance to any successor government in Havana unless and until certain claims against the Cuban government were met . In 1999 , President Bill Clinton expanded the trade embargo by also disallowing foreign subsidiaries of U.S. companies to trade with Cuba . In 2000 , Clinton authorized the sale of `` humanitarian '' U.S. products to Cuba .",
+      "title": "United States embargo against Cuba"
+    },
+    {
+      "document_id": "800332980_8485-9113",
+      "text": "On January 21 , 1962 , Cuba was expelled from the Organization of American States ( OAS ) by a vote of 14 in favor , one ( Cuba ) against with six abstentions . ( See Cuban relations with the Organization of American States for details of the proceedings . ) Mexico and Ecuador , two abstaining members , argued that the expulsion was not authorized in the OAS Charter . ( Multilateral sanctions were imposed by the OAS on July 26 , 1964 , which were later rescinded on July 29 , 1975 . Cuban relations with the Organization of American States have since improved , and as of June 3 , 2009 , membership suspension was lifted . )",
+      "title": "United States embargo against Cuba"
+    },
+    {
+      "document_id": "835775119_49040-49403",
+      "text": "Each team receives three timeouts per half ( if the game goes to overtime , each team receives additional timeouts ) , making for a total of six timeouts per team in a regulation game . Unused timeouts may not carry over to the second half or overtime . In professional football , a team must have at least one remaining timeout to challenge an official 's call .",
+      "title": "American football rules"
+    },
+    {
+      "document_id": "835775119_9278-9386",
+      "text": "The rules for overtime changed for the 2016 - 2017 season and tweaked again for the 2017 - 2018 season . NFL",
+      "title": "American football rules"
+    },
+    {
+      "document_id": "831663068_54413-54464",
+      "text": "OT Total Patriots 0 6 19 6 34 Falcons 0 21 7 0 0 28",
+      "title": "2016 Atlanta Falcons season"
+    },
+    {
+      "document_id": "847822566_668-924",
+      "text": "`` Do n't Come Around Here No More '' is a song written by Tom Petty of Tom Petty and the Heartbreakers and David A. Stewart of Eurythmics . It was released in February 1985 as the lead single from Tom Petty and the Heartbreakers ' Southern Accents album .",
+      "title": "Don't Come Around Here No More"
+    },
+    {
+      "document_id": "847822566_2507-2689",
+      "text": "Tom Petty -- lead vocals , piano Mike Campbell -- guitar , bass synthesizer Benmont Tench -- string synthesizer Stan Lynch -- drums , percussion Howie Epstein -- bass guitar , vocals",
+      "title": "Don't Come Around Here No More"
+    },
+    {
+      "document_id": "847822566_76-667",
+      "text": "`` Do n't Come Around Here No More '' Single by Tom Petty and the Heartbreakers from the album Southern Accents B - side `` Trailer '' Released February 28 , 1985 Format 7 '' Recorded 1984 Genre Psychedelic rock Length 5 : 07 Label MCA Songwriter ( s ) Tom Petty , David A. Stewart Producer ( s ) Tom Petty , David A. Stewart , Jimmy Iovine Tom Petty and the Heartbreakers singles chronology `` Change of Heart '' ( 1983 ) `` Do n't Come Around Here No More '' ( 1985 ) `` Rebels '' ( 1985 ) `` Change of Heart '' ( 1983 ) `` Do n't Come Around Here No More '' ( 1985 ) `` Rebels '' ( 1985 )",
+      "title": "Don't Come Around Here No More"
+    },
+    {
+      "document_id": "864677801_347-550",
+      "text": "The Bill of Rights Created 1689 Location Parliamentary Archives Author ( s ) Parliament of England Purpose Assert the rights of Parliament and the individual , and ensure a Protestant political supremacy",
+      "title": "Bill of Rights 1689"
+    },
+    {
+      "document_id": "864677801_551-1514",
+      "text": "The Bill of Rights , also known as the English Bill of Rights , is an Act of the Parliament of England that sets out certain basic civil rights and clarifies who would be next to inherit the Crown . It received the Royal Assent on 16 December 1689 and is a restatement in statutory form of the Declaration of Right presented by the Convention Parliament to William III and Mary II in February 1689 , inviting them to become joint sovereigns of England . The Bill of Rights lays down limits on the powers of the monarch and sets out the rights of Parliament , including the requirement for regular parliaments , free elections , and freedom of speech in Parliament . It sets out certain rights of individuals including the prohibition of cruel and unusual punishment and reestablished the right of Protestants to have arms for their defence within the rule of law . Furthermore , the Bill of Rights described and condemned several misdeeds of James II of England .",
+      "title": "Bill of Rights 1689"
+    },
+    {
+      "document_id": "864677801_52-346",
+      "text": "The Bill of Rights Parliament of England Long title An Act Declaring the Rights and Liberties of the Subject and Settling the Succession of the Crown . Citation 1 William & Mary Sess 2 c 2 Dates Royal assent 16 December 1689 Commencement 1689 Status : Amended Revised text of statute as amended",
+      "title": "Bill of Rights 1689"
+    },
+    {
+      "document_id": "846587463_3814-4972",
+      "text": "India has one of the fastest growing service sectors in the world with an annual growth rate above 9 % since 2001 , which contributed to 57 % of GDP in 2012 -- 13 . India has become a major exporter of IT services , Business Process Outsourcing ( BPO ) services , and software services with $154 billion revenue in FY 2017 . This is the fastest - growing part of the economy . The IT industry continues to be the largest private - sector employer in India . India is the third - largest start - up hub in the world with over 3,100 technology start - ups in 2014 -- 15 The agricultural sector is the largest employer in India 's economy but contributes to a declining share of its GDP ( 17 % in 2013 -- 14 ) . India ranks second worldwide in farm output . The industry ( manufacturing ) sector has held a steady share of its economic contribution ( 26 % of GDP in 2013 -- 14 ) . The Indian automobile industry is one of the largest in the world with an annual production of 21.48 million vehicles ( mostly two and three - wheelers ) in 2013 -- 14 . India had $600 billion worth of retail market in 2015 and one of world 's fastest growing e-commerce markets .",
+      "title": "Economy of India"
+    },
+    {
+      "document_id": "846587463_83704-84373",
+      "text": "India has the largest diaspora around the world , an estimated 16 million people , many of whom work overseas and remit funds back to their families . The Middle East region is the largest source of employment of expat Indians . The crude oil production and infrastructure industry of Saudi Arabia employs over 2 million expat Indians . Cities such as Dubai and Abu Dhabi in United Arab Emirates have employed another 2 million Indians during the construction boom in recent decades . In 2009 -- 10 , remittances from Indian migrants overseas stood at \u20b9 2,500 billion ( US $37 billion ) , the highest in the world , but their share in FDI remained low at around 1 % .",
+      "title": "Economy of India"
+    },
+    {
+      "document_id": "846587463_56025-56508",
+      "text": "The retail industry , excluding wholesale , contributed $482 billion ( 22 % of GDP ) and employed 249.94 million people ( 57 % of the workforce ) in 2016 . The industry is the second largest employer in India , after agriculture . The Indian retail market is estimated to be US $600 billion and one of the top - five retail markets in the world by economic value . India has one of the fastest - growing retail markets in the world , and is projected to reach $1.3 trillion by 2020 .",
+      "title": "Economy of India"
+    },
+    {
+      "document_id": "811177829_2519-3219",
+      "text": "Morrison 's most widely recognizable recent role has been as the Salvadoran maid Rosario In\u00e9s Consuelo Yolanda Salazar on the NBC sitcom Will & Grace . She appeared in 68 episodes from 1999 to 2006 ( as well as a brief cameo appearance on the September 2016 Will & Grace webisode in support of Hillary Clinton 's presidential campaign ) . The role was originally created for a brief one - episode appearance , but Rosario was so popular with viewers that she became a recurring character . In addition to sparring with her libertine and very spoiled employer , Karen Walker ( Megan Mullally ) , Rosario married Karen 's gay friend Jack McFarland ( Sean Hayes ) to prevent her impending deportation .",
+      "title": "Shelley Morrison"
+    },
+    {
+      "document_id": "811177829_684-1379",
+      "text": "Shelley Morrison ( born Rachel Mitrani ; October 26 , 1936 ) is an American actress . Early in her career , she was sometimes credited as Rachel Dom\u00ednguez . Morrison has been a theater and television actress since the early 1960s , predominantly as a character actress in ethnic roles . Her most recognizable role has been as the maid Rosario Salazar in the NBC comedy television series Will & Grace , which she played from 1999 to 2006 . She was a regular performer on the sitcom The Flying Nun playing Sister Sixto , a nun known mostly for mangling the English language ; and she continued in television guest roles until securing a recurring role in the soap opera General Hospital in 1982 .",
+      "title": "Shelley Morrison"
+    },
+    {
+      "document_id": "811177829_3220-3950",
+      "text": "Among approximately 25 film appearances and 200 television appearances , Morrison has portrayed a maid or housekeeper on 32 separate occasions . Morrison had just informed her agent not to offer her any more `` maid parts '' when the call came for Will & Grace . In 2017 , NBC revived Will & Grace for a new series of episodes . On August 3 , 2017 , co-creator Max Mutchnick announced to reporters that Morrison had been asked to reprise her role as Salazar on the show , but that she had ultimately decided to retire completely from acting . Although her last official acting role was a voiceover in the 2012 animated film Foodfight ! , her final appearance as an actress was the 2016 election - themed webisode of Will & Grace .",
+      "title": "Shelley Morrison"
+    },
+    {
+      "document_id": "835987187_8481-8566",
+      "text": "Argentina , Canada and Russia are the largest suppliers of cobalt - 60 in the world .",
+      "title": "Cobalt-60"
+    },
+    {
+      "document_id": "835987187_6113-6275",
+      "text": "Cobalt is an element used to make steel . Uncontrolled disposal of Co in scrap metal is responsible for the radioactivity found in several iron - based products .",
+      "title": "Cobalt-60"
+    },
+    {
+      "document_id": "835987187_4392-4908",
+      "text": "Cobalt has been discussed as a `` salting '' element to add to nuclear weapons , to produce a cobalt bomb , an extremely `` dirty '' weapon which would contaminate large areas with Co nuclear fallout , rendering them uninhabitable . In one hypothetical design , the tamper of the weapon would be made of Co . When the bomb exploded , the excess neutrons from the nuclear fission would irradiate the cobalt and transmute it into Co . No nation is known to have done any serious development of this type of weapon . Co",
+      "title": "Cobalt-60"
+    },
+    {
+      "document_id": "845473282_4765-5660",
+      "text": "The coat is known as a `` double coat '' , with the undercoat being soft , downy and equal in length to the guard hairs , which are an even blue with silver tips . However , the tail may have a few very dull , almost unnoticeable stripes . The coat is described as thick , plush and soft to the touch . The feeling is softer than the softest silk . The silver tips give the coat a shimmering appearance . Its eyes are almost always a dark and vivid green . Any white patches of fur or yellow eyes in adulthood are seen as flaws in show cats . Russian Blues should not be confused with British Blues ( which are not a distinct breed , but rather a British Shorthair with a blue coat as the British Shorthair breed itself comes in a wide variety of colors and patterns ) , nor the Chartreux or Korat which are two other naturally occurring breeds of blue cats , although they have similar traits .",
+      "title": "Russian Blue"
+    },
+    {
+      "document_id": "845473282_858-1376",
+      "text": "The Russian Blue is a cat breed that comes in colors varying from a light shimmering silver to a darker , slate grey . They develop close bonds with their owners and are sought out as pets due to their personalities , beauty and coat . It is their short , dense coat which has been the hallmark of the Russian breed for more than a century . The dense coat stands out from the body and one can draw patterns in the coat that will stay until one smoothes them out again . They are also considered to be hypoallergenic .",
+      "title": "Russian Blue"
+    },
+    {
+      "document_id": "845473282_2784-3234",
+      "text": "Russian Blues are plush short - haired , shimmering pale blue - gray cats with emerald green eyes . Guard hairs are distinctly silver - tipped giving the cat a silvery sheen or lustrous appearance . They have been used on a limited basis to create other breeds such as the Havana Brown or alter existing breeds such as the Nebelung . They are being used in Italy as a way to make Oriental Shorthairs healthier and more robust called RUS4OSH in FIFe .",
+      "title": "Russian Blue"
+    }
+  ],
+  "filters": ["category"],
+  "tasks": [
+    {
+      "task_id": "8142593921177883591",
+      "task_type": "rag",
+      "input": [
+        {
+          "speaker": "user",
+          "text": "what happens to hale in sons of anarchy"
+        }
+      ],
+      "contexts": [
+        {
+          "document_id": "834247650_2286-3122"
+        },
+        {
+          "document_id": "834247650_5658-6168"
+        },
+        {
+          "document_id": "837510524_3821-4350"
+        }
+      ],
+      "annotations": {
+        "context_relevance": {
+          "1803645": [0, 1],
+          "1803644": [0, 1, 2],
+          "1803666": []
+        }
+      },
+      "category": "test-1",
+      "targets": [
+        {
+          "text": "In the season premiere, Hale is first seen moving into the office of the chief. Later in the episode, Hale keeps vigil over Half-Sack's funeral which is being attended by numerous Sons Of Anarchy members and associates. Even later into the funeral, an unknown party, later revealed to be the Calaveras MC, commits a drive-by shooting, injuring and killing several attendees. Hale tries to stop them by getting in front of their van and firing at the driver, but is killed when the vehicle runs him over."
+        }
+      ]
+    },
+    {
+      "task_id": "8074663367424236737",
+      "task_type": "rag",
+      "input": [
+        {
+          "speaker": "user",
+          "text": "why was the eastern roman empire called the byzantine empire"
+        }
+      ],
+      "contexts": [
+        {
+          "document_id": "854291373_38492-38710"
+        },
+        {
+          "document_id": "804622010_2184-3139"
+        },
+        {
+          "document_id": "804622010_8948-9517"
+        }
+      ],
+      "annotations": {
+        "context_relevance": {
+          "1803662": [1],
+          "1803666": [1, 2],
+          "1803644": [0, 1, 2]
+        }
+      },
+
+      "category": "test-1",
+      "targets": [
+        {
+          "text": "The Byzantine Empire, also referred to as the Eastern Roman Empire, was the continuation of the Roman Empire in the East during Late Antiquity and the Middle Ages, when its capital city was Constantinople which had been founded as Byzantium.  Both \"Byzantine Empire'' and \"Eastern Roman Empire'' are historiographical terms created after the end of the realm."
+        }
+      ]
+    },
+    {
+      "task_id": "-8255622330472014268",
+      "task_type": "rag",
+      "input": [
+        {
+          "speaker": "user",
+          "text": "how old is the wife of president of france"
+        }
+      ],
+      "contexts": [
+        {
+          "document_id": "800323045_74-628"
+        },
+        {
+          "document_id": "800323045_629-1135"
+        },
+        {
+          "document_id": "800323045_2461-2793"
+        }
+      ],
+      "annotations": {
+        "context_relevance": {
+          "1803650": [0, 1, 2],
+          "1803645": [0, 1],
+          "1803666": [0, 1]
+        }
+      },
+      "category": "test-1",
+      "targets": [
+        {
+          "text": "Brigitte Marie - Claude Macron, the wife of the President of the French Republic, Emmanuel Macron, was born on 13 April 1953."
+        }
+      ]
+    },
+    {
+      "task_id": "7321027163416439028",
+      "task_type": "rag",
+      "input": [
+        {
+          "speaker": "user",
+          "text": "who sang the song the reverend mr black"
+        }
+      ],
+      "contexts": [
+        {
+          "document_id": "826942928_588-1047"
+        },
+        {
+          "document_id": "826942928_315-587"
+        },
+        {
+          "document_id": "826942928_58-314"
+        }
+      ],
+      "annotations": {
+        "context_relevance": {
+          "1803666": [0, 1],
+          "1803650": [0, 1],
+          "1803644": [0, 1]
+        }
+      },
+      "category": "test-2",
+      "targets": [
+        {
+          "text": "The Reverend Mr. Black was recorded by The Kingston Trio in 1963 for their album and covered for the album by Johnny Cash The Baron."
+        }
+      ]
+    },
+    {
+      "task_id": "-8827209331783633212",
+      "task_type": "rag",
+      "input": [
+        {
+          "speaker": "user",
+          "text": "price of ps3 when it first came out"
+        }
+      ],
+      "contexts": [
+        {
+          "document_id": "836192773_8246-8728"
+        },
+        {
+          "document_id": "836192773_8729-9552"
+        },
+        {
+          "document_id": "836192773_45157-46033"
+        }
+      ],
+      "annotations": {
+        "context_relevance": {
+          "1803662": [1, 2],
+          "1803645": [1, 2],
+          "1803644": [0, 1, 2]
+        }
+      },
+      "category": "test-2",
+      "targets": [
+        {
+          "text": "There were two hardware configurations were  announced for the console : a 20 GB model and a 60 GB model , priced at US $499 ( \u20ac 499 ) and US $599 ( \u20ac 599 ) , respectively ."
+        }
+      ]
+    },
+    {
+      "task_id": "-8968924461127428093",
+      "task_type": "rag",
+      "input": [
+        {
+          "speaker": "user",
+          "text": "what episode of family guy does meg get pregnant"
+        }
+      ],
+      "contexts": [
+        {
+          "document_id": "824030591_1791-3187"
+        },
+        {
+          "document_id": "824030591_525-876"
+        },
+        {
+          "document_id": "821374809_3542-4053"
+        }
+      ],
+      "annotations": {
+        "context_relevance": {
+          "1803666": [],
+          "1803650": [0],
+          "1803645": [0, 1]
+        }
+      },
+      "category": "test-2",
+      "targets": [
+        {
+          "text": "The episode that ends with Peter introducing a live action clip of Conway Twitty is the one where Meg shocks the family when she announces that she is pregnant."
+        }
+      ]
+    },
+    {
+      "task_id": "1000447235989441874",
+      "task_type": "rag",
+      "input": [
+        {
+          "speaker": "user",
+          "text": "what is the difference between a word and a morpheme"
+        }
+      ],
+      "contexts": [
+        {
+          "document_id": "836794862_714-1443"
+        },
+        {
+          "document_id": "836794862_9057-9201"
+        },
+        {
+          "document_id": "836794862_2856-3364"
+        }
+      ],
+      "annotations": {
+        "context_relevance": {
+          "1803662": [0, 2],
+          "1803650": [0, 2],
+          "1803645": [0, 2]
+        }
+      },
+      "category": "test-2",
+      "targets": [
+        {
+          "text": "A morpheme is not identical to a word , and the principal difference between the two is that a morpheme may or may not stand alone , whereas a word , by definition , is freestanding . Every word comprises one or more morphemes ."
+        }
+      ]
+    },
+    {
+      "task_id": "-7063680354960177161",
+      "task_type": "rag",
+      "input": [
+        {
+          "speaker": "user",
+          "text": "how do they determine home court advantage in the nba finals"
+        }
+      ],
+      "contexts": [
+        {
+          "document_id": "857079653_3862-4507"
+        },
+        {
+          "document_id": "799489619_18840-19104"
+        },
+        {
+          "document_id": "826237932_8631-8920"
+        }
+      ],
+      "annotations": {
+        "context_relevance": {
+          "1803666": [0],
+          "1803650": [0],
+          "1803645": [0]
+        }
+      },
+      "category": "test-1",
+      "targets": [
+        {
+          "text": "The rule for determining home court advantage in the NBA Finals is winning percentage , then head to head record , followed by record vs. opposite conference ."
+        }
+      ]
+    },
+    {
+      "task_id": "-3301882905827031751",
+      "task_type": "rag",
+      "input": [
+        {
+          "speaker": "user",
+          "text": "what are the three components of the fire triangle"
+        }
+      ],
+      "contexts": [
+        {
+          "document_id": "843757803_4704-4804"
+        },
+        {
+          "document_id": "843757803_460-1137"
+        },
+        {
+          "document_id": "843757803_1439-2082"
+        }
+      ],
+      "annotations": {
+        "context_relevance": {
+          "1803662": [1],
+          "1803645": [0, 1],
+          "1803666": [0, 1, 2]
+        }
+      },
+      "category": "test-1",
+      "targets": [
+        {
+          "text": "The triangle illustrates the three elements a fire needs to ignite : heat , fuel , and an oxidizing agent ( usually\noxygen ).  A fire naturally occurs when the elements are present and combined in the right mixture."
+        }
+      ]
+    },
+    {
+      "task_id": "-4900135979828185332",
+      "task_type": "rag",
+      "input": [
+        {
+          "speaker": "user",
+          "text": "where did the celts come from before ireland"
+        }
+      ],
+      "contexts": [
+        {
+          "document_id": "852484941_14789-15346"
+        },
+        {
+          "document_id": "852484941_4164-5668"
+        },
+        {
+          "document_id": "852484941_13779-14098"
+        }
+      ],
+      "annotations": {
+        "context_relevance": {
+          "1803662": [0, 1, 2],
+          "1803666": [0, 1, 2],
+          "1803645": [0, 1, 2]
+        }
+      },
+      "category": "test-2",
+      "targets": [
+        {
+          "text": "The history of pre-Celtic Europe and the exact relationship between ethnic, linguistic and cultural factors in the Celtic world remains uncertain and controversial.   According to one theory, the common root of the Celtic languages, the Proto - Celtic language, arose in the Late Bronze Age Urnfield culture of Central Europe, and the other theory proposed in the 19th century believes that the Celtic culture is adopted first by the people of the Iron Age Hallstatt culture also in central Europe."
+        }
+      ]
+    },
+    {
+      "task_id": "-2951084596378848197",
+      "task_type": "rag",
+      "input": [
+        {
+          "speaker": "user",
+          "text": "who was the doctor that led the research on cte and was criticized by the nfl"
+        }
+      ],
+      "contexts": [
+        {
+          "document_id": "826061047_5506-6627"
+        },
+        {
+          "document_id": "826061047_7591-7998"
+        },
+        {
+          "document_id": "826061047_6951-7590"
+        }
+      ],
+      "annotations": {
+        "context_relevance": {
+          "1803666": [0, 1, 2],
+          "1803650": [0, 2],
+          "1803645": [0]
+        }
+      },
+      "category": "test-3",
+      "targets": [
+        {
+          "text": "Bennet Omalu and colleagues of the Department of Pathology at the University of Pittsburgh published his findings on ``Chronic Traumatic Encephalopathy in a National Football League Player.'' in the journal of Neurosurgery. In 2006 members of the NFL 's Mild Traumatic Brain Injury ( MTBI ) Committee later called for its retraction,, calling the paper completely wrong."
+        }
+      ]
+    },
+    {
+      "task_id": "-7492408127458093340",
+      "task_type": "rag",
+      "input": [
+        {
+          "speaker": "user",
+          "text": "where does the last name segovia come from"
+        }
+      ],
+      "contexts": [
+        {
+          "document_id": "797382264_1800-2307"
+        },
+        {
+          "document_id": "797382264_1121-1299"
+        },
+        {
+          "document_id": "797382264_2308-2463"
+        }
+      ],
+      "annotations": {
+        "context_relevance": {
+          "1803662": [0],
+          "1803650": [0, 1, 2],
+          "1803645": [0]
+        }
+      },
+      "category": "test-3",
+      "targets": [
+        {
+          "text": "The name of Segovia is of Celtiberian origin . It comes from two terms of the Celtiberian language of the Celtic branch of Indo - European ."
+        }
+      ]
+    },
+    {
+      "task_id": "-3641307514429228391",
+      "task_type": "rag",
+      "input": [
+        {
+          "speaker": "user",
+          "text": "what is the exchange particle for strong nuclear force"
+        }
+      ],
+      "contexts": [
+        {
+          "document_id": "813917407_16977-17586"
+        },
+        {
+          "document_id": "813917407_2619-3117"
+        },
+        {
+          "document_id": "813917407_272-1760"
+        }
+      ],
+      "annotations": {
+        "context_relevance": {
+          "1803666": [0, 1],
+          "1803650": [0, 1],
+          "1803645": [1]
+        }
+      },
+      "category": "test-1",
+      "targets": [
+        {
+          "text": "The nuclear force, resulting from the exchange of mesons between neighboring nucleons, is a residual effect of the strong force."
+        }
+      ]
+    },
+    {
+      "task_id": "-4691971538237144548",
+      "task_type": "rag",
+      "input": [
+        {
+          "speaker": "user",
+          "text": "who talks for simba in the lion king"
+        }
+      ],
+      "contexts": [
+        {
+          "document_id": "844352160_72-907"
+        },
+        {
+          "document_id": "854473906_3996-4256"
+        },
+        {
+          "document_id": "844352160_5377-6367"
+        }
+      ],
+      "annotations": {
+        "context_relevance": {
+          "1803666": [0, 1, 2],
+          "1803662": [0, 1, 2],
+          "1803644": [0, 1, 2]
+        }
+      },
+      "category": "test-3",
+      "targets": [
+        {
+          "text": "Matthew Broderick provided the speaking voice of Adult Simba and Jonathan Taylor Thomas was cast as the speaking voice of Young Simba ."
+        }
+      ]
+    },
+    {
+      "task_id": "8394238569735603187",
+      "task_type": "rag",
+      "input": [
+        {
+          "speaker": "user",
+          "text": "how did jessica jones get her powers in the show"
+        }
+      ],
+      "contexts": [
+        {
+          "document_id": "842402029_13680-14607"
+        },
+        {
+          "document_id": "842402029_15182-15282"
+        },
+        {
+          "document_id": "842402029_14608-14891"
+        }
+      ],
+      "annotations": {
+        "context_relevance": {
+          "1803666": [0],
+          "1803650": [0, 1, 2],
+          "1803645": [0]
+        }
+      },
+      "category": "test-3",
+      "targets": [
+        {
+          "text": "Jessica Jones's radiation exposure when the car she was in collided with a military convoy carrying radioactive chemicals granted her super strength , limited invulnerability, and flight."
+        }
+      ]
+    },
+    {
+      "task_id": "67651437175855293",
+      "task_type": "rag",
+      "input": [
+        {
+          "speaker": "user",
+          "text": "what's the difference between russia and siberia"
+        }
+      ],
+      "contexts": [
+        {
+          "document_id": "854125397_827-1136"
+        },
+        {
+          "document_id": "854125397_20898-21349"
+        },
+        {
+          "document_id": "854125397_1137-2107"
+        }
+      ],
+      "annotations": {
+        "context_relevance": {
+          "1803650": [0, 1, 2],
+          "1803645": [],
+          "1803644": [0, 1]
+        }
+      },
+      "category": "test-1",
+      "targets": [
+        {
+          "text": "Siberia accounts for 77 % of Russia's land area, but it is home to approximately 36 million people -- 27 % of the country's population."
+        }
+      ]
+    },
+    {
+      "task_id": "7663406429430503589",
+      "task_type": "rag",
+      "input": [
+        {
+          "speaker": "user",
+          "text": "who were the dadaists and what did they do"
+        }
+      ],
+      "contexts": [
+        {
+          "document_id": "804966384_609-1422"
+        },
+        {
+          "document_id": "804966384_5241-5632"
+        },
+        {
+          "document_id": "804966384_4264-4724"
+        }
+      ],
+      "annotations": {
+        "context_relevance": {
+          "1803662": [0, 1, 2],
+          "1803650": [0, 1, 2],
+          "1803645": [0, 1, 2]
+        }
+      },
+      "category": "test-2",
+      "targets": [
+        {
+          "text": "Dadaist includes artists who rejected the logic, reason, and aestheticism of modern capitalist society, instead expressing nonsense, irrationality, and anti-bourgeois protest in their works. Dadaist artists expressed their discontent with violence, war, and nationalism, and maintained political affinities with the radical left."
+        }
+      ]
+    },
+    {
+      "task_id": "-2399489377049908954",
+      "task_type": "rag",
+      "input": [
+        {
+          "speaker": "user",
+          "text": "when did the us place an embargo on cuba"
+        }
+      ],
+      "contexts": [
+        {
+          "document_id": "800332980_9599-9762"
+        },
+        {
+          "document_id": "800332980_257-1955"
+        },
+        {
+          "document_id": "800332980_8485-9113"
+        }
+      ],
+      "annotations": {
+        "context_relevance": {
+          "1803662": [0, 1],
+          "1803650": [0, 1, 2],
+          "1803645": [0, 1]
+        }
+      },
+      "category": "test-3",
+      "targets": [
+        {
+          "text": "An embargo was first imposed by the United States on sale of arms to Cuba on March 14, 1958, during the Fulgencio Batista regime. On October 19, 1960, the U.S. placed an embargo on exports to Cuba except for food and medicine after Cuba nationalized American-owned Cuban oil refineries without compensation. On February 7, 1962 the embargo was extended to include almost all imports. Currently, the Cuban embargo is enforced mainly through six statutes: the Trading with the Enemy Act of 1917, the Foreign Assistance Act of 1961, the Cuban Assets Control Regulations of 1963, the Cuban Democracy Act of 1992, the Helms--Burton Act of 1996, and the Trade Sanctions Reform and Export Enhancement Act of 2000. In 1999, President Bill Clinton expanded the trade embargo by also disallowing foreign subsidiaries of U.S. companies to trade with Cuba."
+        }
+      ]
+    },
+    {
+      "task_id": "-7090705350443894352",
+      "task_type": "rag",
+      "input": [
+        {
+          "speaker": "user",
+          "text": "how many ots are there in the nfl"
+        }
+      ],
+      "contexts": [
+        {
+          "document_id": "835775119_49040-49403"
+        },
+        {
+          "document_id": "835775119_9278-9386"
+        },
+        {
+          "document_id": "831663068_54413-54464"
+        }
+      ],
+      "annotations": {
+        "context_relevance": {
+          "1803666": [0],
+          "1803662": [2],
+          "1803650": [0, 1]
+        }
+      },
+      "category": "test-1",
+      "targets": [
+        {
+          "text": "During the regular season in the NFL , only one overtime period is played, whereas in the playoffs , 15 - minute overtime periods continue until a winner is determined ."
+        }
+      ]
+    },
+    {
+      "task_id": "2465071880314423467",
+      "task_type": "rag",
+      "input": [
+        {
+          "speaker": "user",
+          "text": "tom petty don't come around here no more meaning"
+        }
+      ],
+      "contexts": [
+        {
+          "document_id": "847822566_668-924"
+        },
+        {
+          "document_id": "847822566_2507-2689"
+        },
+        {
+          "document_id": "847822566_76-667"
+        }
+      ],
+      "annotations": {
+        "context_relevance": {
+          "1803666": [0, 2],
+          "1803662": [],
+          "1803650": [0, 1, 2]
+        }
+      },
+
+      "category": "test-3",
+      "targets": [
+        {
+          "text": "The original inspiration was a romantic encounter that producer David A. Stewart of Eurythmics had with Stevie Nicks of Fleetwood Mac. Stevie Nicks had broken up with Eagles guitarist Joe Walsh the night before. Later that morning she told him, ``Don't come around here no more.''"
+        }
+      ]
+    },
+    {
+      "task_id": "5539784155984675927",
+      "task_type": "rag",
+      "input": [
+        {
+          "speaker": "user",
+          "text": "what's the purpose of the english bill of rights"
+        }
+      ],
+      "contexts": [
+        {
+          "document_id": "864677801_347-550"
+        },
+        {
+          "document_id": "864677801_551-1514"
+        },
+        {
+          "document_id": "864677801_52-346"
+        }
+      ],
+      "annotations": {
+        "context_relevance": {
+          "1803662": [0, 1, 2],
+          "1803666": [0, 1, 2],
+          "1803645": [0, 1]
+        }
+      },
+      "category": "test-1",
+      "targets": [
+        {
+          "text": "The Bill of Rights sets out certain basic civil rights and clarifies who would be next to inherit the Crown ; it lays down limits on the powers of the monarch and sets out the rights of Parliament , including the requirement for regular parliaments , free elections , and freedom of speech in Parliament; and It sets out certain rights of individuals including the prohibition of cruel and unusual punishment and reestablished the right of Protestants to have arms for their defence within the rule of law ."
+        }
+      ]
+    },
+    {
+      "task_id": "4934935867385951010",
+      "task_type": "rag",
+      "input": [
+        {
+          "speaker": "user",
+          "text": "which industry provides the largest employment in india"
+        }
+      ],
+      "contexts": [
+        {
+          "document_id": "846587463_3814-4972"
+        },
+        {
+          "document_id": "846587463_83704-84373"
+        },
+        {
+          "document_id": "846587463_56025-56508"
+        }
+      ],
+      "annotations": {
+        "context_relevance": {
+          "1803662": [0, 2],
+          "1803645": [0, 2],
+          "1803663": [0, 2]
+        }
+      },
+      "category": "test-3",
+      "targets": [
+        {
+          "text": "The IT industry continues to be the largest private - sector employer in India, and the agricultural sector is the largest employer in India 's economy."
+        }
+      ]
+    },
+    {
+      "task_id": "-3066832486070706632",
+      "task_type": "rag",
+      "input": [
+        {
+          "speaker": "user",
+          "text": "who played rosario on will & grace and is she still alive"
+        }
+      ],
+      "contexts": [
+        {
+          "document_id": "811177829_2519-3219"
+        },
+        {
+          "document_id": "811177829_684-1379"
+        },
+        {
+          "document_id": "811177829_3220-3950"
+        }
+      ],
+      "annotations": {
+        "context_relevance": {
+          "1803666": [0, 1, 2],
+          "1803662": [0, 1, 2],
+          "1803645": [0, 1]
+        }
+      },
+      "category": "test-1",
+      "targets": [
+        {
+          "text": "Shelley Morrison's most recognizable role has been as the maid Rosario Salazar in the NBC comedy television series Will & Grace."
+        }
+      ]
+    },
+    {
+      "task_id": "3314412235054309162",
+      "task_type": "rag",
+      "input": [
+        {
+          "speaker": "user",
+          "text": "where would a commercial quantity of cobalt-60 be produced"
+        }
+      ],
+      "contexts": [
+        {
+          "document_id": "835987187_8481-8566"
+        },
+        {
+          "document_id": "835987187_6113-6275"
+        },
+        {
+          "document_id": "835987187_4392-4908"
+        }
+      ],
+      "annotations": {
+        "context_relevance": {
+          "1803666": [0],
+          "1803645": [],
+          "1803644": [0, 2]
+        }
+      },
+      "category": "test-3",
+      "targets": [
+        {
+          "text": "It is produced artificially in nuclear reactors.  Measurable quantities are also produced as a by - product of typical nuclear power plant operation."
+        }
+      ]
+    },
+    {
+      "task_id": "-1218875241352839456",
+      "task_type": "rag",
+      "input": [
+        {
+          "speaker": "user",
+          "text": "difference between russian blue and british blue cat"
+        }
+      ],
+      "contexts": [
+        {
+          "document_id": "845473282_4765-5660"
+        },
+        {
+          "document_id": "845473282_858-1376"
+        },
+        {
+          "document_id": "845473282_2784-3234"
+        }
+      ],
+      "annotations": {
+        "context_relevance": {
+          "1803666": [0],
+          "1803662": [0],
+          "1803650": [0]
+        }
+      },
+      "category": "test-2",
+      "targets": [
+        {
+          "text": "The Russian Blue cat's coat is known as a `` double coat '' , with the undercoat being soft , downy and equal in length to the guard hairs , which are an even blue with silver tips. The silver tips give the coat a shimmering appearance. Its tail may have a few very dull stripes. Its eyes are almost always a dark and vivid green.\r\nThe British Blue cat is just a British Shorthair with a blue coat."
+        }
+      ]
+    }
+  ],
+  "evaluations": [
+    {
+      "task_id": "8142593921177883591",
+      "model_id": "model_a",
+      "model_response": "Cornelia Hale, also known as \"Hale,\" is a character from the television series W.I.T.C.H. She is not the same as the character named Hale from Prison Break, although they share a name. The character named Hale in Sons of Anarchy is Deputy Chief Daniel Hale, who is involved in the leadership of the Sons of Anarchy Motorcycle Club and becomes an important figure in the series. He is killed in the series, but his death is not shown in the document provided.",
+      "annotations": {
+        "Recall": {
+          "system": {
+            "value": 0.233766233766233
+          }
+        },
+        "RougeL": {
+          "system": {
+            "value": 0.204545454545454
+          }
+        },
+        "Bert-Prec": {
+          "system": {
+            "value": 0.028556333854794003
+          }
+        },
+        "Bert-Rec": {
+          "system": {
+            "value": 0.073931448161602
+          }
+        },
+        "Bert-KPrec": {
+          "system": {
+            "value": -0.029320556670427003
+          }
+        },
+        "Extractiveness_RougeL": {
+          "system": {
+            "value": 0.109090909090909
+          }
+        },
+        "Length": {
+          "system": {
+            "value": 458
+          }
+        },
+        "answerability_accuracy": {
+          "system": {
+            "value": "True Positive"
+          }
+        },
+        "fm_groundedness": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_groundedness_reason": {
+          "system": {
+            "value": "The character named Hale in Sons of Anarchy is Deputy Chief Daniel Hale , who is involved in the leadership of the Sons of Anarchy Motorcycle Club and eventually becomes an important figure in the series."
+          }
+        },
+        "fm_pertinence": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_pertinence_reason": {
+          "system": {
+            "value": ""
+          }
+        },
+        "naturalness": {
+          "1803645": {
+            "value": 4
+          },
+          "1803644": {
+            "value": 4
+          },
+          "1803666": {
+            "value": 3
+          }
+        },
+        "appropriateness": {
+          "1803645": {
+            "value": 3
+          },
+          "1803644": {
+            "value": 4
+          },
+          "1803666": {
+            "value": 1
+          }
+        },
+        "faithfulness": {
+          "1803645": {
+            "value": 1
+          },
+          "1803644": {
+            "value": 4
+          },
+          "1803666": {
+            "value": 1
+          }
+        },
+        "naturalness_reason": {
+          "1803645": {
+            "value": ""
+          },
+          "1803644": {
+            "value": ""
+          },
+          "1803666": {
+            "value": ""
+          }
+        },
+        "appropriateness_reason": {
+          "1803645": {
+            "value": ""
+          },
+          "1803644": {
+            "value": ""
+          },
+          "1803666": {
+            "value": ""
+          }
+        },
+        "faithfulness_reason": {
+          "1803645": {
+            "value": ""
+          },
+          "1803644": {
+            "value": ""
+          },
+          "1803666": {
+            "value": ""
+          }
+        }
+      }
+    },
+    {
+      "task_id": "8074663367424236737",
+      "model_id": "model_a",
+      "model_response": "The Eastern Roman Empire was called the Byzantine Empire because, despite having a multi-ethnic character and preserving Romano-Hellenistic traditions, it became increasingly identified with its Greek element. This is evident in the occasional use of the term \"Empire of the Greeks\" in the West to refer to the Eastern Roman Empire and the Byzantine Emperor being referred to as \"Imperator Graecorum\" (Emperor of the Greeks). This was done to distinguish it from the prestige of the Roman Empire in the new kingdoms of the West.",
+      "annotations": {
+        "Recall": {
+          "system": {
+            "value": 0.46938775510204006
+          }
+        },
+        "RougeL": {
+          "system": {
+            "value": 0.263888888888888
+          }
+        },
+        "Bert-Prec": {
+          "system": {
+            "value": 0.042090758681297004
+          }
+        },
+        "Bert-Rec": {
+          "system": {
+            "value": 0.109292313456535
+          }
+        },
+        "Bert-KPrec": {
+          "system": {
+            "value": -0.09341863542795101
+          }
+        },
+        "Extractiveness_RougeL": {
+          "system": {
+            "value": 0.26446280991735505
+          }
+        },
+        "Length": {
+          "system": {
+            "value": 528
+          }
+        },
+        "answerability_accuracy": {
+          "system": {
+            "value": "True Positive"
+          }
+        },
+        "fm_groundedness": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_groundedness_reason": {
+          "system": {
+            "value": "The Byzantine Empire , also referred to as the Eastern Roman Empire , was the continuation of the Roman Empire in the East during Late Antiquity and the Middle Ages , when its capital city was Constantinople ( modern - day Istanbul , which had been founded as Byzantium ) . Both  Byzantine Empire '' and  Eastern Roman Empire '' are historiographical terms created after the end of the realm ; its citizens continued to refer to their empire as the Roman Empire ( Greek :"
+          }
+        },
+        "fm_pertinence": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_pertinence_reason": {
+          "system": {
+            "value": ""
+          }
+        },
+        "naturalness": {
+          "1803662": {
+            "value": 4
+          },
+          "1803666": {
+            "value": 3
+          },
+          "1803644": {
+            "value": 4
+          }
+        },
+        "appropriateness": {
+          "1803662": {
+            "value": 3
+          },
+          "1803666": {
+            "value": 4
+          },
+          "1803644": {
+            "value": 4
+          }
+        },
+        "faithfulness": {
+          "1803662": {
+            "value": 3
+          },
+          "1803666": {
+            "value": 4
+          },
+          "1803644": {
+            "value": 4
+          }
+        },
+        "naturalness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803666": {
+            "value": ""
+          },
+          "1803644": {
+            "value": ""
+          }
+        },
+        "appropriateness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803666": {
+            "value": ""
+          },
+          "1803644": {
+            "value": ""
+          }
+        },
+        "faithfulness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803666": {
+            "value": ""
+          },
+          "1803644": {
+            "value": ""
+          }
+        }
+      }
+    },
+    {
+      "task_id": "-8255622330472014268",
+      "model_id": "model_a",
+      "model_response": "Brigitte Macron was born on April 13, 1953, making her 64 years old as of 2017, the year her husband, Emmanuel Macron, became the President of the French Republic.",
+      "annotations": {
+        "Recall": {
+          "system": {
+            "value": 0.8571428571428571
+          }
+        },
+        "RougeL": {
+          "system": {
+            "value": 0.27027027027027
+          }
+        },
+        "Bert-Prec": {
+          "system": {
+            "value": 0.16879931092262201
+          }
+        },
+        "Bert-Rec": {
+          "system": {
+            "value": 0.5430504679679871
+          }
+        },
+        "Bert-KPrec": {
+          "system": {
+            "value": 0.24625013768672901
+          }
+        },
+        "Extractiveness_RougeL": {
+          "system": {
+            "value": 0.162162162162162
+          }
+        },
+        "Length": {
+          "system": {
+            "value": 163
+          }
+        },
+        "answerability_accuracy": {
+          "system": {
+            "value": "True Positive"
+          }
+        },
+        "fm_groundedness": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_groundedness_reason": {
+          "system": {
+            "value": "The personal details of Brigitte Macron state that she was born on April 13 , 1953 , which means she was 64 years old as of 2017 ."
+          }
+        },
+        "fm_pertinence": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_pertinence_reason": {
+          "system": {
+            "value": ""
+          }
+        },
+        "appropriateness": {
+          "1803650": {
+            "value": 4
+          },
+          "1803645": {
+            "value": 4
+          },
+          "1803666": {
+            "value": 4
+          }
+        },
+        "naturalness": {
+          "1803650": {
+            "value": 3
+          },
+          "1803645": {
+            "value": 4
+          },
+          "1803666": {
+            "value": 3
+          }
+        },
+        "faithfulness": {
+          "1803650": {
+            "value": 4
+          },
+          "1803645": {
+            "value": 4
+          },
+          "1803666": {
+            "value": 4
+          }
+        },
+        "naturalness_reason": {
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          },
+          "1803666": {
+            "value": ""
+          }
+        },
+        "appropriateness_reason": {
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          },
+          "1803666": {
+            "value": ""
+          }
+        },
+        "faithfulness_reason": {
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          },
+          "1803666": {
+            "value": ""
+          }
+        }
+      }
+    },
+    {
+      "task_id": "7321027163416439028",
+      "model_id": "model_a",
+      "model_response": "The Kingston Trio sang the song \"The Reverend Mr. Black.\"",
+      "annotations": {
+        "Recall": {
+          "system": {
+            "value": 0.23809523809523803
+          }
+        },
+        "RougeL": {
+          "system": {
+            "value": 0.28571428571428503
+          }
+        },
+        "Bert-Prec": {
+          "system": {
+            "value": 0.5584421157836911
+          }
+        },
+        "Bert-Rec": {
+          "system": {
+            "value": 0.21629360318183902
+          }
+        },
+        "Bert-KPrec": {
+          "system": {
+            "value": 0.5669122338294981
+          }
+        },
+        "Extractiveness_RougeL": {
+          "system": {
+            "value": 0.127659574468085
+          }
+        },
+        "Length": {
+          "system": {
+            "value": 57
+          }
+        },
+        "answerability_accuracy": {
+          "system": {
+            "value": "True Positive"
+          }
+        },
+        "fm_groundedness": {
+          "system": {
+            "value": "No"
+          }
+        },
+        "fm_groundedness_reason": {
+          "system": {
+            "value": "The article needs additional citations for verification."
+          }
+        },
+        "fm_pertinence": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_pertinence_reason": {
+          "system": {
+            "value": ""
+          }
+        },
+        "naturalness": {
+          "1803666": {
+            "value": 3
+          },
+          "1803650": {
+            "value": 2
+          },
+          "1803644": {
+            "value": 4
+          }
+        },
+        "appropriateness": {
+          "1803666": {
+            "value": 3
+          },
+          "1803650": {
+            "value": 4
+          },
+          "1803644": {
+            "value": 4
+          }
+        },
+        "faithfulness": {
+          "1803666": {
+            "value": 4
+          },
+          "1803650": {
+            "value": 3
+          },
+          "1803644": {
+            "value": 4
+          }
+        },
+        "naturalness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803644": {
+            "value": ""
+          }
+        },
+        "appropriateness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803644": {
+            "value": ""
+          }
+        },
+        "faithfulness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803644": {
+            "value": ""
+          }
+        }
+      }
+    },
+    {
+      "task_id": "-8827209331783633212",
+      "model_id": "model_a",
+      "model_response": "The original price of the 20 GB PlayStation 3 was US $499, and the 60 GB model was priced at US $599.",
+      "annotations": {
+        "Recall": {
+          "system": {
+            "value": 0.5
+          }
+        },
+        "RougeL": {
+          "system": {
+            "value": 0.43478260869565205
+          }
+        },
+        "Bert-Prec": {
+          "system": {
+            "value": 0.5593851208686821
+          }
+        },
+        "Bert-Rec": {
+          "system": {
+            "value": 0.44576457142829806
+          }
+        },
+        "Bert-KPrec": {
+          "system": {
+            "value": 0.08830763399600901
+          }
+        },
+        "Extractiveness_RougeL": {
+          "system": {
+            "value": 0.115384615384615
+          }
+        },
+        "Length": {
+          "system": {
+            "value": 101
+          }
+        },
+        "answerability_accuracy": {
+          "system": {
+            "value": "True Positive"
+          }
+        },
+        "fm_groundedness": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_groundedness_reason": {
+          "system": {
+            "value": "The 20 GB model was priced at US $499, and the 60 GB model was priced at US $599."
+          }
+        },
+        "fm_pertinence": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_pertinence_reason": {
+          "system": {
+            "value": ""
+          }
+        },
+        "naturalness": {
+          "1803662": {
+            "value": 4
+          },
+          "1803645": {
+            "value": 3
+          },
+          "1803644": {
+            "value": 4
+          }
+        },
+        "appropriateness": {
+          "1803662": {
+            "value": 3
+          },
+          "1803645": {
+            "value": 4
+          },
+          "1803644": {
+            "value": 4
+          }
+        },
+        "faithfulness": {
+          "1803662": {
+            "value": 3
+          },
+          "1803645": {
+            "value": 4
+          },
+          "1803644": {
+            "value": 4
+          }
+        },
+        "naturalness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          },
+          "1803644": {
+            "value": ""
+          }
+        },
+        "appropriateness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          },
+          "1803644": {
+            "value": ""
+          }
+        },
+        "faithfulness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          },
+          "1803644": {
+            "value": ""
+          }
+        }
+      }
+    },
+    {
+      "task_id": "-8968924461127428093",
+      "model_id": "model_a",
+      "model_response": "The episode of Family Guy where Meg gets pregnant is the eighth episode of the sixth season, titled \"Peter's Daughter.\" This episode originally aired on November 25, 2007. In this episode, a flood hits Quahog, and Meg winds up in the hospital in a coma. An over-protective Peter vows to take extra care of her. As a side plot, Stewie and Brian decide to renovate a wrecked house and sell it to get rich. However, the main focus of the episode is the joyful announcement of Meg's pregnancy by Phoebe.",
+      "annotations": {
+        "Recall": {
+          "system": {
+            "value": 0.36
+          }
+        },
+        "RougeL": {
+          "system": {
+            "value": 0.131147540983606
+          }
+        },
+        "Bert-Prec": {
+          "system": {
+            "value": 0.096482008695602
+          }
+        },
+        "Bert-Rec": {
+          "system": {
+            "value": 0.29898238182067804
+          }
+        },
+        "Bert-KPrec": {
+          "system": {
+            "value": 0.118894323706626
+          }
+        },
+        "Extractiveness_RougeL": {
+          "system": {
+            "value": 0.126126126126126
+          }
+        },
+        "Length": {
+          "system": {
+            "value": 499
+          }
+        },
+        "answerability_accuracy": {
+          "system": {
+            "value": "True Positive"
+          }
+        },
+        "fm_groundedness": {
+          "system": {
+            "value": "No"
+          }
+        },
+        "fm_groundedness_reason": {
+          "system": {
+            "value": "Meg does not get pregnant in the episode \"The One with the Embryos\"."
+          }
+        },
+        "fm_pertinence": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_pertinence_reason": {
+          "system": {
+            "value": ""
+          }
+        },
+        "naturalness": {
+          "1803666": {
+            "value": 3
+          },
+          "1803650": {
+            "value": 3
+          },
+          "1803645": {
+            "value": 3
+          }
+        },
+        "appropriateness": {
+          "1803666": {
+            "value": 4
+          },
+          "1803650": {
+            "value": 3
+          },
+          "1803645": {
+            "value": 3
+          }
+        },
+        "faithfulness": {
+          "1803666": {
+            "value": 4
+          },
+          "1803650": {
+            "value": 2
+          },
+          "1803645": {
+            "value": 3
+          }
+        },
+        "naturalness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        },
+        "appropriateness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        },
+        "faithfulness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        }
+      }
+    },
+    {
+      "task_id": "1000447235989441874",
+      "model_id": "model_a",
+      "model_response": "A word is a freestanding unit of language that has a meaning of its own, while a morpheme is the smallest grammatical unit in a language that may or may not stand alone and has a meaning of its own or a grammatical function.",
+      "annotations": {
+        "Recall": {
+          "system": {
+            "value": 0.42424242424242403
+          }
+        },
+        "RougeL": {
+          "system": {
+            "value": 0.33734939759036103
+          }
+        },
+        "Bert-Prec": {
+          "system": {
+            "value": 0.138938590884208
+          }
+        },
+        "Bert-Rec": {
+          "system": {
+            "value": 0.150318428874015
+          }
+        },
+        "Bert-KPrec": {
+          "system": {
+            "value": 0.462213158607482
+          }
+        },
+        "Extractiveness_RougeL": {
+          "system": {
+            "value": 0.313953488372093
+          }
+        },
+        "Length": {
+          "system": {
+            "value": 224
+          }
+        },
+        "answerability_accuracy": {
+          "system": {
+            "value": "True Positive"
+          }
+        },
+        "fm_groundedness": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_groundedness_reason": {
+          "system": {
+            "value": "A morpheme is the smallest grammatical unit in a language . In other words , it is the smallest meaningful unit of a language . The linguistics field of study dedicated to morphemes is called morphology . A morpheme is not identical to a word , and the principal difference between the two is that a morpheme may or may not stand alone , whereas a word , by definition , is freestanding . When a morpheme stands by itself , it is"
+          }
+        },
+        "fm_pertinence": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_pertinence_reason": {
+          "system": {
+            "value": ""
+          }
+        },
+        "naturalness": {
+          "1803662": {
+            "value": 4
+          },
+          "1803650": {
+            "value": 3
+          },
+          "1803645": {
+            "value": 4
+          }
+        },
+        "appropriateness": {
+          "1803662": {
+            "value": 3
+          },
+          "1803650": {
+            "value": 3
+          },
+          "1803645": {
+            "value": 4
+          }
+        },
+        "faithfulness": {
+          "1803662": {
+            "value": 3
+          },
+          "1803650": {
+            "value": 3
+          },
+          "1803645": {
+            "value": 4
+          }
+        },
+        "naturalness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        },
+        "appropriateness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        },
+        "faithfulness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        }
+      }
+    },
+    {
+      "task_id": "-7063680354960177161",
+      "model_id": "model_a",
+      "model_response": "The team with the better regular season record has home court advantage in the NBA Finals, followed by winning percentage, then head to head record, and finally record vs. opposite conference.",
+      "annotations": {
+        "Recall": {
+          "system": {
+            "value": 0.555555555555555
+          }
+        },
+        "RougeL": {
+          "system": {
+            "value": 0.6341463414634141
+          }
+        },
+        "Bert-Prec": {
+          "system": {
+            "value": 0.6672210097312921
+          }
+        },
+        "Bert-Rec": {
+          "system": {
+            "value": 0.41210442781448303
+          }
+        },
+        "Bert-KPrec": {
+          "system": {
+            "value": 0.572903990745544
+          }
+        },
+        "Extractiveness_RougeL": {
+          "system": {
+            "value": 0.368794326241134
+          }
+        },
+        "Length": {
+          "system": {
+            "value": 192
+          }
+        },
+        "answerability_accuracy": {
+          "system": {
+            "value": "True Positive"
+          }
+        },
+        "fm_groundedness": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_groundedness_reason": {
+          "system": {
+            "value": "The rule for determining home court advantage in the NBA Finals is winning percentage, then head to head record, followed by record vs. opposite conference."
+          }
+        },
+        "fm_pertinence": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_pertinence_reason": {
+          "system": {
+            "value": ""
+          }
+        },
+        "naturalness": {
+          "1803666": {
+            "value": 3
+          },
+          "1803650": {
+            "value": 2
+          },
+          "1803645": {
+            "value": 4
+          }
+        },
+        "appropriateness": {
+          "1803666": {
+            "value": 3
+          },
+          "1803650": {
+            "value": 4
+          },
+          "1803645": {
+            "value": 4
+          }
+        },
+        "faithfulness": {
+          "1803666": {
+            "value": 3
+          },
+          "1803650": {
+            "value": 4
+          },
+          "1803645": {
+            "value": 4
+          }
+        },
+        "naturalness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        },
+        "appropriateness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        },
+        "faithfulness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        }
+      }
+    },
+    {
+      "task_id": "-3301882905827031751",
+      "model_id": "model_a",
+      "model_response": "The three components of the fire triangle are heat, fuel, and an oxidizing agent (usually oxygen).",
+      "annotations": {
+        "Recall": {
+          "system": {
+            "value": 1.0
+          }
+        },
+        "RougeL": {
+          "system": {
+            "value": 1.0
+          }
+        },
+        "Bert-Prec": {
+          "system": {
+            "value": 0.9580497741699211
+          }
+        },
+        "Bert-Rec": {
+          "system": {
+            "value": 0.962546050548553
+          }
+        },
+        "Bert-KPrec": {
+          "system": {
+            "value": 0.274126768112182
+          }
+        },
+        "Extractiveness_RougeL": {
+          "system": {
+            "value": 0.35294117647058804
+          }
+        },
+        "Length": {
+          "system": {
+            "value": 98
+          }
+        },
+        "answerability_accuracy": {
+          "system": {
+            "value": "True Positive"
+          }
+        },
+        "fm_groundedness": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_groundedness_reason": {
+          "system": {
+            "value": "The tetrahedron represents the addition of a component in the chemical chain reaction to the three already present in the fire triangle ."
+          }
+        },
+        "fm_pertinence": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_pertinence_reason": {
+          "system": {
+            "value": ""
+          }
+        },
+        "naturalness": {
+          "1803662": {
+            "value": 4
+          },
+          "1803645": {
+            "value": 4
+          },
+          "1803666": {
+            "value": 3
+          }
+        },
+        "appropriateness": {
+          "1803662": {
+            "value": 4
+          },
+          "1803645": {
+            "value": 4
+          },
+          "1803666": {
+            "value": 4
+          }
+        },
+        "faithfulness": {
+          "1803662": {
+            "value": 4
+          },
+          "1803645": {
+            "value": 4
+          },
+          "1803666": {
+            "value": 4
+          }
+        },
+        "naturalness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          },
+          "1803666": {
+            "value": ""
+          }
+        },
+        "appropriateness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          },
+          "1803666": {
+            "value": ""
+          }
+        },
+        "faithfulness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          },
+          "1803666": {
+            "value": ""
+          }
+        }
+      }
+    },
+    {
+      "task_id": "-4900135979828185332",
+      "model_id": "model_a",
+      "model_response": "The document does not provide information about the origin of the Celts before they entered Ireland. It only mentions that the Celts were already split into several language groups and spread over much of Western continental Europe, the Iberian Peninsula, Ireland, and Britain by the time speakers of Celtic languages entered history around 400 BC.\n\nI am sorry, I can't provide an answer.",
+      "annotations": {
+        "Recall": {
+          "system": {
+            "value": 0.17910447761194
+          }
+        },
+        "RougeL": {
+          "system": {
+            "value": 0.16666666666666602
+          }
+        },
+        "Bert-Prec": {
+          "system": {
+            "value": 0.051648605614900006
+          }
+        },
+        "Bert-Rec": {
+          "system": {
+            "value": 0.072477154433727
+          }
+        },
+        "Bert-KPrec": {
+          "system": {
+            "value": 0.36128288507461503
+          }
+        },
+        "Extractiveness_RougeL": {
+          "system": {
+            "value": 0.35897435897435903
+          }
+        },
+        "Length": {
+          "system": {
+            "value": 388
+          }
+        },
+        "answerability_accuracy": {
+          "system": {
+            "value": "False Negative"
+          }
+        },
+        "fm_groundedness": {
+          "system": {
+            "value": "No"
+          }
+        },
+        "fm_groundedness_reason": {
+          "system": {
+            "value": "The text does not provide information about the origin of the Celts before they entered Ireland. It only mentions that the Celts were already split into several language groups and spread over much of Western continental Europe, the Iberian Peninsula, Ireland, and Britain by the time speakers of Celtic languages entered history around 400 BC."
+          }
+        },
+        "fm_pertinence": {
+          "system": {
+            "value": "No"
+          }
+        },
+        "fm_pertinence_reason": {
+          "system": {
+            "value": ""
+          }
+        },
+        "naturalness": {
+          "1803662": {
+            "value": 2
+          },
+          "1803666": {
+            "value": 1
+          },
+          "1803645": {
+            "value": 2
+          }
+        },
+        "appropriateness": {
+          "1803662": {
+            "value": 2
+          },
+          "1803666": {
+            "value": 4
+          },
+          "1803645": {
+            "value": 2
+          }
+        },
+        "faithfulness": {
+          "1803662": {
+            "value": 2
+          },
+          "1803666": {
+            "value": 4
+          },
+          "1803645": {
+            "value": 3
+          }
+        },
+        "naturalness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803666": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        },
+        "appropriateness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803666": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        },
+        "faithfulness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803666": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        }
+      }
+    },
+    {
+      "task_id": "-2951084596378848197",
+      "model_id": "model_a",
+      "model_response": "Omalu, a neuropathologist at the University of Pittsburgh, led the research on CTE and was criticized by the NFL.",
+      "annotations": {
+        "Recall": {
+          "system": {
+            "value": 0.10869565217391301
+          }
+        },
+        "RougeL": {
+          "system": {
+            "value": 0.2
+          }
+        },
+        "Bert-Prec": {
+          "system": {
+            "value": 0.36189720034599304
+          }
+        },
+        "Bert-Rec": {
+          "system": {
+            "value": 0.12448808550834602
+          }
+        },
+        "Bert-KPrec": {
+          "system": {
+            "value": 0.39716017246246305
+          }
+        },
+        "Extractiveness_RougeL": {
+          "system": {
+            "value": 0.109289617486338
+          }
+        },
+        "Length": {
+          "system": {
+            "value": 113
+          }
+        },
+        "answerability_accuracy": {
+          "system": {
+            "value": "True Positive"
+          }
+        },
+        "fm_groundedness": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_groundedness_reason": {
+          "system": {
+            "value": "It can be inferred from the text that Omalu led research on CTE and was criticized by the NFL."
+          }
+        },
+        "fm_pertinence": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_pertinence_reason": {
+          "system": {
+            "value": ""
+          }
+        },
+        "naturalness": {
+          "1803666": {
+            "value": 3
+          },
+          "1803650": {
+            "value": 4
+          },
+          "1803645": {
+            "value": 4
+          }
+        },
+        "appropriateness": {
+          "1803666": {
+            "value": 4
+          },
+          "1803650": {
+            "value": 4
+          },
+          "1803645": {
+            "value": 4
+          }
+        },
+        "faithfulness": {
+          "1803666": {
+            "value": 4
+          },
+          "1803650": {
+            "value": 3
+          },
+          "1803645": {
+            "value": 4
+          }
+        },
+        "naturalness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        },
+        "appropriateness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        },
+        "faithfulness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        }
+      }
+    },
+    {
+      "task_id": "-7492408127458093340",
+      "model_id": "model_a",
+      "model_response": "The last name Segovia is of Celtiberian origin, which means it originated from the Celtic branch of Indo-European. The name Sego, which is part of the last name, means \"victory\" in the Celtiberian language. The suffix -briga would mean \"city\" or \"strength.\" Therefore, the name Segovia might be translated as \"City of the victory\" or \"Victorious city.\"",
+      "annotations": {
+        "Recall": {
+          "system": {
+            "value": 0.7142857142857141
+          }
+        },
+        "RougeL": {
+          "system": {
+            "value": 0.365853658536585
+          }
+        },
+        "Bert-Prec": {
+          "system": {
+            "value": 0.143194496631622
+          }
+        },
+        "Bert-Rec": {
+          "system": {
+            "value": 0.544283330440521
+          }
+        },
+        "Bert-KPrec": {
+          "system": {
+            "value": 0.623556435108184
+          }
+        },
+        "Extractiveness_RougeL": {
+          "system": {
+            "value": 0.554744525547445
+          }
+        },
+        "Length": {
+          "system": {
+            "value": 352
+          }
+        },
+        "answerability_accuracy": {
+          "system": {
+            "value": "True Positive"
+          }
+        },
+        "fm_groundedness": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_groundedness_reason": {
+          "system": {
+            "value": "The last name Segovia is of Celtiberian origin, which means it originated from the Celtic branch of Indo-European. The name Sego, which is part of the last name, means \"victory\" in the Celtiberian language. The suffix -briga would mean \"city\" or \"strength.\" Therefore, the name Segovia might be translated as \"City of the victory\" or \"Victorious city.\""
+          }
+        },
+        "fm_pertinence": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_pertinence_reason": {
+          "system": {
+            "value": ""
+          }
+        },
+        "naturalness": {
+          "1803662": {
+            "value": 4
+          },
+          "1803650": {
+            "value": 2
+          },
+          "1803645": {
+            "value": 4
+          }
+        },
+        "appropriateness": {
+          "1803662": {
+            "value": 3
+          },
+          "1803650": {
+            "value": 3
+          },
+          "1803645": {
+            "value": 4
+          }
+        },
+        "faithfulness": {
+          "1803662": {
+            "value": 3
+          },
+          "1803650": {
+            "value": 4
+          },
+          "1803645": {
+            "value": 4
+          }
+        },
+        "naturalness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        },
+        "appropriateness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        },
+        "faithfulness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        }
+      }
+    },
+    {
+      "task_id": "-3641307514429228391",
+      "model_id": "model_a",
+      "model_response": "The exchange particle for the strong nuclear force is the gluon.",
+      "annotations": {
+        "Recall": {
+          "system": {
+            "value": 0.3125
+          }
+        },
+        "RougeL": {
+          "system": {
+            "value": 0.32258064516129004
+          }
+        },
+        "Bert-Prec": {
+          "system": {
+            "value": 0.332329392433166
+          }
+        },
+        "Bert-Rec": {
+          "system": {
+            "value": 0.308366298675537
+          }
+        },
+        "Bert-KPrec": {
+          "system": {
+            "value": 0.246356979012489
+          }
+        },
+        "Extractiveness_RougeL": {
+          "system": {
+            "value": 0.11764705882352901
+          }
+        },
+        "Length": {
+          "system": {
+            "value": 64
+          }
+        },
+        "answerability_accuracy": {
+          "system": {
+            "value": "True Positive"
+          }
+        },
+        "fm_groundedness": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_groundedness_reason": {
+          "system": {
+            "value": "The nuclear force is a residual effect of the more fundamental strong force , or strong interaction . The strong interaction is the attractive force that binds the elementary particles called quarks together to form the nucleons ( protons and neutrons ) themselves . This more powerful force is mediated by particles called gluons . Gluons hold quarks together with a force like that of electric charge , but of far greater strength . Quarks , gluons and their dynamics are mostly confined within nucleons ,"
+          }
+        },
+        "fm_pertinence": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_pertinence_reason": {
+          "system": {
+            "value": ""
+          }
+        },
+        "naturalness": {
+          "1803666": {
+            "value": 3
+          },
+          "1803650": {
+            "value": 2
+          },
+          "1803645": {
+            "value": 4
+          }
+        },
+        "appropriateness": {
+          "1803666": {
+            "value": 4
+          },
+          "1803650": {
+            "value": 2
+          },
+          "1803645": {
+            "value": 4
+          }
+        },
+        "faithfulness": {
+          "1803666": {
+            "value": 4
+          },
+          "1803650": {
+            "value": 2
+          },
+          "1803645": {
+            "value": 4
+          }
+        },
+        "naturalness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        },
+        "appropriateness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        },
+        "faithfulness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        }
+      }
+    },
+    {
+      "task_id": "-4691971538237144548",
+      "model_id": "model_a",
+      "model_response": "Matthew Broderick provided the speaking voice of Adult Simba.",
+      "annotations": {
+        "Recall": {
+          "system": {
+            "value": 0.4
+          }
+        },
+        "RougeL": {
+          "system": {
+            "value": 0.5806451612903221
+          }
+        },
+        "Bert-Prec": {
+          "system": {
+            "value": 0.687915980815887
+          }
+        },
+        "Bert-Rec": {
+          "system": {
+            "value": 0.44565680623054504
+          }
+        },
+        "Bert-KPrec": {
+          "system": {
+            "value": 0.30077192187309204
+          }
+        },
+        "Extractiveness_RougeL": {
+          "system": {
+            "value": 0.060150375939849
+          }
+        },
+        "Length": {
+          "system": {
+            "value": 61
+          }
+        },
+        "answerability_accuracy": {
+          "system": {
+            "value": "True Positive"
+          }
+        },
+        "fm_groundedness": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_groundedness_reason": {
+          "system": {
+            "value": "Matthew Broderick provided the speaking voice of Adult Simba."
+          }
+        },
+        "fm_pertinence": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_pertinence_reason": {
+          "system": {
+            "value": ""
+          }
+        },
+        "naturalness": {
+          "1803666": {
+            "value": 3
+          },
+          "1803662": {
+            "value": 4
+          },
+          "1803644": {
+            "value": 4
+          }
+        },
+        "appropriateness": {
+          "1803666": {
+            "value": 4
+          },
+          "1803662": {
+            "value": 3
+          },
+          "1803644": {
+            "value": 4
+          }
+        },
+        "faithfulness": {
+          "1803666": {
+            "value": 4
+          },
+          "1803662": {
+            "value": 4
+          },
+          "1803644": {
+            "value": 4
+          }
+        },
+        "naturalness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803662": {
+            "value": ""
+          },
+          "1803644": {
+            "value": ""
+          }
+        },
+        "appropriateness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803662": {
+            "value": ""
+          },
+          "1803644": {
+            "value": ""
+          }
+        },
+        "faithfulness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803662": {
+            "value": ""
+          },
+          "1803644": {
+            "value": ""
+          }
+        }
+      }
+    },
+    {
+      "task_id": "8394238569735603187",
+      "model_id": "model_a",
+      "model_response": "The document does not provide information on how Jessica Jones received her powers. It only mentions that she came into contact with experimental chemicals and spent time in a coma, which led to her acquiring superhuman abilities.\n\nI am sorry, I can't provide an answer.",
+      "annotations": {
+        "Recall": {
+          "system": {
+            "value": 0.28947368421052605
+          }
+        },
+        "RougeL": {
+          "system": {
+            "value": 0.18390804597701102
+          }
+        },
+        "Bert-Prec": {
+          "system": {
+            "value": 0.034059137105941
+          }
+        },
+        "Bert-Rec": {
+          "system": {
+            "value": 0.155232951045036
+          }
+        },
+        "Bert-KPrec": {
+          "system": {
+            "value": 0.11500757187604901
+          }
+        },
+        "Extractiveness_RougeL": {
+          "system": {
+            "value": 0.12121212121212101
+          }
+        },
+        "Length": {
+          "system": {
+            "value": 270
+          }
+        },
+        "answerability_accuracy": {
+          "system": {
+            "value": "False Negative"
+          }
+        },
+        "fm_groundedness": {
+          "system": {
+            "value": "No"
+          }
+        },
+        "fm_groundedness_reason": {
+          "system": {
+            "value": "The question is not answered."
+          }
+        },
+        "fm_pertinence": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_pertinence_reason": {
+          "system": {
+            "value": ""
+          }
+        },
+        "naturalness": {
+          "1803666": {
+            "value": 1
+          },
+          "1803650": {
+            "value": 1
+          },
+          "1803645": {
+            "value": 2
+          }
+        },
+        "appropriateness": {
+          "1803666": {
+            "value": 4
+          },
+          "1803650": {
+            "value": 2
+          },
+          "1803645": {
+            "value": 4
+          }
+        },
+        "faithfulness": {
+          "1803666": {
+            "value": 4
+          },
+          "1803650": {
+            "value": 3
+          },
+          "1803645": {
+            "value": 4
+          }
+        },
+        "naturalness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        },
+        "appropriateness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        },
+        "faithfulness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        }
+      }
+    },
+    {
+      "task_id": "67651437175855293",
+      "model_id": "model_a",
+      "model_response": "Siberia is a geographical region within Russia, making up 77% of its land area. It is the world's largest region, but it is also one of the most sparsely populated areas due to its vast size. Russia, on the other hand, is a country that includes Siberia and other territories. It is the world's largest country by land area, and it has a population of approximately 145 million people, making it the world's 11th-most populous nation.",
+      "annotations": {
+        "Recall": {
+          "system": {
+            "value": 0.409090909090909
+          }
+        },
+        "RougeL": {
+          "system": {
+            "value": 0.22556390977443602
+          }
+        },
+        "Bert-Prec": {
+          "system": {
+            "value": 0.211599022150039
+          }
+        },
+        "Bert-Rec": {
+          "system": {
+            "value": 0.296064674854278
+          }
+        },
+        "Bert-KPrec": {
+          "system": {
+            "value": -0.016653748229146
+          }
+        },
+        "Extractiveness_RougeL": {
+          "system": {
+            "value": 0.199999999999999
+          }
+        },
+        "Length": {
+          "system": {
+            "value": 434
+          }
+        },
+        "answerability_accuracy": {
+          "system": {
+            "value": "True Positive"
+          }
+        },
+        "fm_groundedness": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_groundedness_reason": {
+          "system": {
+            "value": "Siberia is the world's largest region, but it is also one of the most sparsely populated areas due to its vast size. Russia, on the other hand, is a country that includes Siberia and other territories. It is the world's largest country by land area, and it has a population of approximately 145 million people, making it the world's 11th-most populous nation."
+          }
+        },
+        "fm_pertinence": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_pertinence_reason": {
+          "system": {
+            "value": ""
+          }
+        },
+        "naturalness": {
+          "1803650": {
+            "value": 4
+          },
+          "1803645": {
+            "value": 2
+          },
+          "1803644": {
+            "value": 4
+          }
+        },
+        "appropriateness": {
+          "1803650": {
+            "value": 3
+          },
+          "1803645": {
+            "value": 2
+          },
+          "1803644": {
+            "value": 4
+          }
+        },
+        "faithfulness": {
+          "1803650": {
+            "value": 2
+          },
+          "1803645": {
+            "value": 2
+          },
+          "1803644": {
+            "value": 3
+          }
+        },
+        "naturalness_reason": {
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          },
+          "1803644": {
+            "value": ""
+          }
+        },
+        "appropriateness_reason": {
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          },
+          "1803644": {
+            "value": ""
+          }
+        },
+        "faithfulness_reason": {
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          },
+          "1803644": {
+            "value": ""
+          }
+        }
+      }
+    },
+    {
+      "task_id": "7663406429430503589",
+      "model_id": "model_a",
+      "model_response": "Dadaists were an informal international movement of artists who developed in reaction to World War I. They rejected the logic, reason, and aestheticism of modern capitalist society and expressed their discontent with violence, war, and nationalism through their art. Dadaist art spanned visual, literary, and sound media, including collage, sound poetry, cut-up writing, and sculpture. They aimed to embrace chaos and irrationality in their works as a protest against bourgeois nationalist and colonialist interests and the cultural and intellectual conformity that corresponded to the war.",
+      "annotations": {
+        "Recall": {
+          "system": {
+            "value": 0.675
+          }
+        },
+        "RougeL": {
+          "system": {
+            "value": 0.356589147286821
+          }
+        },
+        "Bert-Prec": {
+          "system": {
+            "value": 0.36468374729156405
+          }
+        },
+        "Bert-Rec": {
+          "system": {
+            "value": 0.49257105588912903
+          }
+        },
+        "Bert-KPrec": {
+          "system": {
+            "value": 0.633220255374908
+          }
+        },
+        "Extractiveness_RougeL": {
+          "system": {
+            "value": 0.39408866995073805
+          }
+        },
+        "Length": {
+          "system": {
+            "value": 590
+          }
+        },
+        "answerability_accuracy": {
+          "system": {
+            "value": "True Positive"
+          }
+        },
+        "fm_groundedness": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_groundedness_reason": {
+          "system": {
+            "value": "Dadaism was an art movement of the European avant-garde in the early 20th century, with early centers in Zurich, Switzerland at the Cabaret Voltaire ( circa 1916 ) ; New York Dada began circa 1915 , and after 1920 Dada flourished in Paris . Developed in reaction to World War I , the Dada movement consisted of artists who rejected the logic , reason , and aestheticism of modern capitalist society , instead expressing nonsense , irrationality , and anti-bourgeois protest"
+          }
+        },
+        "fm_pertinence": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_pertinence_reason": {
+          "system": {
+            "value": ""
+          }
+        },
+        "naturalness": {
+          "1803662": {
+            "value": 4
+          },
+          "1803650": {
+            "value": 4
+          },
+          "1803645": {
+            "value": 4
+          }
+        },
+        "appropriateness": {
+          "1803662": {
+            "value": 4
+          },
+          "1803650": {
+            "value": 4
+          },
+          "1803645": {
+            "value": 4
+          }
+        },
+        "faithfulness": {
+          "1803662": {
+            "value": 4
+          },
+          "1803650": {
+            "value": 4
+          },
+          "1803645": {
+            "value": 4
+          }
+        },
+        "naturalness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        },
+        "appropriateness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        },
+        "faithfulness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        }
+      }
+    },
+    {
+      "task_id": "-2399489377049908954",
+      "model_id": "model_a",
+      "model_response": "The United States embargo against Cuba (in Cuba called el bloqueo, \"the blockade\") was first imposed by the United States on sale of arms to Cuba on March 14, 1958, during the Fulgencio Batista regime.",
+      "annotations": {
+        "Recall": {
+          "system": {
+            "value": 0.177777777777777
+          }
+        },
+        "RougeL": {
+          "system": {
+            "value": 0.240837696335078
+          }
+        },
+        "Bert-Prec": {
+          "system": {
+            "value": 0.5218900442123411
+          }
+        },
+        "Bert-Rec": {
+          "system": {
+            "value": 0.13205672800540902
+          }
+        },
+        "Bert-KPrec": {
+          "system": {
+            "value": 0.20695075392723
+          }
+        },
+        "Extractiveness_RougeL": {
+          "system": {
+            "value": 0.16666666666666602
+          }
+        },
+        "Length": {
+          "system": {
+            "value": 201
+          }
+        },
+        "answerability_accuracy": {
+          "system": {
+            "value": "True Positive"
+          }
+        },
+        "fm_groundedness": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_groundedness_reason": {
+          "system": {
+            "value": "The United States embargo against Cuba (in Cuba called el bloqueo,  the blockade '') is a commercial , economic , and financial embargo imposed by the United States on Cuba . An embargo was first imposed by the United States on sale of arms to Cuba on March 14 , 1958 . Again on October 19 , 1960 ( almost two years after the Batista regime was deposed by the Cuban Revolution ) the U.S. placed an embargo on exports to Cuba except for food"
+          }
+        },
+        "fm_pertinence": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_pertinence_reason": {
+          "system": {
+            "value": ""
+          }
+        },
+        "naturalness": {
+          "1803662": {
+            "value": 4
+          },
+          "1803650": {
+            "value": 2
+          },
+          "1803645": {
+            "value": 4
+          }
+        },
+        "appropriateness": {
+          "1803662": {
+            "value": 4
+          },
+          "1803650": {
+            "value": 4
+          },
+          "1803645": {
+            "value": 4
+          }
+        },
+        "faithfulness": {
+          "1803662": {
+            "value": 4
+          },
+          "1803650": {
+            "value": 4
+          },
+          "1803645": {
+            "value": 4
+          }
+        },
+        "naturalness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        },
+        "appropriateness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        },
+        "faithfulness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        }
+      }
+    },
+    {
+      "task_id": "-7090705350443894352",
+      "model_id": "model_a",
+      "model_response": "The document provided does not contain information about the number of overtime periods (OTs) in the NFL. It only mentions the rules regarding timeouts in a regulation game.\n\nI am sorry, I can't provide an answer.",
+      "annotations": {
+        "Recall": {
+          "system": {
+            "value": 0.260869565217391
+          }
+        },
+        "RougeL": {
+          "system": {
+            "value": 0.21875000000000003
+          }
+        },
+        "Bert-Prec": {
+          "system": {
+            "value": 0.025463290512561004
+          }
+        },
+        "Bert-Rec": {
+          "system": {
+            "value": 0.184282884001731
+          }
+        },
+        "Bert-KPrec": {
+          "system": {
+            "value": 0.039068043231964
+          }
+        },
+        "Extractiveness_RougeL": {
+          "system": {
+            "value": 0.164948453608247
+          }
+        },
+        "Length": {
+          "system": {
+            "value": 213
+          }
+        },
+        "answerability_accuracy": {
+          "system": {
+            "value": "False Negative"
+          }
+        },
+        "fm_groundedness": {
+          "system": {
+            "value": "No"
+          }
+        },
+        "fm_groundedness_reason": {
+          "system": {
+            "value": "There is no information about the number of overtime periods provided in the document."
+          }
+        },
+        "fm_pertinence": {
+          "system": {
+            "value": "No"
+          }
+        },
+        "fm_pertinence_reason": {
+          "system": {
+            "value": ""
+          }
+        },
+        "naturalness": {
+          "1803666": {
+            "value": 3
+          },
+          "1803662": {
+            "value": 2
+          },
+          "1803650": {
+            "value": 1
+          }
+        },
+        "appropriateness": {
+          "1803666": {
+            "value": 1
+          },
+          "1803662": {
+            "value": 2
+          },
+          "1803650": {
+            "value": 1
+          }
+        },
+        "faithfulness": {
+          "1803666": {
+            "value": 1
+          },
+          "1803662": {
+            "value": 2
+          },
+          "1803650": {
+            "value": 2
+          }
+        },
+        "naturalness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803662": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          }
+        },
+        "appropriateness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803662": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          }
+        },
+        "faithfulness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803662": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          }
+        }
+      }
+    },
+    {
+      "task_id": "2465071880314423467",
+      "model_id": "model_a",
+      "model_response": "The song \"Don't Come Around Here No More\" by Tom Petty and the Heartbreakers is about a relationship that has become toxic and unhealthy, where the person being addressed is being told not to come around anymore due to the negative influences they have brought into the relationship.",
+      "annotations": {
+        "Recall": {
+          "system": {
+            "value": 0.28
+          }
+        },
+        "RougeL": {
+          "system": {
+            "value": 0.18421052631578902
+          }
+        },
+        "Bert-Prec": {
+          "system": {
+            "value": 0.099571838974952
+          }
+        },
+        "Bert-Rec": {
+          "system": {
+            "value": 0.086651809513568
+          }
+        },
+        "Bert-KPrec": {
+          "system": {
+            "value": 0.129121020436286
+          }
+        },
+        "Extractiveness_RougeL": {
+          "system": {
+            "value": 0.30107526881720403
+          }
+        },
+        "Length": {
+          "system": {
+            "value": 283
+          }
+        },
+        "answerability_accuracy": {
+          "system": {
+            "value": "True Positive"
+          }
+        },
+        "fm_groundedness": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_groundedness_reason": {
+          "system": {
+            "value": "The sentence in the document  Do n't Come Around Here No More '' is a song written by Tom Petty of Tom Petty and the Heartbreakers and David A. Stewart of Eurythmics . It was released in February 1985 as the lead single from Tom Petty and the Heartbreakers ' Southern Accents album . Do n't Come Around Here No More '' is a single by Tom Petty and the Heartbreakers from the album Southern Accents B - side  Trailer '' Released February 28"
+          }
+        },
+        "fm_pertinence": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_pertinence_reason": {
+          "system": {
+            "value": ""
+          }
+        },
+        "naturalness": {
+          "1803666": {
+            "value": 3
+          },
+          "1803662": {
+            "value": 4
+          },
+          "1803650": {
+            "value": 3
+          }
+        },
+        "appropriateness": {
+          "1803666": {
+            "value": 1
+          },
+          "1803662": {
+            "value": 3
+          },
+          "1803650": {
+            "value": 3
+          }
+        },
+        "faithfulness": {
+          "1803666": {
+            "value": 1
+          },
+          "1803662": {
+            "value": 2
+          },
+          "1803650": {
+            "value": 1
+          }
+        },
+        "naturalness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803662": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          }
+        },
+        "appropriateness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803662": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          }
+        },
+        "faithfulness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803662": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          }
+        }
+      }
+    },
+    {
+      "task_id": "5539784155984675927",
+      "model_id": "model_a",
+      "model_response": "The Bill of Rights, also known as the English Bill of Rights, was an Act of the Parliament of England that set out certain basic civil rights and clarified who would be next to inherit the Crown. Its purpose was to assert the rights of Parliament and the individual, and ensure a Protestant political supremacy.",
+      "annotations": {
+        "Recall": {
+          "system": {
+            "value": 0.512820512820512
+          }
+        },
+        "RougeL": {
+          "system": {
+            "value": 0.36000000000000004
+          }
+        },
+        "Bert-Prec": {
+          "system": {
+            "value": 0.359193056821823
+          }
+        },
+        "Bert-Rec": {
+          "system": {
+            "value": 0.41690531373023904
+          }
+        },
+        "Bert-KPrec": {
+          "system": {
+            "value": 0.422877490520477
+          }
+        },
+        "Extractiveness_RougeL": {
+          "system": {
+            "value": 0.5238095238095231
+          }
+        },
+        "Length": {
+          "system": {
+            "value": 311
+          }
+        },
+        "answerability_accuracy": {
+          "system": {
+            "value": "True Positive"
+          }
+        },
+        "fm_groundedness": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_groundedness_reason": {
+          "system": {
+            "value": "The Bill of Rights 1689 (also known as the English Bill of Rights) is an Act of the Parliament of England that sets out certain basic civil rights and clarifies who would be next to inherit the Crown. Its purpose was to assert the rights of Parliament and the individual, and ensure a Protestant political supremacy."
+          }
+        },
+        "fm_pertinence": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_pertinence_reason": {
+          "system": {
+            "value": ""
+          }
+        },
+        "naturalness": {
+          "1803662": {
+            "value": 4
+          },
+          "1803666": {
+            "value": 3
+          },
+          "1803645": {
+            "value": 4
+          }
+        },
+        "appropriateness": {
+          "1803662": {
+            "value": 4
+          },
+          "1803666": {
+            "value": 3
+          },
+          "1803645": {
+            "value": 4
+          }
+        },
+        "faithfulness": {
+          "1803662": {
+            "value": 4
+          },
+          "1803666": {
+            "value": 3
+          },
+          "1803645": {
+            "value": 4
+          }
+        },
+        "naturalness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803666": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        },
+        "appropriateness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803666": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        },
+        "faithfulness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803666": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        }
+      }
+    },
+    {
+      "task_id": "4934935867385951010",
+      "model_id": "model_a",
+      "model_response": "The agricultural sector is the largest employer in India's economy but contributes to a declining share of its GDP ( 17 % in 2013 -- 14 ) .",
+      "annotations": {
+        "Recall": {
+          "system": {
+            "value": 0.42857142857142805
+          }
+        },
+        "RougeL": {
+          "system": {
+            "value": 0.448979591836734
+          }
+        },
+        "Bert-Prec": {
+          "system": {
+            "value": 0.219987094402313
+          }
+        },
+        "Bert-Rec": {
+          "system": {
+            "value": 0.292917281389236
+          }
+        },
+        "Bert-KPrec": {
+          "system": {
+            "value": 0.557543873786926
+          }
+        },
+        "Extractiveness_RougeL": {
+          "system": {
+            "value": 0.20370370370370303
+          }
+        },
+        "Length": {
+          "system": {
+            "value": 139
+          }
+        },
+        "answerability_accuracy": {
+          "system": {
+            "value": "True Positive"
+          }
+        },
+        "fm_groundedness": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_groundedness_reason": {
+          "system": {
+            "value": "In the first section , India has one of the fastest growing service sectors in the world with an annual growth rate above 9 % since 2001 , which contributed to 57 % of GDP in 2012 -- 13 . The IT industry continues to be the largest private - sector employer in India . The agricultural sector is the largest employer in India 's economy but contributes to a declining share of its GDP ( 17 % in 2013 -- 14 ) . India ranks second worldwide in farm output . The industry ( manufacturing ) sector has held a steady share of its economic contribution"
+          }
+        },
+        "fm_pertinence": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_pertinence_reason": {
+          "system": {
+            "value": ""
+          }
+        },
+        "naturalness": {
+          "1803662": {
+            "value": 4
+          },
+          "1803645": {
+            "value": 4
+          },
+          "1803663": {
+            "value": 3
+          }
+        },
+        "appropriateness": {
+          "1803662": {
+            "value": 4
+          },
+          "1803645": {
+            "value": 4
+          },
+          "1803663": {
+            "value": 4
+          }
+        },
+        "faithfulness": {
+          "1803662": {
+            "value": 4
+          },
+          "1803645": {
+            "value": 4
+          },
+          "1803663": {
+            "value": 4
+          }
+        },
+        "naturalness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          },
+          "1803663": {
+            "value": ""
+          }
+        },
+        "appropriateness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          },
+          "1803663": {
+            "value": ""
+          }
+        },
+        "faithfulness_reason": {
+          "1803662": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          },
+          "1803663": {
+            "value": ""
+          }
+        }
+      }
+    },
+    {
+      "task_id": "-3066832486070706632",
+      "model_id": "model_a",
+      "model_response": "Shelley Morrison, who played Rosario on Will & Grace, is still alive. She last appeared as an actress in the 2016 election-themed webisode of Will & Grace and retired completely from acting in 2017.",
+      "annotations": {
+        "Recall": {
+          "system": {
+            "value": 0.33333333333333304
+          }
+        },
+        "RougeL": {
+          "system": {
+            "value": 0.259259259259259
+          }
+        },
+        "Bert-Prec": {
+          "system": {
+            "value": 0.19454403221607203
+          }
+        },
+        "Bert-Rec": {
+          "system": {
+            "value": 0.41286021471023504
+          }
+        },
+        "Bert-KPrec": {
+          "system": {
+            "value": 0.231513738632202
+          }
+        },
+        "Extractiveness_RougeL": {
+          "system": {
+            "value": 0.183098591549295
+          }
+        },
+        "Length": {
+          "system": {
+            "value": 198
+          }
+        },
+        "answerability_accuracy": {
+          "system": {
+            "value": "True Positive"
+          }
+        },
+        "fm_groundedness": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_groundedness_reason": {
+          "system": {
+            "value": "The two statements above refer to the same person."
+          }
+        },
+        "fm_pertinence": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_pertinence_reason": {
+          "system": {
+            "value": ""
+          }
+        },
+        "naturalness": {
+          "1803666": {
+            "value": 3
+          },
+          "1803662": {
+            "value": 4
+          },
+          "1803645": {
+            "value": 3
+          }
+        },
+        "appropriateness": {
+          "1803666": {
+            "value": 1
+          },
+          "1803662": {
+            "value": 4
+          },
+          "1803645": {
+            "value": 3
+          }
+        },
+        "faithfulness": {
+          "1803666": {
+            "value": 1
+          },
+          "1803662": {
+            "value": 4
+          },
+          "1803645": {
+            "value": 3
+          }
+        },
+        "naturalness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803662": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        },
+        "appropriateness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803662": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        },
+        "faithfulness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803662": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        }
+      }
+    },
+    {
+      "task_id": "3314412235054309162",
+      "model_id": "model_a",
+      "model_response": "I am sorry, I can't provide an answer to that question based on the provided document. The document discusses the use of cobalt in nuclear weapons and its potential for radioactivity, but it does not mention commercial quantities of cobalt-60 production.",
+      "annotations": {
+        "Recall": {
+          "system": {
+            "value": 0.23809523809523803
+          }
+        },
+        "RougeL": {
+          "system": {
+            "value": 0.12307692307692301
+          }
+        },
+        "Bert-Prec": {
+          "system": {
+            "value": 0.006488740909844
+          }
+        },
+        "Bert-Rec": {
+          "system": {
+            "value": 0.11092875897884301
+          }
+        },
+        "Bert-KPrec": {
+          "system": {
+            "value": 0.062065683305263006
+          }
+        },
+        "Extractiveness_RougeL": {
+          "system": {
+            "value": 0.145454545454545
+          }
+        },
+        "Length": {
+          "system": {
+            "value": 254
+          }
+        },
+        "answerability_accuracy": {
+          "system": {
+            "value": "False Negative"
+          }
+        },
+        "fm_groundedness": {
+          "system": {
+            "value": "No"
+          }
+        },
+        "fm_groundedness_reason": {
+          "system": {
+            "value": "The document discusses the use of cobalt in nuclear weapons and its potential for radioactivity, but it does not mention commercial quantities of cobalt-60 production."
+          }
+        },
+        "fm_pertinence": {
+          "system": {
+            "value": "No"
+          }
+        },
+        "fm_pertinence_reason": {
+          "system": {
+            "value": ""
+          }
+        },
+        "naturalness": {
+          "1803666": {
+            "value": 1
+          },
+          "1803645": {
+            "value": 1
+          },
+          "1803644": {
+            "value": 2
+          }
+        },
+        "appropriateness": {
+          "1803666": {
+            "value": 1
+          },
+          "1803645": {
+            "value": 4
+          },
+          "1803644": {
+            "value": 1
+          }
+        },
+        "faithfulness": {
+          "1803666": {
+            "value": 1
+          },
+          "1803645": {
+            "value": 4
+          },
+          "1803644": {
+            "value": 1
+          }
+        },
+        "naturalness_reason": {
+          "1803644": {
+            "value": "The text has mentioned Argentina , Canada and Russia are the largest suppliers of cobalt - 60 in the world."
+          },
+          "1803666": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          }
+        },
+        "appropriateness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          },
+          "1803644": {
+            "value": ""
+          }
+        },
+        "faithfulness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803645": {
+            "value": ""
+          },
+          "1803644": {
+            "value": ""
+          }
+        }
+      }
+    },
+    {
+      "task_id": "-1218875241352839456",
+      "model_id": "model_a",
+      "model_response": "Russian Blues are a distinct breed with a blue coat, while British Blues are not a distinct breed but rather a color variation of the British Shorthair breed. Russian Blues have a thicker, softer coat and emerald green eyes, while British Blues may have a wider variety of colors and patterns.",
+      "annotations": {
+        "Recall": {
+          "system": {
+            "value": 0.43103448275862005
+          }
+        },
+        "RougeL": {
+          "system": {
+            "value": 0.42016806722689004
+          }
+        },
+        "Bert-Prec": {
+          "system": {
+            "value": 0.38904833793640103
+          }
+        },
+        "Bert-Rec": {
+          "system": {
+            "value": 0.284382939338684
+          }
+        },
+        "Bert-KPrec": {
+          "system": {
+            "value": 0.419846385717391
+          }
+        },
+        "Extractiveness_RougeL": {
+          "system": {
+            "value": 0.24038461538461503
+          }
+        },
+        "Length": {
+          "system": {
+            "value": 293
+          }
+        },
+        "answerability_accuracy": {
+          "system": {
+            "value": "True Positive"
+          }
+        },
+        "fm_groundedness": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_groundedness_reason": {
+          "system": {
+            "value": "The two documents all state the same thing, that Russian Blues are a distinct breed with a blue coat, while British Blues are not a distinct breed but rather a color variation of the British Shorthair breed."
+          }
+        },
+        "fm_pertinence": {
+          "system": {
+            "value": "Yes"
+          }
+        },
+        "fm_pertinence_reason": {
+          "system": {
+            "value": ""
+          }
+        },
+        "naturalness": {
+          "1803666": {
+            "value": 3
+          },
+          "1803662": {
+            "value": 4
+          },
+          "1803650": {
+            "value": 3
+          }
+        },
+        "appropriateness": {
+          "1803666": {
+            "value": 3
+          },
+          "1803662": {
+            "value": 3
+          },
+          "1803650": {
+            "value": 4
+          }
+        },
+        "faithfulness": {
+          "1803666": {
+            "value": 4
+          },
+          "1803662": {
+            "value": 3
+          },
+          "1803650": {
+            "value": 3
+          }
+        },
+        "naturalness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803662": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          }
+        },
+        "appropriateness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803662": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          }
+        },
+        "faithfulness_reason": {
+          "1803666": {
+            "value": ""
+          },
+          "1803662": {
+            "value": ""
+          },
+          "1803650": {
+            "value": ""
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+/**
+ *
+ * Copyright 2023-2024 InspectorRAGet Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ **/
+
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/colors' as *;
+
+.root {
+  // height: calc(100vh - $spacing-09);
+  width: calc(100vw - (2 * $spacing-05));
+  display: flex;
+  flex-direction: column;
+  margin-left: $spacing-05;
+  margin-right: $spacing-05;
+}
+
+.title {
+  padding-top: $spacing-03;
+  padding-bottom: $spacing-05;
+}
+
+.description {
+  padding-bottom: $spacing-03;
+
+  span {
+    padding-bottom: $spacing-05;
+  }
+}
+
+.row {
+  display: flex;
+  padding-top: $spacing-05;
+  padding-left: $spacing-05;
+  padding-right: $spacing-05;
+  align-items: center;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, max(300px));
+  gap: $spacing-05 $spacing-03;
+  padding: $spacing-05;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+}
+
+.experimentList {
+  height: calc(100vh - $spacing-09 - $spacing-10);
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-05;
+  padding: $spacing-05;
+  overflow-y: auto;
+}
+
+.emptyExperimentList {
+  height: calc(100vh - $spacing-09 - $spacing-10);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.emptyExperimentListIcon {
+  height: 15%;
+  width: 15%;
+}
+
+.emptyExperimentListMessage {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  row-gap: $spacing-03;
+}
