@@ -35,3 +35,17 @@ To start InspectorRAGet in production mode, please run the following command.
 ```shell
 yarn start
 ```
+
+## Citation
+If you use InspectorRAGet in your research, please cite our paper:
+
+```
+@misc{fadnis2024inspectorraget,
+      title={InspectorRAGet: An Introspection Platform for RAG Evaluation}, 
+      author={Kshitij Fadnis and Siva Sankalp Patel and Odellia Boni and Yannis Katsis and Sara Rosenthal and Benjamin Sznajder and Marina Danilevsky},
+      year={2024},
+      eprint={2404.17347},
+      archivePrefix={arXiv},
+      primaryClass={cs.SE}
+}
+```
