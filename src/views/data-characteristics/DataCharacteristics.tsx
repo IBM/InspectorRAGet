@@ -719,7 +719,7 @@ export default function DataCharacteristics({ tasks, filters }: Props) {
           {Object.keys(statistics['tasks_distribution']).length ? (
             <div className={classes.row}>
               <Tooltip
-                label={'Click to toggel task distributions'}
+                label={'Click to toggle task distributions'}
                 align={'right'}
                 className={classes.viewBtnTooltip}
               >
@@ -770,7 +770,7 @@ export default function DataCharacteristics({ tasks, filters }: Props) {
           {Object.keys(statistics['input']).length ? (
             <div className={classes.row}>
               <Tooltip
-                label={'Click to toggel input characteristics'}
+                label={'Click to toggle input characteristics'}
                 align={'right'}
                 className={classes.viewBtnTooltip}
               >
@@ -849,7 +849,7 @@ export default function DataCharacteristics({ tasks, filters }: Props) {
           {Object.keys(statistics['contexts']).length ? (
             <div className={classes.row}>
               <Tooltip
-                label={'Click to toggel contexts characteristics'}
+                label={'Click to toggle contexts characteristics'}
                 align={'right'}
                 className={classes.viewBtnTooltip}
               >

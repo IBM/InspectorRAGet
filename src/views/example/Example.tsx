@@ -329,7 +329,7 @@ export default memo(function Example({ data }: { data: Data }) {
               {data.models.length == 1 ? (
                 <DisabledTab
                   message={
-                    'Nothing to see here in absence of mulitiple models.'
+                    'Nothing to see here in absence of multiple models.'
                   }
                 />
               ) : (
@@ -346,7 +346,7 @@ export default memo(function Example({ data }: { data: Data }) {
             </TabPanel>
             <TabPanel key={'conditional-view'}>
               {eligibleMetrics.length == 1 ? (
-                <DisabledTab message="Nothing to see here in absence of mulitiple metrics." />
+                <DisabledTab message="Nothing to see here in absence of multiple metrics." />
               ) : (
                 <MetricBehavior
                   evaluationsPerMetric={evaluationsPerMetric}

@@ -32,7 +32,7 @@ export default function SkeletonFilters() {
   return (
     <>
       <Tooltip
-        label={'Click to toggel filters'}
+        label={'Click to toggle filters'}
         align={'right'}
         className={classes.filtersBtnTooltip}
       >

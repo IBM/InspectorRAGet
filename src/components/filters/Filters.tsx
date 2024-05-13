@@ -61,7 +61,7 @@ export default function Filters({
     <>
       {filters && (
         <Tooltip
-          label={'Click to toggel filters'}
+          label={'Click to toggle filters'}
           align={'right'}
           className={classes.filtersBtnTooltip}
         >
