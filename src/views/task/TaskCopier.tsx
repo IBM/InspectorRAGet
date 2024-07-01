@@ -262,7 +262,7 @@ export default function TaskCopierModal({
         </div>
         <span className={classes.heading}>Preview</span>
         <CodeSnippet
-          multi
+          type="multi"
           hideCopyButton={true}
           wrapText={true}
           className={classes.previewBox}

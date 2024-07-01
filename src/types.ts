@@ -136,6 +136,8 @@ export interface Document {
   formattedText?: string;
   url?: string;
   title?: string;
+  score?: number;
+  query?: {};
   annotations?: DocumentAnnotation[];
 }
 
@@ -187,6 +189,7 @@ export interface TaskEvaluation {
   readonly annotations: {
     [key: string]: { [key: string]: Annotation };
   };
+  readonly contexts?: Document[];
   [key: string]: any;
 }
 
