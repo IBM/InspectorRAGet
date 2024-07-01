@@ -77,7 +77,8 @@ export default function RAGTask({
   updateCommentProvenance,
 }: Props) {
   // Step 1: Initialize state and necessary variables
-  const [selectedModelIndex, setSelectedModelIndex] = useState<number>(0);
+  const [selectedEvaluationIndex, setSelectedEvaluationIndex] =
+    useState<number>(0);
   const [showOverlap, setShowOverlap] = useState<boolean>(false);
   const [activeDocumentIndex, setActiveDocumentIndex] = useState<number>(0);
 
@@ -85,66 +86,75 @@ export default function RAGTask({
   // Step 2.a: Fetch data from data store
   const { item: data } = useDataStore();
 
-  // Step 2.b: Fetch documents and evaluations for the current task
-  const [documents, evaluations] = useMemo(() => {
-    // Step 2.b.i: Fetch context documents
-    const contextDocuments: Document[] = [];
-    if (task?.contexts) {
-      task.contexts.forEach((context, context_idx) => {
-        if (data && data.documents) {
-          const referenceDocument = data.documents.find(
-            (document) => document.documentId === context.documentId,
-          );
-          if (referenceDocument) {
-            // Step 2.b.i.*: Fetch context relevant annotations, if present
-            if (
-              task?.annotations &&
-              task.annotations.hasOwnProperty('context_relevance')
-            ) {
-              const documentAnnotation: DocumentAnnotation = {
-                text: 'Relevant',
-                authors: [],
-                color: 'green',
-              };
-              for (const [annotator, annotations] of Object.entries(
-                task.annotations.context_relevance,
-              )) {
-                if (
-                  Array.isArray(annotations) &&
-                  annotations.includes(context_idx)
-                ) {
-                  documentAnnotation.authors.push(annotator);
-                }
-              }
-              if (!isEmpty(documentAnnotation.authors)) {
-                referenceDocument.annotations = [documentAnnotation];
-              }
-            }
+  // Step 2.b: Fetch documents and evaluations
+  const [documentsPerEvaluation, evaluations] = useMemo(() => {
+    // Step 2.b.i: Initialize necessary variables
+    const contextsPerEvaluation: Document[][] = [];
 
-            contextDocuments.push(referenceDocument);
-          } else {
-            contextDocuments.push({
-              documentId: context.documentId,
-              text: 'Missing document text',
-            });
-          }
-        } else {
-          contextDocuments.push({
-            documentId: context.documentId,
-            text: 'Missing document text',
-          });
-        }
-      });
-    }
-    // Step 2.b.ii: Fetch evaluations
+    // Step 2.b.i: Fetch evaluations
     let taskEvaluations: TaskEvaluation[] | undefined = undefined;
     if (data) {
       taskEvaluations = data.evaluations.filter(
         (evaluation) => evaluation.taskId === task.taskId,
       );
 
-      // Step: Compute context-response overlap and add to evaluation object
+      // Step 2.b.i.*: Identify context document for each evaluation and compute context-response overlap and add to evaluation object
       taskEvaluations.forEach((evaluation) => {
+        const contextDocuments: Document[] = [];
+        const contexts = evaluation.contexts
+          ? evaluation.contexts
+          : task.contexts
+            ? task.contexts
+            : [];
+        if (!isEmpty(contexts)) {
+          contexts.forEach((context, contextIdx) => {
+            if (data.documents) {
+              const referenceDocument = data.documents.find(
+                (document) => document.documentId === context.documentId,
+              );
+              if (referenceDocument) {
+                // Step 2.b.i.*: Fetch context relevant annotations, if present
+                if (
+                  task?.annotations &&
+                  task.annotations.hasOwnProperty('context_relevance')
+                ) {
+                  const documentAnnotation: DocumentAnnotation = {
+                    text: 'Relevant',
+                    authors: [],
+                    color: 'green',
+                  };
+                  for (const [annotator, annotations] of Object.entries(
+                    task.annotations.context_relevance,
+                  )) {
+                    if (
+                      Array.isArray(annotations) &&
+                      annotations.includes(contextIdx)
+                    ) {
+                      documentAnnotation.authors.push(annotator);
+                    }
+                  }
+                  if (!isEmpty(documentAnnotation.authors)) {
+                    referenceDocument.annotations = [documentAnnotation];
+                  }
+                }
+
+                contextDocuments.push(referenceDocument);
+              } else {
+                contextDocuments.push({
+                  documentId: context.documentId,
+                  text: 'Missing document text',
+                });
+              }
+            } else {
+              contextDocuments.push({
+                documentId: context.documentId,
+                text: 'Missing document text',
+              });
+            }
+          });
+        }
+
+        // Compute context-response overlap and add to evaluation object
         const textOverlaps: StringMatchObject[][] = [];
         contextDocuments.forEach((contextDocument) => {
           textOverlaps.push(
@@ -153,10 +163,13 @@ export default function RAGTask({
         });
 
         evaluation.overlaps = textOverlaps;
+
+        // Add context documents
+        contextsPerEvaluation.push(contextDocuments);
       });
     }
 
-    return [contextDocuments, taskEvaluations];
+    return [contextsPerEvaluation, taskEvaluations];
   }, [task.taskId, task.contexts, data]);
 
   // Step 2.c: Build human & algorithmic metric maps
@@ -185,7 +198,7 @@ export default function RAGTask({
           metrics={metrics}
           task={task}
           evaluations={evaluations}
-          documents={documents}
+          documents={documentsPerEvaluation[selectedEvaluationIndex]}
           onClose={() => {
             setTaskCopierModalOpen(false);
           }}
@@ -257,7 +270,7 @@ export default function RAGTask({
                 </>
               ) : null}
             </div>
-            {documents && (
+            {documentsPerEvaluation && (
               <div className={classes.contextContainer}>
                 <div className={classes.header}>
                   <h4>Contexts</h4>
@@ -290,13 +303,16 @@ export default function RAGTask({
                   )}
                 </div>
                 <DocumentPanel
-                  documents={documents.map((document, documentIdx) => {
+                  key={`evaluation--${selectedEvaluationIndex}__documents`}
+                  documents={documentsPerEvaluation[
+                    selectedEvaluationIndex
+                  ].map((document, documentIdx) => {
                     return {
                       documentId: document.documentId,
                       text: showOverlap
                         ? mark(
                             document.text,
-                            evaluations[selectedModelIndex].overlaps[
+                            evaluations[selectedEvaluationIndex].overlaps[
                               documentIdx
                             ],
                             'target',
@@ -326,7 +342,8 @@ export default function RAGTask({
           <div className={classes.evaluationsContainer}>
             <Tabs
               onChange={(e) => {
-                setSelectedModelIndex(e.selectedIndex);
+                setSelectedEvaluationIndex(e.selectedIndex);
+                setActiveDocumentIndex(0);
               }}
             >
               <TabList
@@ -345,7 +362,7 @@ export default function RAGTask({
                 ))}
               </TabList>
               <TabPanels>
-                {evaluations.map((evaluation) => (
+                {evaluations.map((evaluation, evaluationIdx) => (
                   <TabPanel key={'model-' + evaluation.modelId + '-panel'}>
                     <div className={classes.tabContainer}>
                       <div className={classes.tabContentHeader}>
@@ -376,7 +393,8 @@ export default function RAGTask({
                           >
                             {parse(
                               DOMPurify.sanitize(
-                                showOverlap
+                                showOverlap &&
+                                  evaluationIdx === selectedEvaluationIndex
                                   ? mark(
                                       evaluation.modelResponse,
                                       evaluation.overlaps[activeDocumentIndex],
