@@ -1,7 +1,7 @@
 
 # Emotional AI Project
 ### by: MOCavada
-[![User App In-Development](https://maap.one)]
+MAAP Web App (In-Development), public view: [![MAAP APP) In-Development](https://maap.one)]
 
 ## Overview
 
