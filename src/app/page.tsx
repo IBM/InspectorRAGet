@@ -2,10 +2,10 @@ import Home from '@/src/views/home/Home';
 
 export default function Page() {
   const pageData = {
-    greeting: 'Hi,',
-    title: 'Welcome to InspectorRAGet',
+    greeting: 'Hi Authentic Human,',
+    title: 'Welcome to Emotional AI',
     subtitle:
-      'An introspection Platform for RAG Evaluation enabling performance benchmarking, a combined aggregate and in stance level analysis, a holistic view of results via a mix of metrics, annotator qualification, and dataset characterization. Our goal is to help accelerate the transition from idea to product.',
+      'The Emotional AI project aims to create a comprehensive platform for introspection and emotional analysis. The project is structured to serve multiple purposes, including acting as an API server, providing an admin UI for data management and analysis, and planning for future expansion to include a cross-platform mobile version for public users. Using IBM InspectorRAGet as the base for building our AI data model offers significant advantages, including a proven framework, advanced metrics, scalability, integration capabilities, and strong community support. These benefits make it an ideal foundation for developing a sophisticated and effective AI solution.',
     subtitleLink: {
       content: 'Learn more',
       href: 'https://github.com/IBM/InspectorRAGet',
