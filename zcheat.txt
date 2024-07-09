@@ -1,0 +1,20 @@
+- ( Merget to Main branch )
+git checkout main                  
+git pull origin main
+git checkout dev-branch
+git rebase main
+git checkout main                   /* merge main branch - - 
+
+## Reset to main last version
+git checkout -b [new-branch]
+git add . && git commit -m "test" && git push -f origin [new-branch]
+git fetch
+git reset --hard origin/main
+git push -f origin main
+
+
+- (Useful CLI)
+rm package-lock.json && rm -rf node_modules
+rm -rf .next && rm -rf out 
+npx next info
+npx next -h 
