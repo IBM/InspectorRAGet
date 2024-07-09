@@ -18,15 +18,10 @@
 
 'use client';
 
-import { memo } from 'react';
+import { memo, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Link as CarbonLink } from '@carbon/react';
-import {
-  ChartMultitype,
-  Microscope,
-  NoodleBowl,
-  Book,
-} from '@carbon/icons-react';
+import { ChartMultitype, Microscope, NoodleBowl, Book } from '@carbon/icons-react';
 
 import { HomePageAttributes } from '@/src/types';
 import Card from './Card';
@@ -43,7 +38,16 @@ const ICONS = {
   BOOK: Book,
 };
 
-export default memo(function HomePage({ page }: Props) {
+const HomePage = ({ page }: Props) => {
+  const [data, setData] = useState<{ message: string } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/data')
+      .then(response => response.json())
+      .then(data => setData(data))
+      .catch(error => console.error('Error fetching data:', error));
+  }, []);
+
   return (
     <div className={classes.root}>
       <div className={classes.leadspaceWrapper}>
@@ -58,9 +62,7 @@ export default memo(function HomePage({ page }: Props) {
                 <Link href={page.subtitleLink.href} passHref legacyBehavior>
                   <CarbonLink
                     inline
-                    target={
-                      page.subtitleLink.openInNewTab ? '_blank' : undefined
-                    }
+                    target={page.subtitleLink.openInNewTab ? '_blank' : undefined}
                   >
                     {page.subtitleLink.content}
                   </CarbonLink>
@@ -68,19 +70,24 @@ export default memo(function HomePage({ page }: Props) {
               </>
             )}
           </p>
+          {data && (
+            <div className={classes.message}>
+              <p>Fetched Message: {data.message}</p>
+            </div>
+          )}
         </header>
       </div>
       <nav aria-label="main links" className={classes.cards}>
         <ul className={classes.cardsList}>
-          {page.cards.map((props, index) => {
-            return (
-              <li key={index}>
-                <Card {...{ ...props, icon: ICONS[props.icon] }} />
-              </li>
-            );
-          })}
+          {page.cards.map((props, index) => (
+            <li key={index}>
+              <Card {...{ ...props, icon: ICONS[props.icon] }} />
+            </li>
+          ))}
         </ul>
       </nav>
     </div>
   );
-});
+};
+
+export default memo(HomePage);
