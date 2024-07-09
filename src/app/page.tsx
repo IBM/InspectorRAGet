@@ -2,10 +2,10 @@ import Home from '@/src/views/home/Home';
 
 export default function Page() {
   const pageData = {
-    greeting: 'Hi Authentic Human Being,',
-    title: 'Welcome to Emotional AI',
+    greeting: 'Hi,',
+    title: 'Welcome to InspectorRAGet',
     subtitle:
-      'An introspection Platform to a Concept Project around the 3 Contants of Human Connection. An app that will teach human to introspect and help established meaningful connection in their relationship. A usecase on the concept to improve marriage, long term relationship or dating app--that is more genuine. Emotional AI means Emotional Authentic Intellegence. This project will be built from IBMInpectorRAGet as the initial starting point and later on expected to pivot in our own algorithm after completing our Data Model case study. This IBM app is use for RAG Evaluation enabling performance benchmarking, a combined aggregate and in stance level analysis, a holistic view of results via a mix of metrics, annotator qualification, and dataset characterization. Our goal is to help accelerate the transition from idea to product.',
+      'An introspection Platform for RAG Evaluation enabling performance benchmarking, a combined aggregate and in stance level analysis, a holistic view of results via a mix of metrics, annotator qualification, and dataset characterization. Our goal is to help accelerate the transition from idea to product.',
     subtitleLink: {
       content: 'Learn more',
       href: 'https://github.com/IBM/InspectorRAGet',

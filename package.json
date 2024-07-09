@@ -1,8 +1,8 @@
 {
-  "name": "InspectorRAGet",
+  "name": "@emotional/ai",
   "version": "1.0.0-beta",
   "private": true,
-  "description": "An Introspection Platform for RAG Evaluation",
+  "description": "An Introspection Platform",
   "author": "kpfadnis@us.ibm.com",
   "license": "ISC",
   "scripts": {
