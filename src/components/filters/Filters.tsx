@@ -26,6 +26,7 @@ import { FilterableMultiSelect, Tag, Tooltip, Button } from '@carbon/react';
 import { ChevronUp, ChevronDown, Filter } from '@carbon/icons-react';
 
 import classes from './Filters.module.scss';
+
 // ===================================================================================
 //                                TYPES
 // ===================================================================================

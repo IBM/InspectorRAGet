@@ -52,7 +52,7 @@
 }
 
 .seperator {
-  border: 1px dotted black;
+  border: 1px dotted var(--cds-border-inverse);
   margin: 0 $spacing-03;
 }
 
@@ -108,7 +108,7 @@
   display: flex;
   column-gap: $spacing-03;
   justify-content: center;
-  align-items: flex-end;
+  align-items: center;
 }
 
 .warningContainerIcon {

@@ -60,6 +60,7 @@ import { areObjectsIntersecting } from '@/src/utilities/objects';
 import { getModelColorPalette } from '@/src/utilities/colors';
 import AggregatorSelector from '@/src/components/selectors/AggregatorSelector';
 import Filters from '@/src/components/filters/Filters';
+import FilterMetrics from '@/src/views/performance-overview/FilterMetrics';
 
 import '@carbon/charts-react/styles.css';
 import classes from './PerformanceOverview.module.scss';
@@ -378,6 +379,7 @@ export default function PerformanceOverview({
     [key: string]: string[];
   }>({});
   const [modelColors, modelOrder] = getModelColorPalette(models);
+  const [hiddenMetrics, setHiddenMetrics] = useState<Metric[]>([]);
 
   // Step 2: Run effects
   // Step 2.a: Adjust graph width & heigh based on window size
@@ -407,7 +409,7 @@ export default function PerformanceOverview({
         metrics.map((metric) => [metric.name, metric]),
       );
 
-      const hData: {
+      let hData: {
         model: string;
         metric: string;
         score: number;
@@ -416,7 +418,7 @@ export default function PerformanceOverview({
         size: number;
         levels: { low: number; medium: number; high: number };
       }[] = [];
-      const aData: {
+      let aData: {
         model: string;
         metric: string;
         score: number;
@@ -610,6 +612,23 @@ export default function PerformanceOverview({
         }
       }
 
+      // Step 3: Filter hidden metrics data
+      const hiddenMetricNames = hiddenMetrics.map((metric) =>
+        extractMetricDisplayName(metric),
+      );
+      // Step 3.a: Human metrics
+      if (Array.isArray(hData)) {
+        hData = hData.filter(
+          (entry) => !hiddenMetricNames.includes(entry.metric),
+        );
+      }
+      // Step 3.b: Algorithmic metrics
+      if (Array.isArray(aData)) {
+        aData = aData.filter(
+          (entry) => !hiddenMetricNames.includes(entry.metric),
+        );
+      }
+
       // Step 4: Generate add rank information
       // Step 4.a: Human metrics
       if (Array.isArray(hData)) {
@@ -628,6 +647,7 @@ export default function PerformanceOverview({
       models,
       selectedAggregators,
       selectedFilters,
+      hiddenMetrics,
     ]);
 
   const humanMetricsInData = new Set(
@@ -684,6 +704,12 @@ export default function PerformanceOverview({
         />
       ) : null}
 
+      <FilterMetrics
+        metrics={metrics}
+        hiddenMetrics={hiddenMetrics}
+        setHiddenMetrics={setHiddenMetrics}
+      />
+
       <div
         className={cx(
           classes.row,
@@ -697,6 +723,7 @@ export default function PerformanceOverview({
             <h4>
               Human Evaluations ({numSelectedTasks}/{numTasks})
             </h4>
+
             <div className={classes.performanceTable}>
               {drawTable(
                 humanMetricsData,
@@ -741,6 +768,7 @@ export default function PerformanceOverview({
                       legend: {
                         order: modelOrder,
                       },
+                      theme: theme,
                     }}
                   ></GroupedBarChart>
                 </>
@@ -908,7 +936,9 @@ export default function PerformanceOverview({
               )}
             </div>
           </div>
-        ) : (
+        ) : null}
+        {humanMetricsInData.size === 0 &&
+        algorithmicmetricsInData.size === 0 ? (
           <div className={classes.warningContainer}>
             <WarningAlt
               height={'32px'}
@@ -919,7 +949,7 @@ export default function PerformanceOverview({
               {`No matching evaluations found. ${!isEmpty(selectedFilters) ? 'Please try again by removing one or more additional filters.' : ''}`}
             </span>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
