@@ -2,13 +2,15 @@
 
 InspectorRAGet, an introspection platform for RAG evaluation. InspectorRAGet allows the user to analyze aggregate and instance-level performance of RAG systems, using both human and algorithmic metrics as well as annotator quality.
 
-## 🎥 Demo
-[![InspectorRAGet on the case!](https://img.youtube.com/vi/MJhe8QIXcEc/0.jpg)](https://www.youtube.com/watch?v=MJhe8QIXcEc)
+InspectorRAGet has been developed as a [React](https://react.dev/) web application built with [NextJS 14](https://nextjs.org/) framework and the [Carbon Design System](https://carbondesignsystem.com/).
 
-InspectorRAGet is a a [React](https://react.dev/) web application built with [NextJS 14](https://nextjs.org/) framework. We extensively use the [Carbon Design System](https://carbondesignsystem.com/), an open-source design system with a wide range of assets including react and web components, styling guidelines,
-custom icons, and others
+## 🎥 Demo
+[![InspectorRAGet on the case!](https://img.youtube.com/vi/vB7mJnSNx7s/0.jpg)](https://www.youtube.com/watch?v=vB7mJnSNx7s)
 
 ## 🏗️ Build & Deploy
+
+To install and run InspectorRAGet follow the steps below:
+
 ### Installation
 We use yarn as a default package manager. 
 
@@ -38,9 +40,25 @@ yarn start
 
 ##  Usage
 
-Once you've started the InspectorRAGet application, then next step is to format experiment results in a prescribed format. 
+Once you have started InspectorRAGet, the next step is import a json file with the evaluation results in the format expected by the platform. You can do this in two ways:
+- Use one of our [integration notebooks](#use-inspectorraget-through-integration-notebooks), showing how to use InspectorRAGet in combination with popular evaluation frameworks.
+- Manually convert the evaluation results into the expected format by consulting the [documentation of InspectorRAGet's file format](#use-inspectorraget-by-manually-creating-input-file).
 
-The experiment result file can be broadly split into six sections along the functional boundaries. The first section captures general details about the experiment in `name`, `description` and `timestamp` fields. The second and third sections describe the
+## Use InspectorRAGet through integration notebooks
+
+To make it easier to get started, we have created notebooks showcasing how InspectorRAGet can be used in combination with popular evaluation frameworks. Each notebook demonstrates how to use the corresponding framework to run an evaluation experiment and transform its output to the input format expected by InspectorRAGet for analysis. We provide notebooks demonstrating integrations of InspectorRAGet with the following popular frameworks:
+
+| Framework | Description | Integration Notebook |
+| --- | --- | --- |
+| Language Model Evaluation Harness | Popular evaluation framework used to evaluate language models on different tasks | [LM_Eval_Demonstration.ipynb](notebooks/LM_Eval_Demonstration.ipynb) |
+| Ragas | Popular evaluation framework specifically designed for the evaluation of RAG systems through LLM-as-a-judge techniques | [Ragas_Demonstration.ipynb](notebooks/Ragas_Demonstration.ipynb) |
+| HuggingFace | Offers libraries and assets (incl. datasets, models, and metric evaluators) that can be used to both create and evaluate RAG systems | [HuggingFace_Demonstration.ipynb](notebooks/HuggingFace_Demonstration.ipynb) |
+
+## Use InspectorRAGet by manually creating input file
+
+If you want to use your own code/framework, not covered by the integration notebooks above, to run the evaluation, you can manually transform the evaluation results to the input format expected by InspectorRAGet, described below. Examples of input files in the expected format can be found in the [data](data) folder.  
+
+The experiment results json file expected by InspectorRAGet can be broadly split into six sections along their functional boundaries. The first section captures general details about the experiment in `name`, `description` and `timestamp` fields. The second and third sections describe the
 sets of models and metrics used in the experiment via the `models` and `metrics` fields, respectively. The last three sections cover the dataset and the outcome of evaluation experiment in the form of `documents`, `tasks` and `evaluations` fields.
 
 #### 1. Metadata
