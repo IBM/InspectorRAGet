@@ -1,10 +1,3 @@
----
-title: InspectorRAGet
-sdk: docker
-app_port: 3000
-pinned: true
----
-
 # InspectorRAGet
 
 InspectorRAGet, an introspection platform for RAG evaluation. InspectorRAGet allows the user to analyze aggregate and instance-level performance of RAG systems, using both human and algorithmic metrics as well as annotator quality.
