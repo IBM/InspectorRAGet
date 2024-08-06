@@ -299,7 +299,7 @@ export default function PredictionsTable({
                           >
                             {row.cells.map((cell) => (
                               <TableCell key={cell.id}>
-                                {cell.info.header === 'targets'
+                                {cell.info.header === 'targets' && cell.value
                                   ? cell.value.length > 1
                                     ? cell.value.map(
                                         (targetText, targetIdx) => (

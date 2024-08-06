@@ -1,6 +1,6 @@
 {
   "example_id": "d634446aacfb9d28a473aa758e70d8c3",
-  "name": "ClapNQ",
+  "name": "RAG Model Performance (ClapNQ)",
   "filters": ["answerability"],
   "models": [
     {
