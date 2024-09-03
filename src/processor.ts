@@ -18,7 +18,7 @@
 
 import { isEmpty, isNumber } from 'lodash';
 import { hash } from '@/src/utilities/strings';
-
+import { snakeCaseKeys } from '@/src/utilities/objects';
 import {
   Data,
   MetricValue,
@@ -350,7 +350,15 @@ export function exportData(
         documents: data.documents,
       }),
       tasks: data.tasks,
-      evaluations: data.evaluations,
+      evaluations: data.evaluations.map((evaluation) => {
+        return {
+          taskId: evaluation.taskId,
+          modelId: evaluation.modelId,
+          modelResponse: evaluation.modelResponse,
+          annotations: evaluation.annotations,
+          ...(evaluation.contexts && { contexts: evaluation.contexts }),
+        };
+      }),
     };
 
     // Step 1: If tasks are defined
@@ -401,9 +409,17 @@ export function exportData(
             documents: Array.from(relevantDocuments),
           }),
           tasks: tasks,
-          evaluations: data.evaluations.filter((evaluation) =>
-            relevantTaskIds.has(evaluation.taskId),
-          ),
+          evaluations: data.evaluations
+            .filter((evaluation) => relevantTaskIds.has(evaluation.taskId))
+            .map((evaluation) => {
+              return {
+                taskId: evaluation.taskId,
+                modelId: evaluation.modelId,
+                modelResponse: evaluation.modelResponse,
+                annotations: evaluation.annotations,
+                ...(evaluation.contexts && { contexts: evaluation.contexts }),
+              };
+            }),
         };
       } else {
         // Step 1.b: Create an object to be exported by copying over tasks information
@@ -416,7 +432,15 @@ export function exportData(
             documents: data.documents,
           }),
           tasks: tasks,
-          evaluations: data.evaluations,
+          evaluations: data.evaluations.map((evaluation) => {
+            return {
+              taskId: evaluation.taskId,
+              modelId: evaluation.modelId,
+              modelResponse: evaluation.modelResponse,
+              annotations: evaluation.annotations,
+              ...(evaluation.contexts && { contexts: evaluation.contexts }),
+            };
+          }),
         };
       }
     }
@@ -428,7 +452,7 @@ export function exportData(
     element.setAttribute(
       'href',
       'data:application/json;charset=utf-8, ' +
-        encodeURIComponent(JSON.stringify(dataToExport)),
+        encodeURIComponent(JSON.stringify(snakeCaseKeys(dataToExport))),
     );
     element.setAttribute('download', 'analytics.json');
 
