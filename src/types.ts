@@ -182,6 +182,7 @@ export interface Annotation {
   readonly timestamp?: number;
   readonly duration?: number;
 }
+
 export interface TaskEvaluation {
   readonly taskId: string;
   readonly modelId: string;

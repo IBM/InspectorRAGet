@@ -16,7 +16,7 @@
  *
  **/
 
-import { camelCase, isPlainObject, isArray, isEmpty } from 'lodash';
+import { camelCase, snakeCase, isPlainObject, isArray, isEmpty } from 'lodash';
 
 export function camelCaseKeys(
   obj: { [key: string]: any },
@@ -45,6 +45,37 @@ export function camelCaseKeys(
         ...(keys.includes(key)
           ? { [camelCase(key)]: camelCaseKeys(obj[key]) }
           : { [key]: camelCaseKeys(obj[key]) }),
+      }),
+      {},
+    );
+  }
+  return obj;
+}
+
+export function snakeCaseKeys(
+  obj: { [key: string]: any },
+  keys: string[] = [
+    'taskId',
+    'modelId',
+    'modelResponse',
+    'displayValue',
+    'numericValue',
+    'minValue',
+    'maxValue',
+    'taskType',
+    'documentId',
+    'displayName',
+  ],
+) {
+  if (isArray(obj)) {
+    return obj.map((v) => snakeCaseKeys(v));
+  } else if (isPlainObject(obj)) {
+    return Object.keys(obj).reduce(
+      (result, key) => ({
+        ...result,
+        ...(keys.includes(key)
+          ? { [snakeCase(key)]: snakeCaseKeys(obj[key]) }
+          : { [key]: snakeCaseKeys(obj[key]) }),
       }),
       {},
     );
