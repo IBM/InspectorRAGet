@@ -23,9 +23,22 @@ import { Button, Tag } from '@carbon/react';
 import { Edit, TrashCan } from '@carbon/icons-react';
 
 import { TaskComment, Model } from '@/src/types';
+import EditCommentModal from '@/src/components/comments/EditCommentModal';
 
 import classes from './CommentViewer.module.scss';
 
+// ===================================================================================
+//                               TYPES
+// ===================================================================================
+interface Props {
+  comments: TaskComment[];
+  onUpdate: Function;
+  models: Map<string, Model> | undefined;
+}
+
+// ===================================================================================
+//                               RENDER FUNCTION
+// ===================================================================================
 function Comment({
   id,
   comment,
@@ -40,8 +53,6 @@ function Comment({
   models: Map<string, Model> | undefined;
 }) {
   const [editing, setEditing] = useState<boolean>(false);
-  const [editedCommentText, setEditedCommentText] = useState<string>('');
-  const [author, setAuthor] = useState<string>('');
 
   const [tag, tagType]: [string, string] = useMemo(() => {
     if (comment.provenance) {
@@ -63,66 +74,73 @@ function Comment({
   }, [comment.provenance, models]);
 
   return (
-    <div className={classes.comment}>
-      <div className={classes.commentHeader}>
-        <div className={classes.commentHeaderAuthor}>
-          <span className={classes.label}>Author</span>
-          <span>{comment.author}</span>
-        </div>
-        <div className={classes.commentHeaderProvenance}>
-          <span className={classes.label}>Provenance</span>
-          <Tag className={classes.commentTag} type={tagType}>
-            {tag}
-          </Tag>
+    <>
+      <EditCommentModal
+        comment={comment}
+        open={editing}
+        onClose={() => setEditing(false)}
+        onSubmit={(updatedComment) => {
+          // Step 1: Update comment
+          onEdit(updatedComment);
+
+          // Step 2: Close editing modal
+          setEditing(false);
+        }}
+        models={models}
+      />
+      <div className={classes.comment}>
+        <div className={classes.commentHeader}>
+          <div className={classes.commentHeaderAuthor}>
+            <span className={classes.label}>Author</span>
+            <span>{comment.author}</span>
+          </div>
+          <div className={classes.commentHeaderProvenance}>
+            <span className={classes.label}>Provenance</span>
+            <Tag className={classes.commentTag} type={tagType}>
+              {tag}
+            </Tag>
+          </div>
+
+          <span className={classes.commentHeaderTimestamp}>
+            <span className={classes.label}>Last updated</span>
+            <span>{new Date(comment.updated).toLocaleDateString()}</span>
+          </span>
         </div>
 
-        <span className={classes.commentHeaderTimestamp}>
-          <span className={classes.label}>Last updated</span>
-          <span>{new Date(comment.updated).toLocaleDateString()}</span>
-        </span>
+        <div className={classes.commentBody}>{comment.comment}</div>
+        <div className={classes.commentActions}>
+          <Button
+            id={`${id}-editBtn`}
+            className={classes.commentBtn}
+            kind={'ghost'}
+            onClick={() => {
+              setEditing(true);
+            }}
+          >
+            <span>Edit</span>
+            <Edit />
+          </Button>
+          <Button
+            id={`${id}-deleteBtn`}
+            className={classes.commentBtn}
+            kind={'ghost'}
+            onClick={onDelete}
+          >
+            <span>Delete</span>
+            <TrashCan />
+          </Button>
+        </div>
       </div>
-
-      <div className={classes.commentBody}>{comment.comment}</div>
-      <div className={classes.commentActions}>
-        <Button
-          id={`${id}-editBtn`}
-          className={classes.commentBtn}
-          kind={'ghost'}
-          onClick={() => {
-            setEditing(true);
-          }}
-          disabled={true}
-        >
-          <span>Edit</span>
-          <Edit />
-        </Button>
-        <Button
-          id={`${id}-deleteBtn`}
-          className={classes.commentBtn}
-          kind={'ghost'}
-          onClick={onDelete}
-          disabled={true}
-        >
-          <span>Delete</span>
-          <TrashCan />
-        </Button>
-      </div>
-    </div>
+    </>
   );
 }
 
-interface Props {
-  comments: TaskComment[];
-  onSelect: Function;
-  onEdit: Function;
-  onDelete: Function;
-  models: Map<string, Model> | undefined;
-}
+// ===================================================================================
+//                               MAIN FUNCTION
+// ===================================================================================
 export default memo(function ViewComments({
   comments,
-  onSelect,
-  onEdit,
-  onDelete,
+  onUpdate,
   models,
 }: Props) {
   return (
@@ -134,8 +152,10 @@ export default memo(function ViewComments({
             key={`comment-${commentIdx}`}
             id={`comment-${commentIdx}`}
             comment={comment}
-            onEdit={onEdit}
-            onDelete={onDelete}
+            onEdit={(updatedComment) =>
+              onUpdate(comments.toSpliced(commentIdx, 1, updatedComment))
+            }
+            onDelete={() => onUpdate(comments.toSpliced(commentIdx, 1))}
             models={models}
           />
         );
