@@ -236,9 +236,11 @@ export default function Task({ taskId, onClose }: Props) {
             <div className={classes.commentsContainer}>
               <ViewComments
                 comments={task.comments}
-                onSelect={() => {}}
-                onEdit={() => {}}
-                onDelete={() => {}}
+                onUpdate={(updatedComments) => {
+                  updateTask(taskId, {
+                    comments: updatedComments,
+                  });
+                }}
                 models={models}
               ></ViewComments>
             </div>

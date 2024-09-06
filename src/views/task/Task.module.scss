@@ -164,7 +164,7 @@
   position: absolute;
   bottom: $spacing-07;
   right: $spacing-05;
-  opacity: 0.5;
+  opacity: 0.8;
   z-index: 15;
   height: 3rem;
   width: 3rem;
@@ -173,6 +173,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  background-color: var(--cds-background-inverse);
+  color: var(--cds-background);
 }
 
 .addCommentBtn:hover {
