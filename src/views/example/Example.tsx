@@ -35,6 +35,7 @@ import {
 import { Data, TaskEvaluation } from '@/src/types';
 import { calculateAggregateValue } from '@/src/utilities/metrics';
 import { useDataStore } from '@/src/store';
+import { useBackButton } from '@/src/hooks/useBackButton';
 
 import Task from '@/src/views/task/Task';
 import ExperimentTile from '@/src/components/example-tile/ExampleTile';
@@ -228,6 +229,8 @@ export default memo(function Example({ data }: { data: Data }) {
       ),
     ];
   }, [data.evaluations, data.tasks, data.models, eligibleMetricsMap]);
+
+  const { } = useBackButton();
 
   // Step 3: Return
   return (
