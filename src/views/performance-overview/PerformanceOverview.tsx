@@ -86,6 +86,7 @@ function calculateRanks(
     score: number;
     rank: number;
     std?: number;
+    order?: 'ascending' | 'descending';
     levels: { low: number; medium: number; high: number };
   }[],
 ) {
@@ -97,15 +98,26 @@ function calculateRanks(
       std?: number;
     }[];
   } = {};
+  const order: { [key: string]: 'ascending' | 'descending' } = {};
   for (const entry of data) {
     if (peformancePerMetric.hasOwnProperty(entry.metric)) {
       peformancePerMetric[entry.metric].push(entry);
     } else {
       peformancePerMetric[entry.metric] = [entry];
     }
+
+    if (!order.hasOwnProperty(entry.metric)) {
+      order[entry.metric] = entry.order ? entry.order : 'ascending';
+    }
   }
-  for (const performance of Object.values(peformancePerMetric)) {
-    performance.sort((a, b) => (a.score > b.score ? -1 : 1));
+  for (const [metric, performance] of Object.entries(peformancePerMetric)) {
+    performance.sort((a, b) => {
+      if (order[metric] == 'ascending') {
+        return a.score > b.score ? -1 : 1;
+      } else {
+        return a.score > b.score ? 1 : -1;
+      }
+    });
     let rank = 0;
     performance.forEach((entry, idx) => {
       if (idx !== 0 && entry.score === performance[idx - 1].score) {
@@ -417,6 +429,7 @@ export default function PerformanceOverview({
         rank: number;
         size: number;
         levels: { low: number; medium: number; high: number };
+        order?: 'ascending' | 'descending';
       }[] = [];
       let aData: {
         model: string;
@@ -426,6 +439,7 @@ export default function PerformanceOverview({
         rank: number;
         size: number;
         levels: { low: number; medium: number; high: number };
+        order?: 'ascending' | 'descending';
       }[] = [];
 
       const performancePerModel: {
@@ -592,6 +606,9 @@ export default function PerformanceOverview({
                   (statistics.std / selectedTasksCount).toFixed(2),
                 ),
                 levels: statistics.levels,
+                ...(eligibleMetrics[metric].order && {
+                  order: eligibleMetrics[metric].order,
+                }),
               });
             } else if (eligibleMetrics[metric].author === 'algorithm') {
               aData.push({
@@ -606,6 +623,9 @@ export default function PerformanceOverview({
                   (statistics.std / selectedTasksCount).toFixed(2),
                 ),
                 levels: statistics.levels,
+                ...(eligibleMetrics[metric].order && {
+                  order: eligibleMetrics[metric].order,
+                }),
               });
             }
           }
