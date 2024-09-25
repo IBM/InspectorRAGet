@@ -32,7 +32,7 @@ import {
   ContainedList,
   ContainedListItem,
 } from '@carbon/react';
-import { TextHighlight } from '@carbon/icons-react';
+import { TextHighlight, WarningAlt } from '@carbon/icons-react';
 
 import {
   Model,
@@ -302,39 +302,45 @@ export default function RAGTask({
                     </div>
                   )}
                 </div>
-                <DocumentPanel
-                  key={`evaluation--${selectedEvaluationIndex}__documents`}
-                  documents={documentsPerEvaluation[
-                    selectedEvaluationIndex
-                  ].map((document, documentIdx) => {
-                    return {
-                      documentId: document.documentId,
-                      text: showOverlap
-                        ? mark(
-                            document.text,
-                            evaluations[selectedEvaluationIndex].overlaps[
-                              documentIdx
-                            ],
-                            'target',
-                          )
-                        : document.text,
-                      ...(document.title && { title: document.title }),
-                      ...(document.url && { url: document.url }),
-                      ...(document.annotations && {
-                        annotations: document.annotations,
-                      }),
-                    };
-                  })}
-                  onMouseDown={(provenance: string) => {
-                    updateCommentProvenance(provenance);
-                  }}
-                  onMouseUp={(provenance: string) =>
-                    updateCommentProvenance(provenance)
-                  }
-                  notify={(documentIndex: number) => {
-                    setActiveDocumentIndex(documentIndex);
-                  }}
-                />
+                {isEmpty(documentsPerEvaluation[selectedEvaluationIndex]) ? (
+                  <div className={classes.contextUnavailableWarning}>
+                    <WarningAlt size={24} /> No context is available
+                  </div>
+                ) : (
+                  <DocumentPanel
+                    key={`evaluation--${selectedEvaluationIndex}__documents`}
+                    documents={documentsPerEvaluation[
+                      selectedEvaluationIndex
+                    ].map((document, documentIdx) => {
+                      return {
+                        documentId: document.documentId,
+                        text: showOverlap
+                          ? mark(
+                              document.text,
+                              evaluations[selectedEvaluationIndex].overlaps[
+                                documentIdx
+                              ],
+                              'target',
+                            )
+                          : document.text,
+                        ...(document.title && { title: document.title }),
+                        ...(document.url && { url: document.url }),
+                        ...(document.annotations && {
+                          annotations: document.annotations,
+                        }),
+                      };
+                    })}
+                    onMouseDown={(provenance: string) => {
+                      updateCommentProvenance(provenance);
+                    }}
+                    onMouseUp={(provenance: string) =>
+                      updateCommentProvenance(provenance)
+                    }
+                    notify={(documentIndex: number) => {
+                      setActiveDocumentIndex(documentIndex);
+                    }}
+                  />
+                )}
               </div>
             )}
           </div>

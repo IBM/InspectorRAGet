@@ -99,6 +99,7 @@ export interface Metric {
   readonly aggregator?: string;
   values?: MetricValue[];
   range?: number[];
+  order?: 'ascending' | 'descending';
   minValue?: number | MetricValue;
   maxValue?: number | MetricValue;
 }

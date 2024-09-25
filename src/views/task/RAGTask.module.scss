@@ -132,3 +132,13 @@
 .responseContainer {
   line-height: 1.4em;
 }
+
+.contextUnavailableWarning {
+  margin-top: 5%;
+  align-self: center;
+  display: flex;
+  font-size: 24px;
+  column-gap: $spacing-03;
+  align-items: center;
+  color: var(--cds-support-warning);
+}
