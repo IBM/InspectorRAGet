@@ -212,37 +212,39 @@ export default memo(function DataVerificationView({
               )}
             </>
           )}
-          {exampleData.tasks.length > 500 ? (
-            <div className={classes.warningContainer}>
-              <WarningAlt
-                height={'32px'}
-                width={'32px'}
-                className={classes.warningContainerIcon}
-              />
-              <span className={classes.warningContainerText}>
-                {`It might take us a moment to get everything ready once you click the "visualize" button`}
-              </span>
+
+          <div className={classes.navigationContainer}>
+            {exampleData.tasks.length > 500 ? (
+              <div className={classes.warningContainer}>
+                <WarningAlt
+                  className={classes.warningContainerIcon}
+                  size={18}
+                />
+                <span className={classes.warningContainerText}>
+                  {`Due to high number of data points, it might take us a moment to get everything ready once you click the "visualize" button.`}
+                </span>
+              </div>
+            ) : null}
+            <div className={classes.navigationButtons}>
+              <Button
+                kind="secondary"
+                renderIcon={ArrowLeft}
+                iconDescription="Return to uploading data"
+                onClick={onPrev}
+              >
+                Return to uploading data
+              </Button>
+              <Button
+                disabled={!exampleData}
+                renderIcon={ArrowRight}
+                iconDescription="Proceed"
+                onClick={() => {
+                  onNext(exampleData);
+                }}
+              >
+                Visualize
+              </Button>
             </div>
-          ) : null}
-          <div className={classes.navigationButtons}>
-            <Button
-              kind="secondary"
-              renderIcon={ArrowLeft}
-              iconDescription="Return to uploading data"
-              onClick={onPrev}
-            >
-              Return to uploading data
-            </Button>
-            <Button
-              disabled={!exampleData}
-              renderIcon={ArrowRight}
-              iconDescription="Proceed"
-              onClick={() => {
-                onNext(exampleData);
-              }}
-            >
-              Visualize
-            </Button>
           </div>
         </>
       ) : null}

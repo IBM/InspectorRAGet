@@ -20,6 +20,7 @@
 @use '@carbon/colors' as *;
 
 .root {
+  margin-top: $spacing-05;
   height: 100%;
   width: 100%;
   display: flex;
