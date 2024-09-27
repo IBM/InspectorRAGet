@@ -81,7 +81,6 @@ export default memo(function OnboardingView({ onVisualize }: Props) {
           <ProgressStep
             disabled={!rawData}
             label="3. Verify data"
-            secondaryLabel="Verify data for any formatting issues"
           ></ProgressStep>
         </ProgressIndicator>
       </div>

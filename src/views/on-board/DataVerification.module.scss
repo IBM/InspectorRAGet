@@ -20,13 +20,14 @@
 @use '@carbon/colors' as *;
 
 .root {
-  margin-top: $spacing-09;
+  margin-top: $spacing-05;
   height: 100%;
   width: 100%;
   display: flex;
   flex-direction: column;
   row-gap: $spacing-05;
   justify-content: flex-end;
+  overflow-y: auto;
 }
 
 .title {
@@ -56,34 +57,33 @@
   height: 70%;
   display: flex;
   flex-direction: column;
+  overflow: auto;
+}
+
+.navigationContainer {
+  margin-top: auto;
+  margin-bottom: $spacing-09;
+  display: flex;
+  flex-direction: column;
 }
 
 .navigationButtons {
-  margin-top: auto;
-  margin-bottom: $spacing-09;
   display: flex;
   column-gap: $spacing-05;
 }
 
-.visualizeButton {
-  margin-top: auto;
-  margin-bottom: $spacing-09;
-}
-
 .warningContainer {
-  margin: $spacing-09 0;
+  margin-bottom: $spacing-03;
   display: flex;
-  column-gap: $spacing-04;
-  justify-content: center;
-  align-items: center;
+  column-gap: $spacing-03;
 }
 
 .warningContainerIcon {
-  color: $gray-40;
+  color: var(--cds-support-warning);
 }
 
 .warningContainerText {
-  font-size: 20px;
-  line-height: 24px;
-  color: $gray-40;
+  font-size: 16px;
+  line-height: 20px;
+  color: var(--cds-support-warning);
 }
