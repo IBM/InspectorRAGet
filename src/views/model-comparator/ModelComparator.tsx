@@ -20,7 +20,7 @@
 
 import { countBy, isEmpty } from 'lodash';
 import cx from 'classnames';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Tile, Button } from '@carbon/react';
 import { WarningAlt } from '@carbon/icons-react';
 import { ScatterChart } from '@carbon/charts-react';
@@ -54,6 +54,7 @@ type StatisticalInformation = {
   meanA: number;
   distributionB: number[];
   meanB: number;
+  taskIds?: string[];
 };
 
 interface Props {
@@ -166,12 +167,18 @@ function runStatisticalSignificanceTest(
       }
     });
   }
+
   // Step 3: Compute model value distribution for every metric
   const distributionA: { [key: string]: number[] } = {};
   const distributionB: { [key: string]: number[] } = {};
+  const taskIds: { [key: string]: string[] } = {};
 
   Object.keys(evaluationsPerMetricPerTask).forEach((metric) => {
     const metricValues = metrics.find((entry) => entry.name === metric)?.values;
+    taskIds[metric] = evaluationsPerMetricPerTask[metric].map(
+      (entry) => entry[0].taskId,
+    );
+
     distributionA[metric] = evaluationsPerMetricPerTask[metric].map((entry) =>
       castToNumber(
         entry[0].modelId === modelA.modelId
@@ -204,6 +211,7 @@ function runStatisticalSignificanceTest(
       meanA: meanA,
       distributionB: distributionB[metric],
       meanB: meanB,
+      taskIds: taskIds[metric],
     };
   });
 
@@ -218,6 +226,7 @@ function prepareScatterPlotData(
   distributionA: number[],
   modelB: string,
   distributionB: number[],
+  taskIds?: string[],
 ) {
   if (distributionA.length !== distributionB.length) {
     return [];
@@ -243,6 +252,7 @@ function prepareScatterPlotData(
       group: modelA,
       key: idx,
       value: entry[0],
+      ...(taskIds && { taskId: taskIds[idx] }),
     });
 
     // Model B record
@@ -250,6 +260,7 @@ function prepareScatterPlotData(
       group: modelB,
       key: idx,
       value: entry[1],
+      ...(taskIds && { taskId: taskIds[idx] }),
     });
   });
 
@@ -300,6 +311,7 @@ function renderResult(
             statisticalInformationPerMetric[metric.name].distributionA,
             modelB.name,
             statisticalInformationPerMetric[metric.name].distributionB,
+            statisticalInformationPerMetric[metric.name].taskIds,
           )}
           options={{
             axes: {
@@ -316,7 +328,7 @@ function renderResult(
                       castToNumber(metric.maxValue?.value || 4, metric.values),
                     ],
                   }),
-                title: 'Scores',
+                title: extractMetricDisplayName(metric),
               },
               bottom: {
                 mapsTo: 'key',
@@ -375,6 +387,7 @@ export default function ModelComparator({
   const [statisticalInformationPerMetric, setStatisticalInformationPerMetric] =
     useState<{ [key: string]: StatisticalInformation } | undefined>(undefined);
   const [modelColors, modelOrder] = getModelColorPalette(models);
+  const chartRef = useRef(null);
 
   // Step 2: Run effects
   // Step 2.a: Window resizing
@@ -417,12 +430,13 @@ export default function ModelComparator({
       // Step 1: Identify evaluations for selected models
       const evaluationsForSelectedModels = evaluationsPerMetric[
         selectedMetric.name
-      ].filter((evaluation) =>
-        (evaluation.modelId === modelA.modelId ||
-          evaluation.modelId === modelB.modelId) &&
-        !isEmpty(selectedFilters)
-          ? areObjectsIntersecting(selectedFilters, evaluation)
-          : true,
+      ].filter(
+        (evaluation) =>
+          (evaluation.modelId === modelA.modelId ||
+            evaluation.modelId === modelB.modelId) &&
+          (!isEmpty(selectedFilters)
+            ? areObjectsIntersecting(selectedFilters, evaluation)
+            : true),
       );
 
       // Step 2: Collate evaluation per task id
@@ -481,7 +495,7 @@ export default function ModelComparator({
     }
   }, [selectedMetric]);
 
-  // Step 2.f: Compute computation complexity
+  // Step 2.g: Compute computation complexity
   const complexity = useMemo(() => {
     let size = 0;
     if (selectedMetric) {
@@ -497,6 +511,31 @@ export default function ModelComparator({
     }
     return 'low';
   }, [evaluationsPerMetric, selectedMetric]);
+
+  // Step 2.h: Add chart event
+  useEffect(() => {
+    if (chartRef && chartRef.current) {
+      //@ts-ignore
+      chartRef.current.chart.services.events.addEventListener(
+        'scatter-click',
+        ({ detail }) => {
+          onTaskSelection(detail.datum.taskId);
+        },
+      );
+    }
+
+    return () => {
+      if (chartRef && chartRef.current) {
+        //@ts-ignore
+        chartRef.current.chart.services.events.removeEventListener(
+          'scatter-click',
+          ({ detail }) => {
+            onTaskSelection(detail.datum.taskId);
+          },
+        );
+      }
+    };
+  }, [chartRef, selectedMetric, statisticalInformationPerMetric]);
 
   // Step 3: Render
   return (
@@ -678,6 +717,7 @@ export default function ModelComparator({
                   </div>
                 </Tile>
                 <ScatterChart
+                  ref={chartRef}
                   data={prepareScatterPlotData(
                     modelA.name,
                     statisticalInformationPerMetric[selectedMetric.name]
@@ -685,6 +725,8 @@ export default function ModelComparator({
                     modelB.name,
                     statisticalInformationPerMetric[selectedMetric.name]
                       .distributionB,
+                    statisticalInformationPerMetric[selectedMetric.name]
+                      .taskIds,
                   )}
                   options={{
                     axes: {
@@ -710,7 +752,7 @@ export default function ModelComparator({
                               ),
                             ],
                           }),
-                        title: 'Scores',
+                        title: extractMetricDisplayName(selectedMetric),
                       },
                       bottom: {
                         mapsTo: 'key',
