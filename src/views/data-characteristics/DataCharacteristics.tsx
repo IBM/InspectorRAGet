@@ -295,9 +295,9 @@ async function computeStatistics(
 // ===================================================================================
 //                               RENDER FUNCTIONS
 // ===================================================================================
-function SkeletonGraphs({ key }: { key: string }) {
+function SkeletonGraphs({ keyValue }: { keyValue: string }) {
   return (
-    <div key={key} className={classes.row}>
+    <div key={keyValue} className={classes.row}>
       <ButtonSkeleton className={classes.viewBtn} />
       &nbsp;
       <div className={classes.graphsGrid}>
@@ -711,8 +711,8 @@ export default function DataCharacteristics({ tasks, filters }: Props) {
     <div className={classes.page}>
       {loading ? (
         <div className={classes.row}>
-          <SkeletonGraphs key={'skeleton-graphs-1'} />
-          <SkeletonGraphs key={'skeleton-graphs-2'} />
+          <SkeletonGraphs keyValue={'skeleton-graphs-1'} />
+          <SkeletonGraphs keyValue={'skeleton-graphs-2'} />
         </div>
       ) : (
         <>

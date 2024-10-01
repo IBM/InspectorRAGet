@@ -35,6 +35,19 @@
   align-items: center;
 }
 
+.tableCellValue {
+  display: flex;
+  column-gap: $spacing-03;
+  align-items: center;
+  border-left: 1px solid var(--cds-border-inverse);
+  padding-left: $spacing-03;
+}
+
+.tableCellValue:first-child {
+  border-left: none;
+  padding-left: 0;
+}
+
 .majorityValue {
   font-size: 14px;
   line-height: 18px;

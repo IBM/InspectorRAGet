@@ -344,6 +344,7 @@ export function exportData(
     let dataToExport: RawData = {
       name: data.name,
       ...(data.exampleId && { exampleId: data.exampleId }),
+      ...(data.filters && { filters: data.filters }),
       models: data.models,
       metrics: data.metrics,
       ...(data.documents && {
@@ -403,6 +404,7 @@ export function exportData(
         dataToExport = {
           name: data.name,
           ...(data.exampleId && { exampleId: data.exampleId }),
+          ...(data.filters && { filters: data.filters }),
           models: data.models,
           metrics: data.metrics,
           ...(relevantDocuments.size !== 0 && {
@@ -426,6 +428,7 @@ export function exportData(
         dataToExport = {
           name: data.name,
           ...(data.exampleId && { exampleId: data.exampleId }),
+          ...(data.filters && { filters: data.filters }),
           models: data.models,
           metrics: data.metrics,
           ...(data.documents && {
