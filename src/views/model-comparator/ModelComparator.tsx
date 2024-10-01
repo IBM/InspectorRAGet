@@ -581,9 +581,15 @@ export default function ModelComparator({
 
   // Step 2.i: Add chart event
   useEffect(() => {
+    // Step 2.i.*: Local copy of reference
+    let ref = null;
+
+    // Step 2.i.**: Update reference and add event
     if (chartRef && chartRef.current) {
+      ref = chartRef.current;
+
       //@ts-ignore
-      chartRef.current.chart.services.events.addEventListener(
+      ref.chart.services.events.addEventListener(
         'scatter-click',
         ({ detail }) => {
           onTaskSelection(detail.datum.taskId);
@@ -591,10 +597,11 @@ export default function ModelComparator({
       );
     }
 
+    // Step 2.i.***: Cleanup function
     return () => {
-      if (chartRef && chartRef.current) {
+      if (ref) {
         //@ts-ignore
-        chartRef.current.chart.services.events.removeEventListener(
+        ref.chart.services.events.removeEventListener(
           'scatter-click',
           ({ detail }) => {
             onTaskSelection(detail.datum.taskId);
@@ -956,7 +963,7 @@ export default function ModelComparator({
             {filteredEvaluations ? (
               <>
                 <TasksTable
-                  metric={selectedMetric}
+                  metrics={[selectedMetric]}
                   evaluations={filteredEvaluations}
                   models={[modelA, modelB]}
                   filters={filters}

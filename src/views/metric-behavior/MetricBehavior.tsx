@@ -19,8 +19,10 @@
 'use client';
 
 import { isEmpty } from 'lodash';
-import { useState, useMemo, useEffect, memo } from 'react';
+import { useState, useMemo, useEffect, useRef, memo } from 'react';
+
 import { WarningAlt } from '@carbon/icons-react';
+import { FilterableMultiSelect, Tag } from '@carbon/react';
 import { HeatmapChart } from '@carbon/charts-react';
 import { ColorLegendType, ScaleTypes } from '@carbon/charts';
 
@@ -38,11 +40,10 @@ import { areObjectsIntersecting } from '@/src/utilities/objects';
 
 import Filters from '@/src/components/filters/Filters';
 import MetricSelector from '@/src/components/selectors/MetricSelector';
+import TasksTable from '@/src/views/tasks-table/TasksTable';
 
 import '@carbon/charts-react/styles.css';
 import classes from './MetricBehavior.module.scss';
-
-import { FilterableMultiSelect, Tag } from '@carbon/react';
 
 // ===================================================================================
 //                                TYPES
@@ -52,6 +53,7 @@ interface Props {
   models: Model[];
   metrics: Metric[];
   filters: { [key: string]: string[] };
+  onTaskSelection: Function;
 }
 
 // ===================================================================================
@@ -147,6 +149,13 @@ function calculateCorrelation(
   return correlationMap;
 }
 
+/**
+ * Calculate overlap matix between metric values
+ * @param evaluationsPerMetric
+ * @param metricA
+ * @param metricB
+ * @returns
+ */
 function calculateOverlap(
   evaluationsPerMetric: { [key: string]: TaskEvaluation[] },
   metricA: Metric,
@@ -196,7 +205,35 @@ function calculateOverlap(
       console.log(`Check the data in evaluation B for taskId ${taskId}`);
     }
   });
-  return overlapMap;
+
+  // Step 4: Sorted MxN matrix (where M and N are ranges of metricA and metricB)
+  const sortedOverlapMap: { [key: string]: { [key: string]: number } } = {};
+  // Only sort keys when metric is of 'numerical' type
+  if (metricA.type === 'numerical') {
+    Object.keys(overlapMap)
+      .sort()
+      .forEach((a) => {
+        if (metricB.type === 'numerical') {
+          sortedOverlapMap[a] = Object.fromEntries(
+            Object.keys(overlapMap[a])
+              .sort()
+              .map((b) => [b, overlapMap[a][b]]),
+          );
+        } else {
+          sortedOverlapMap[a] = overlapMap[a];
+        }
+      });
+  } else {
+    Object.entries(overlapMap).forEach(([a, b]) => {
+      sortedOverlapMap[a] = Object.fromEntries(
+        Object.keys(b)
+          .sort()
+          .map((key) => [key, b[key]]),
+      );
+    });
+  }
+
+  return sortedOverlapMap;
 }
 
 function sortMetricAggregatedValues(values: string[], metric: Metric) {
@@ -236,14 +273,16 @@ export function prepareHeatMapData(
   let count: number = 0;
   sortedMetricAVals.forEach((metricValA) => {
     sortedMetricBVals.forEach((metricValB) => {
-      temp.push({
-        metricA: extractMetricDisplayValue(metricValA, metricA.values),
-        metricB: extractMetricDisplayValue(metricValB, metricB.values),
-        value: heatMap[metricValA][metricValB]
-          ? heatMap[metricValA][metricValB]
-          : 0,
-      });
-      count += heatMap[metricValA][metricValB];
+      if (heatMap[metricValA][metricValB]) {
+        temp.push({
+          metricA: extractMetricDisplayValue(metricValA, metricA.values),
+          metricB: extractMetricDisplayValue(metricValB, metricB.values),
+          value: heatMap[metricValA][metricValB]
+            ? heatMap[metricValA][metricValB]
+            : 0,
+        });
+        count += heatMap[metricValA][metricValB];
+      }
     });
   });
 
@@ -256,6 +295,7 @@ export function prepareHeatMapData(
 
     return temp2;
   }
+
   return temp;
 }
 
@@ -267,6 +307,7 @@ export default memo(function MetricBehavior({
   models,
   metrics,
   filters,
+  onTaskSelection,
 }: Props) {
   // Step 1: Initialize state and necessary variables
   const [WindowWidth, setWindowWidth] = useState<number>(
@@ -276,15 +317,19 @@ export default memo(function MetricBehavior({
     global?.window && window.innerHeight,
   );
   const [selectedModels, setSelectedModels] = useState<Model[]>(models);
-  const [selectedMetricA, setSelectedMetricA] = useState<Metric | undefined>(
-    undefined,
-  );
-  const [selectedMetricB, setSelectedMetricB] = useState<Metric | undefined>(
-    undefined,
-  );
+  const [selectedMetricA, setSelectedMetricA] = useState<Metric | undefined>();
+  const [selectedMetricB, setSelectedMetricB] = useState<Metric | undefined>();
   const [selectedFilters, setSelectedFilters] = useState<{
     [key: string]: string[];
   }>({});
+  const [selectedMetricARange, setSelectedMetricARange] = useState<
+    number[] | string
+  >();
+  const [selectedMetricBRange, setSelectedMetricBRange] = useState<
+    number[] | string
+  >();
+  const tableRef = useRef(null);
+  const chartRef = useRef(null);
 
   // Step 2: Run effects
   // Step 2.a: Window resizing
@@ -340,6 +385,239 @@ export default memo(function MetricBehavior({
       return undefined;
     }
   }, [filteredEvaluationsPerMetric, selectedMetricA, selectedMetricB]);
+
+  // Step 2.e: Reset ranges on selected metric change
+  useEffect(() => {
+    setSelectedMetricARange(undefined);
+    setSelectedMetricBRange(undefined);
+  }, [selectedMetricA, selectedMetricB]);
+
+  // Step 2.f: Identify visible evaluations
+  const visibleEvaluations: TaskEvaluation[] = useMemo(() => {
+    if (selectedMetricA && selectedMetricB) {
+      // Step 1: Initialize necessary variables
+      const selectedModelIds = selectedModels.map((model) => model.modelId);
+
+      const evaluationsPerTask: { [key: string]: TaskEvaluation } = {};
+
+      // Step 2: Add eligible evaluations for 1st selected metric (A)
+      filteredEvaluationsPerMetric[selectedMetricA.name].forEach(
+        (evaluation) => {
+          if (selectedModelIds.includes(evaluation.modelId)) {
+            const UUID = `${evaluation.taskId}<::>${evaluation.modelId}`;
+            if (selectedMetricARange) {
+              if (typeof selectedMetricARange === 'string') {
+                if (
+                  extractMetricDisplayValue(
+                    evaluation[`${selectedMetricA.name}_agg`].value,
+                    selectedMetricA.values,
+                  ) === selectedMetricARange
+                ) {
+                  if (evaluationsPerTask.hasOwnProperty(UUID)) {
+                    evaluationsPerTask[UUID] = {
+                      ...evaluationsPerTask[UUID],
+                      [`${selectedMetricA.name}`]:
+                        evaluation[`${selectedMetricA.name}`],
+                      [`${selectedMetricA.name}_agg`]:
+                        evaluation[`${selectedMetricA.name}_agg`],
+                    };
+                  } else {
+                    evaluationsPerTask[UUID] = evaluation;
+                  }
+                }
+              } else if (Array.isArray(selectedMetricARange)) {
+                if (
+                  evaluation[`${selectedMetricA.name}_agg`].value >=
+                    selectedMetricARange[0] &&
+                  evaluation[`${selectedMetricA.name}_agg`].value <=
+                    selectedMetricARange[1]
+                ) {
+                  if (evaluationsPerTask.hasOwnProperty(UUID)) {
+                    evaluationsPerTask[UUID] = {
+                      ...evaluationsPerTask[UUID],
+                      [`${selectedMetricA.name}`]:
+                        evaluation[`${selectedMetricA.name}`],
+                      [`${selectedMetricA.name}_agg`]:
+                        evaluation[`${selectedMetricA.name}_agg`],
+                    };
+                  } else {
+                    evaluationsPerTask[UUID] = evaluation;
+                  }
+                }
+              }
+            } else {
+              if (evaluationsPerTask.hasOwnProperty(UUID)) {
+                evaluationsPerTask[UUID] = {
+                  ...evaluationsPerTask[UUID],
+                  [`${selectedMetricA.name}`]:
+                    evaluation[`${selectedMetricA.name}`],
+                  [`${selectedMetricA.name}_agg`]:
+                    evaluation[`${selectedMetricA.name}_agg`],
+                };
+              } else {
+                evaluationsPerTask[UUID] = evaluation;
+              }
+            }
+          }
+        },
+      );
+
+      // Step 2: Add eligible evaluations for 2nd selected metric (B)
+      filteredEvaluationsPerMetric[selectedMetricB.name].forEach(
+        (evaluation) => {
+          if (selectedModelIds.includes(evaluation.modelId)) {
+            const UUID = `${evaluation.taskId}<::>${evaluation.modelId}`;
+            if (selectedMetricBRange) {
+              if (typeof selectedMetricBRange === 'string') {
+                if (
+                  extractMetricDisplayValue(
+                    evaluation[`${selectedMetricB.name}_agg`].value,
+                    selectedMetricB.values,
+                  ) === selectedMetricBRange
+                ) {
+                  if (evaluationsPerTask.hasOwnProperty(UUID)) {
+                    evaluationsPerTask[UUID] = {
+                      ...evaluationsPerTask[UUID],
+                      [`${selectedMetricB.name}`]:
+                        evaluation[`${selectedMetricB.name}`],
+                      [`${selectedMetricB.name}_agg`]:
+                        evaluation[`${selectedMetricB.name}_agg`],
+                    };
+                  } else {
+                    evaluationsPerTask[UUID] = evaluation;
+                  }
+                }
+              } else if (Array.isArray(selectedMetricBRange)) {
+                if (
+                  evaluation[`${selectedMetricB.name}_agg`].value >=
+                    selectedMetricBRange[0] &&
+                  evaluation[`${selectedMetricB.name}_agg`].value <=
+                    selectedMetricBRange[1]
+                ) {
+                  if (evaluationsPerTask.hasOwnProperty(UUID)) {
+                    evaluationsPerTask[UUID] = {
+                      ...evaluationsPerTask[UUID],
+                      [`${selectedMetricB.name}`]:
+                        evaluation[`${selectedMetricB.name}`],
+                      [`${selectedMetricB.name}_agg`]:
+                        evaluation[`${selectedMetricB.name}_agg`],
+                    };
+                  } else {
+                    evaluationsPerTask[UUID] = evaluation;
+                  }
+                }
+              }
+            } else {
+              if (evaluationsPerTask.hasOwnProperty(UUID)) {
+                evaluationsPerTask[UUID] = {
+                  ...evaluationsPerTask[UUID],
+                  [`${selectedMetricB.name}`]:
+                    evaluation[`${selectedMetricB.name}`],
+                  [`${selectedMetricB.name}_agg`]:
+                    evaluation[`${selectedMetricB.name}_agg`],
+                };
+              } else {
+                evaluationsPerTask[UUID] = evaluation;
+              }
+            }
+          }
+        },
+      );
+
+      // Step 3: Only retains evaluation tasks where both metric values are available
+      return Object.values(evaluationsPerTask).filter(
+        (evaluation) =>
+          evaluation.hasOwnProperty(`${selectedMetricA.name}`) &&
+          evaluation.hasOwnProperty(`${selectedMetricA.name}_agg`) &&
+          evaluation.hasOwnProperty(`${selectedMetricB.name}`) &&
+          evaluation.hasOwnProperty(`${selectedMetricB.name}_agg`),
+      );
+    }
+    return [];
+  }, [
+    filteredEvaluationsPerMetric,
+    selectedModels,
+    selectedMetricA,
+    selectedMetricARange,
+    selectedMetricB,
+    selectedMetricBRange,
+  ]);
+
+  // Step 2.g: Add chart event
+  useEffect(() => {
+    // Step 2.g.i: Update function
+    function onClick(event) {
+      // Set range for 1st selected metric (A)
+      if (selectedMetricA?.type === 'numerical') {
+        if (event.detail.datum['metricA'].substring(1).includes('-')) {
+          const match = event.detail.datum['metricA'].match(
+            /^(-?\d*\.?\d*)-(-?\d*\.?\d*)$/,
+          );
+          setSelectedMetricARange([parseFloat(match[1]), parseFloat(match[2])]);
+        } else {
+          setSelectedMetricARange([
+            parseFloat(event.detail.datum['metricA']),
+            parseFloat(event.detail.datum['metricA']),
+          ]);
+        }
+      } else {
+        setSelectedMetricARange(event.detail.datum['metricA']);
+      }
+
+      // Set range for 2nd selected metric (B)
+      if (selectedMetricB?.type === 'numerical') {
+        if (event.detail.datum['metricB'].substring(1).includes('-')) {
+          const match = event.detail.datum['metricB'].match(
+            /^(-?\d*\.?\d*)-(-?\d*\.?\d*)$/,
+          );
+          setSelectedMetricBRange([parseFloat(match[1]), parseFloat(match[2])]);
+        } else {
+          setSelectedMetricARange([
+            parseFloat(event.detail.datum['metricB']),
+            parseFloat(event.detail.datum['metricB']),
+          ]);
+        }
+      } else {
+        setSelectedMetricBRange(event.detail.datum['metricB']);
+      }
+    }
+
+    // Step 2.g.ii: Local copy of reference
+    let ref = null;
+
+    // Step 2.g.iii: Update reference and add event
+    if (chartRef && chartRef.current) {
+      ref = chartRef.current;
+
+      //@ts-ignore
+      ref.chart.services.events.addEventListener('heatmap-click', onClick);
+    }
+
+    // Step 2.g.iv: Cleanup function
+    return () => {
+      if (ref) {
+        //@ts-ignore
+        ref.chart.services.events.removeEventListener('heatmap-click', onClick);
+      }
+    };
+  }, [chartRef, selectedMetricA, selectedMetricB, metricToMetricOverlap]);
+
+  // Step 2.h: Scroll task table into view
+  useEffect(() => {
+    if (
+      selectedMetricARange &&
+      selectedMetricBRange &&
+      tableRef &&
+      tableRef.current
+    ) {
+      //@ts-ignore
+      tableRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'end',
+        inline: 'center',
+      });
+    }
+  }, [tableRef, selectedMetricARange, selectedMetricBRange]);
 
   // Step 3: Render
   return (
@@ -443,7 +721,6 @@ export default memo(function MetricBehavior({
                     type: ColorLegendType.QUANTIZE,
                   },
                 },
-                experimental: false,
                 width: Math.round(WindowWidth * 0.6) + 'px',
                 height: Math.round(WindowHeight * 0.6) + 'px',
                 toolbar: {
@@ -488,6 +765,7 @@ export default memo(function MetricBehavior({
               {extractMetricDisplayName(selectedMetricB)})
             </h4>
             <HeatmapChart
+              ref={chartRef}
               data={prepareHeatMapData(
                 selectedMetricA,
                 selectedMetricB,
@@ -523,6 +801,26 @@ export default memo(function MetricBehavior({
             ></HeatmapChart>
           </div>
         )
+      ) : null}
+
+      {selectedMetricA && selectedMetricB && !isEmpty(visibleEvaluations) ? (
+        <div ref={tableRef} className={classes.tasksTableContainer}>
+          <h4>
+            Tasks<sup>*</sup>
+          </h4>
+
+          <TasksTable
+            metrics={[selectedMetricA, selectedMetricB]}
+            evaluations={visibleEvaluations}
+            models={selectedModels}
+            filters={filters}
+            onClick={onTaskSelection}
+          />
+          <span className={classes.tasksTableWarning}>
+            <sup>*</sup> Only tasks with aggregate scores in selected range are
+            shown in the above table.
+          </span>
+        </div>
       ) : null}
     </div>
   );

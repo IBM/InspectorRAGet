@@ -62,7 +62,7 @@ type EvaluationRow = {
   taskId: string;
 };
 interface Props {
-  metric: Metric;
+  metrics: Metric[];
   evaluations: TaskEvaluation[];
   models: Model[];
   filters: { [key: string]: string[] };
@@ -81,7 +81,7 @@ interface Props {
  */
 function populateTable(
   evaluations: TaskEvaluation[],
-  metric: Metric,
+  metrics: Metric[],
   models: Model[],
   taskInputMap: { [key: string]: any },
   filters: { [key: string]: string[] },
@@ -115,15 +115,22 @@ function populateTable(
     }
 
     // Add annotations
-    entry[`${evaluation.modelId}::value`] = annotator
-      ? extractMetricDisplayValue(
-          evaluation[metric.name][annotator].value,
-          metric.values,
-        )
-      : extractMetricDisplayValue(
-          evaluation[`${metric.name}_agg`].value,
-          metric.values,
-        );
+    entry[`${evaluation.modelId}::value`] = {};
+    metrics.forEach((metric) => {
+      if (annotator) {
+        entry[`${evaluation.modelId}::value`][metric.name] =
+          extractMetricDisplayValue(
+            evaluation[metric.name][annotator].value,
+            metric.values,
+          );
+      } else {
+        entry[`${evaluation.modelId}::value`][metric.name] =
+          extractMetricDisplayValue(
+            evaluation[`${metric.name}_agg`].value,
+            metric.values,
+          );
+      }
+    });
 
     // Step 1.b: Save updated entry into evaluations map
     evaluationsMap.set(evaluation.taskId, entry);
@@ -258,7 +265,7 @@ function sparkline(
 //                               MAIN FUNCTION
 // ===================================================================================
 export default function TasksTable({
-  metric,
+  metrics,
   evaluations,
   models,
   filters,
@@ -285,10 +292,12 @@ export default function TasksTable({
     return Object.fromEntries(
       evaluations.map((evaluation) => [
         `${evaluation.taskId}:${evaluation.modelId}`,
-        evaluation[metric.name],
+        Object.fromEntries(
+          metrics.map((metric) => [metric.name, evaluation[metric.name]]),
+        ),
       ]),
     );
-  }, [evaluations, metric]);
+  }, [evaluations, metrics]);
 
   // Step 2.e: Build tasks map
   const taskInputMap = useMemo(() => {
@@ -306,13 +315,13 @@ export default function TasksTable({
       () =>
         populateTable(
           evaluations,
-          metric,
+          metrics,
           models,
           taskInputMap,
           filters,
           annotator,
         ),
-      [evaluations, metric, models, filters, taskInputMap, annotator],
+      [evaluations, metrics, models, filters, taskInputMap, annotator],
     );
 
   // Step 2.g: Identify visible rows
@@ -538,22 +547,57 @@ export default function TasksTable({
                             ) : (
                               <TableCell key={cell.id}>
                                 <div className={classes.tableCell}>
-                                  <div className={classes.majorityValue}>
-                                    {cell.value
-                                      ? Array.isArray(cell.value)
-                                        ? cell.value.join(', ')
-                                        : cell.value
-                                      : '-'}
-                                  </div>
-                                  {!annotator &&
-                                    cell.value &&
-                                    sparkline(
-                                      evaluationsMap[
-                                        cell.id.split('::value', 1)[0]
-                                      ],
-                                      metric,
-                                      theme,
-                                    )}
+                                  {cell.value ? (
+                                    typeof cell.value === 'object' ? (
+                                      <>
+                                        {metrics.map((metric) => {
+                                          return (
+                                            <>
+                                              <div
+                                                className={
+                                                  classes.tableCellValue
+                                                }
+                                                key={`${cell.id}::${metric.name}`}
+                                              >
+                                                <div
+                                                  className={
+                                                    classes.majorityValue
+                                                  }
+                                                >
+                                                  {cell.value[metric.name]}
+                                                </div>
+                                                {!annotator &&
+                                                evaluationsMap[
+                                                  cell.id.split('::value', 1)[0]
+                                                ]
+                                                  ? sparkline(
+                                                      evaluationsMap[
+                                                        cell.id.split(
+                                                          '::value',
+                                                          1,
+                                                        )[0]
+                                                      ][metric.name],
+                                                      metric,
+                                                      theme,
+                                                    )
+                                                  : null}
+                                              </div>
+                                            </>
+                                          );
+                                        })}
+                                      </>
+                                    ) : (
+                                      <div className={classes.majorityValue}>
+                                        {Array.isArray(cell.value)
+                                          ? cell.value.join(', ')
+                                          : cell.value}
+                                      </div>
+                                    )
+                                  ) : (
+                                    <div className={classes.majorityValue}>
+                                      -
+                                    </div>
+                                  )}
                                 </div>
                               </TableCell>
                             ),

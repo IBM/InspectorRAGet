@@ -117,17 +117,9 @@
   color: $gray-40;
 }
 
-.table {
-  display: table;
-  border-collapse: separate;
-  border-spacing: 50px;
-}
-
-.tableRow {
-  display: table-row;
-}
-
-.tableCell {
-  display: table-cell;
-  width: 600px;
+.tasksTableContainer {
+  margin: $spacing-05 0;
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-03;
 }

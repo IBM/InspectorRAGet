@@ -230,7 +230,7 @@ export default memo(function Example({ data }: { data: Data }) {
     ];
   }, [data.evaluations, data.tasks, data.models, eligibleMetricsMap]);
 
-  const { } = useBackButton();
+  const {} = useBackButton();
 
   // Step 3: Return
   return (
@@ -331,9 +331,7 @@ export default memo(function Example({ data }: { data: Data }) {
             <TabPanel key={'model-comparator-panel'}>
               {data.models.length == 1 ? (
                 <DisabledTab
-                  message={
-                    'Nothing to see here in absence of multiple models.'
-                  }
+                  message={'Nothing to see here in absence of multiple models.'}
                 />
               ) : (
                 <ModelComparator
@@ -356,6 +354,9 @@ export default memo(function Example({ data }: { data: Data }) {
                   models={data.models}
                   metrics={eligibleMetrics}
                   filters={{}}
+                  onTaskSelection={(taskId) => {
+                    setSelectedTaskId(taskId);
+                  }}
                 ></MetricBehavior>
               )}
             </TabPanel>

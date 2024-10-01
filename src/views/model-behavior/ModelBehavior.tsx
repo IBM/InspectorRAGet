@@ -836,7 +836,7 @@ export default function ModelBehavior({
         <div className={classes.row}>
           <h4>Tasks</h4>
           <TasksTable
-            metric={selectedMetric}
+            metrics={[selectedMetric]}
             evaluations={visibleEvaluations}
             models={selectedModels}
             filters={filters}
