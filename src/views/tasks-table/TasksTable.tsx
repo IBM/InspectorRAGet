@@ -117,18 +117,20 @@ function populateTable(
     // Add annotations
     entry[`${evaluation.modelId}::value`] = {};
     metrics.forEach((metric) => {
-      if (annotator) {
+      if (annotator && evaluation.hasOwnProperty(metric.name)) {
         entry[`${evaluation.modelId}::value`][metric.name] =
           extractMetricDisplayValue(
             evaluation[metric.name][annotator].value,
             metric.values,
           );
-      } else {
+      } else if (evaluation.hasOwnProperty(`${metric.name}_agg`)) {
         entry[`${evaluation.modelId}::value`][metric.name] =
           extractMetricDisplayValue(
             evaluation[`${metric.name}_agg`].value,
             metric.values,
           );
+      } else {
+        entry[`${evaluation.modelId}::value`][metric.name] = '-';
       }
     });
 
@@ -177,6 +179,7 @@ function sparkline(
     [key: string]: { timestamp: number; value: string };
   },
   metric: Metric,
+  key: string,
   theme?: string,
 ) {
   if (annotations) {
@@ -209,52 +212,54 @@ function sparkline(
     const numOfUsedValues = data.filter((entry) => entry.value !== 0).length;
 
     return (
-      <SimpleBarChart
-        data={data}
-        options={{
-          color: {
-            scale: Object.fromEntries(
-              data.map((entry) => [
-                entry.group,
-                numOfUsedValues === 1
-                  ? '#42be65'
-                  : numOfUsedValues >= 3
-                    ? '#fa4d56'
-                    : '#f1c21b',
-              ]),
-            ),
-          },
-          axes: {
-            left: {
-              mapsTo: 'value',
-              visible: false,
-              scaleType: ScaleTypes.LINEAR,
+      <div key={key}>
+        <SimpleBarChart
+          data={data}
+          options={{
+            color: {
+              scale: Object.fromEntries(
+                data.map((entry) => [
+                  entry.group,
+                  numOfUsedValues === 1
+                    ? '#42be65'
+                    : numOfUsedValues >= 3
+                      ? '#fa4d56'
+                      : '#f1c21b',
+                ]),
+              ),
             },
-            bottom: {
-              mapsTo: 'group',
-              visible: false,
-              scaleType: ScaleTypes.LABELS,
+            axes: {
+              left: {
+                mapsTo: 'value',
+                visible: false,
+                scaleType: ScaleTypes.LINEAR,
+              },
+              bottom: {
+                mapsTo: 'group',
+                visible: false,
+                scaleType: ScaleTypes.LABELS,
+              },
             },
-          },
-          grid: {
-            y: {
+            grid: {
+              y: {
+                enabled: false,
+              },
+              x: {
+                enabled: false,
+              },
+            },
+            legend: {
               enabled: false,
             },
-            x: {
+            toolbar: {
               enabled: false,
             },
-          },
-          legend: {
-            enabled: false,
-          },
-          toolbar: {
-            enabled: false,
-          },
-          height: '24px',
-          width: '48px',
-          theme: theme,
-        }}
-      ></SimpleBarChart>
+            height: '24px',
+            width: '48px',
+            theme: theme,
+          }}
+        ></SimpleBarChart>
+      </div>
     );
   }
 
@@ -598,57 +603,73 @@ export default function TasksTable({
                             ) : (
                               <TableCell key={cell.id}>
                                 <div className={classes.tableCell}>
-                                  {cell.value ? (
-                                    typeof cell.value === 'object' ? (
-                                      <>
-                                        {metrics.map((metric) => {
-                                          return (
-                                            <>
-                                              <div
-                                                className={
-                                                  classes.tableCellValue
-                                                }
-                                                key={`${cell.id}::${metric.name}`}
-                                              >
-                                                <div
-                                                  className={
-                                                    classes.majorityValue
-                                                  }
-                                                >
-                                                  {cell.value[metric.name]}
-                                                </div>
-                                                {!annotator &&
-                                                evaluationsMap[
-                                                  cell.id.split('::value', 1)[0]
-                                                ]
-                                                  ? sparkline(
+                                  <>
+                                    {cell.value ? (
+                                      typeof cell.value === 'object' ? (
+                                        <>
+                                          {Array.isArray(cell.value)
+                                            ? !isEmpty(cell.value)
+                                              ? cell.value.join(', ')
+                                              : '-'
+                                            : metrics.map((metric) => {
+                                                return (
+                                                  <>
+                                                    <div
+                                                      className={
+                                                        classes.tableCellValue
+                                                      }
+                                                      key={`${cell.id}::${metric.name}`}
+                                                    >
+                                                      <div
+                                                        className={
+                                                          classes.majorityValue
+                                                        }
+                                                      >
+                                                        {
+                                                          cell.value[
+                                                            metric.name
+                                                          ]
+                                                        }
+                                                      </div>
+                                                      {!annotator &&
                                                       evaluationsMap[
                                                         cell.id.split(
                                                           '::value',
                                                           1,
                                                         )[0]
-                                                      ][metric.name],
-                                                      metric,
-                                                      theme,
-                                                    )
-                                                  : null}
-                                              </div>
-                                            </>
-                                          );
-                                        })}
-                                      </>
+                                                      ]
+                                                        ? sparkline(
+                                                            evaluationsMap[
+                                                              cell.id.split(
+                                                                '::value',
+                                                                1,
+                                                              )[0]
+                                                            ][metric.name],
+                                                            metric,
+                                                            cell.id,
+                                                            theme,
+                                                          )
+                                                        : null}
+                                                    </div>
+                                                  </>
+                                                );
+                                              })}
+                                        </>
+                                      ) : (
+                                        <div className={classes.majorityValue}>
+                                          {Array.isArray(cell.value)
+                                            ? !isEmpty(cell.value)
+                                              ? cell.value.join(', ')
+                                              : '-'
+                                            : cell.value}
+                                        </div>
+                                      )
                                     ) : (
                                       <div className={classes.majorityValue}>
-                                        {Array.isArray(cell.value)
-                                          ? cell.value.join(', ')
-                                          : cell.value}
+                                        -
                                       </div>
-                                    )
-                                  ) : (
-                                    <div className={classes.majorityValue}>
-                                      -
-                                    </div>
-                                  )}
+                                    )}
+                                  </>
                                 </div>
                               </TableCell>
                             ),
@@ -662,7 +683,7 @@ export default function TasksTable({
             }}
           </DataTable>
           <Pagination
-            pageSizes={[10, 25, 50, 100, 200]}
+            pageSizes={[10, 25, 50]}
             totalItems={rows.length}
             onChange={(event: any) => {
               // Step 1: Update page size

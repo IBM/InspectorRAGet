@@ -34,10 +34,12 @@ import {
   TabPanel,
 } from '@carbon/react';
 import { ChevronUp, ChevronDown, Filter } from '@carbon/icons-react';
+
+import { Metric, Model } from '@/src/types';
+import { hash } from '@/src/utilities/strings';
 import ExpressionBuilder from '@/src/components/expression-builder/ExpressionBuilder';
 
 import classes from './Filters.module.scss';
-import { Metric, Model } from '@/src/types';
 
 // ===================================================================================
 //                                TYPES
@@ -167,12 +169,14 @@ export default function Filters({
                   </div>
                 </TabPanel>
                 <TabPanel>
-                  <ExpressionBuilder
-                    expression={expression}
-                    models={models}
-                    metric={metric}
-                    setExpression={setExpression}
-                  ></ExpressionBuilder>
+                  <div key={hash(JSON.stringify(expression))}>
+                    <ExpressionBuilder
+                      expression={expression}
+                      models={models}
+                      metric={metric}
+                      setExpression={setExpression}
+                    ></ExpressionBuilder>
+                  </div>
                 </TabPanel>
               </TabPanels>
             </Tabs>
@@ -219,12 +223,14 @@ export default function Filters({
               })}
             </div>
           ) : expression ? (
-            <ExpressionBuilder
-              expression={expression}
-              models={models}
-              metric={metric}
-              setExpression={setExpression}
-            ></ExpressionBuilder>
+            <div key={hash(JSON.stringify(expression))}>
+              <ExpressionBuilder
+                expression={expression}
+                models={models}
+                metric={metric}
+                setExpression={setExpression}
+              ></ExpressionBuilder>
+            </div>
           ) : null
         ) : null}
       </div>
