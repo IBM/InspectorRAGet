@@ -22,7 +22,6 @@ const cspMap = {
   'base-uri': ["'none'"],
   'font-src': ["'self'", 'data:', "'unsafe-inline'"],
   'form-action': ["'self'"],
-  'frame-ancestors': ["'none'"],
   'frame-src': ["'self'"],
   'img-src': ["'self'", 'data:', 'blob:', 'www.ibm.com/'],
   'media-src': ["'self'", 'blob:', 'www.ibm.com/'],
