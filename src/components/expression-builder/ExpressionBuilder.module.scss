@@ -19,59 +19,22 @@
 @use '@carbon/react/scss/spacing' as *;
 @use '@carbon/colors' as *;
 
-.filtersBtnTooltip {
-  align-self: center;
-  margin-bottom: $spacing-03;
-}
-
-.filtersBtn {
-  display: flex;
-  column-gap: $spacing-04;
-  padding: $spacing-03;
-  color: inherit !important;
-}
-
-.filtersBtnElements {
-  display: flex;
-  column-gap: $spacing-04;
-  align-items: center;
-}
-
-.filtersBtnCaptionElements {
-  display: flex;
-  column-gap: $spacing-02;
-  align-items: center;
-}
-
-.container {
-  margin: 0 0 $spacing-03 $spacing-05;
-  display: none;
-  box-shadow: 0 0 5px 2px $gray-40;
-}
-
-.filters {
-  padding: $spacing-05;
-  display: flex;
-  align-items: baseline;
-  column-gap: $spacing-09;
-}
-
-.visible {
+.page {
   display: flex;
   flex-direction: column;
-  animation: fade-in 0.5s;
 }
 
-@keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
+.actionButtons {
+  margin: $spacing-03 0;
+  display: flex;
+  column-gap: $spacing-03;
 }
 
-.filterSelector {
-  max-width: 25%;
+.containerWarning {
+  display: flex;
+  column-gap: $spacing-03;
+  align-items: center;
+  color: var(--cds-support-warning);
+  font-size: 14px;
+  line-height: 16px;
 }

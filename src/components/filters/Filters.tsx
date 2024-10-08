@@ -22,10 +22,22 @@ import { isEmpty, omit } from 'lodash';
 import cx from 'classnames';
 import { useState, useEffect } from 'react';
 
-import { FilterableMultiSelect, Tag, Tooltip, Button } from '@carbon/react';
+import {
+  FilterableMultiSelect,
+  Tag,
+  Tooltip,
+  Button,
+  Tabs,
+  TabList,
+  Tab,
+  TabPanels,
+  TabPanel,
+} from '@carbon/react';
 import { ChevronUp, ChevronDown, Filter } from '@carbon/icons-react';
+import ExpressionBuilder from '@/src/components/expression-builder/ExpressionBuilder';
 
 import classes from './Filters.module.scss';
+import { Metric, Model } from '@/src/types';
 
 // ===================================================================================
 //                                TYPES
@@ -35,6 +47,10 @@ interface Props {
   filters: { [key: string]: string[] };
   selectedFilters: { [key: string]: string[] };
   setSelectedFilters: Function;
+  models?: Model[];
+  metric?: Metric;
+  expression?: object;
+  setExpression?: Function;
 }
 
 // ===================================================================================
@@ -45,6 +61,10 @@ export default function Filters({
   filters,
   selectedFilters,
   setSelectedFilters,
+  models,
+  metric,
+  expression,
+  setExpression,
 }: Props) {
   // Step 1: Initialize state and necessary variables
   const [showFilters, setShowFilters] = useState<boolean>(true);
@@ -52,7 +72,7 @@ export default function Filters({
   // Step 2: Run effects
   // Step 2.a: If no filters are found, set show filters to false
   useEffect(() => {
-    if (filters === undefined) {
+    if (filters === undefined && setExpression === undefined) {
       setShowFilters(false);
     }
   }, [filters]);
@@ -90,48 +110,123 @@ export default function Filters({
           </Button>
         </Tooltip>
       )}
-      <div className={cx(classes.filters, showFilters && classes.visible)}>
-        {showFilters &&
-          filters &&
-          Object.entries(filters).map(([filterType, values]) => {
-            return (
-              <div
-                key={`${keyPrefix}-filter` + filterType + '-selector'}
-                className={classes.filterSelector}
-              >
-                <FilterableMultiSelect
-                  id={`${keyPrefix}-filter` + filterType + '-selector'}
-                  titleText={filterType}
-                  items={values}
-                  itemToString={(item) => String(item)}
-                  onChange={(event) => {
-                    setSelectedFilters((prevState) =>
-                      isEmpty(event.selectedItems)
-                        ? omit(prevState, filterType)
-                        : {
-                            ...prevState,
-                            [filterType]: event.selectedItems,
-                          },
-                    );
-                  }}
-                ></FilterableMultiSelect>
-                {Object.keys(selectedFilters).includes(filterType) ? (
-                  <div>
-                    {selectedFilters[filterType].map((value) => {
+      <div className={cx(classes.container, showFilters && classes.visible)}>
+        {showFilters ? (
+          filters && expression ? (
+            <Tabs>
+              <TabList aria-label="additional filters" contained fullWidth>
+                <Tab>Static</Tab>
+                <Tab>
+                  Expression <Tag type="green">Experimental</Tag>
+                </Tab>
+              </TabList>
+              <TabPanels>
+                <TabPanel>
+                  <div className={classes.filters}>
+                    {Object.entries(filters).map(([filterType, values]) => {
                       return (
-                        <Tag
-                          type={'cool-gray'}
-                          key={`${keyPrefix}-filter-value` + value}
+                        <div
+                          key={`${keyPrefix}-filter` + filterType + '-selector'}
+                          className={classes.filterSelector}
                         >
-                          {value}
-                        </Tag>
+                          <FilterableMultiSelect
+                            id={
+                              `${keyPrefix}-filter` + filterType + '-selector'
+                            }
+                            titleText={filterType}
+                            items={values}
+                            itemToString={(item) => String(item)}
+                            onChange={(event) => {
+                              setSelectedFilters((prevState) =>
+                                isEmpty(event.selectedItems)
+                                  ? omit(prevState, filterType)
+                                  : {
+                                      ...prevState,
+                                      [filterType]: event.selectedItems,
+                                    },
+                              );
+                            }}
+                          ></FilterableMultiSelect>
+                          {Object.keys(selectedFilters).includes(filterType) ? (
+                            <div>
+                              {selectedFilters[filterType].map((value) => {
+                                return (
+                                  <Tag
+                                    type={'cool-gray'}
+                                    key={`${keyPrefix}-filter-value` + value}
+                                  >
+                                    {value}
+                                  </Tag>
+                                );
+                              })}
+                            </div>
+                          ) : null}
+                        </div>
                       );
                     })}
                   </div>
-                ) : null}
-              </div>
-            );
-          })}
+                </TabPanel>
+                <TabPanel>
+                  <ExpressionBuilder
+                    expression={expression}
+                    models={models}
+                    metric={metric}
+                    setExpression={setExpression}
+                  ></ExpressionBuilder>
+                </TabPanel>
+              </TabPanels>
+            </Tabs>
+          ) : filters ? (
+            <div className={classes.filters}>
+              {Object.entries(filters).map(([filterType, values]) => {
+                return (
+                  <div
+                    key={`${keyPrefix}-filter` + filterType + '-selector'}
+                    className={classes.filterSelector}
+                  >
+                    <FilterableMultiSelect
+                      id={`${keyPrefix}-filter` + filterType + '-selector'}
+                      titleText={filterType}
+                      items={values}
+                      itemToString={(item) => String(item)}
+                      onChange={(event) => {
+                        setSelectedFilters((prevState) =>
+                          isEmpty(event.selectedItems)
+                            ? omit(prevState, filterType)
+                            : {
+                                ...prevState,
+                                [filterType]: event.selectedItems,
+                              },
+                        );
+                      }}
+                    ></FilterableMultiSelect>
+                    {Object.keys(selectedFilters).includes(filterType) ? (
+                      <div>
+                        {selectedFilters[filterType].map((value) => {
+                          return (
+                            <Tag
+                              type={'cool-gray'}
+                              key={`${keyPrefix}-filter-value` + value}
+                            >
+                              {value}
+                            </Tag>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          ) : expression ? (
+            <ExpressionBuilder
+              expression={expression}
+              models={models}
+              metric={metric}
+              setExpression={setExpression}
+            ></ExpressionBuilder>
+          ) : null
+        ) : null}
       </div>
     </>
   );

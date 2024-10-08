@@ -343,7 +343,58 @@ export default function TasksTable({
     <>
       {headers && rows && (
         <div>
-          <DataTable rows={visibleRows} headers={headers} isSortable>
+          <DataTable
+            rows={visibleRows}
+            headers={headers}
+            isSortable
+            sortRow={(cellA, cellB, { sortDirection, sortStates }) => {
+              // Step 1: Check if cell values are objects
+              if (typeof cellA === 'object' && typeof cellB === 'object') {
+                // Step 1.a: Get first value for each cell object
+                const valueA = Object.values(cellA)[0];
+                const valueB = Object.values(cellB)[0];
+
+                // Step 1.b: Check if both values are of "string" type
+                if (typeof valueA === 'string' && typeof valueB === 'string') {
+                  // Step 1.b.i: Check if both values are purely numeric
+                  if (
+                    !isNaN(parseFloat(valueA)) &&
+                    !isNaN(parseFloat(valueB))
+                  ) {
+                    if (sortDirection === sortStates.DESC) {
+                      return parseFloat(valueA) - parseFloat(valueB);
+                    }
+                    return parseFloat(valueB) - parseFloat(valueA);
+                  } else {
+                    if (sortDirection === sortStates.DESC) {
+                      return valueA.localeCompare(valueB);
+                    }
+
+                    return valueB.localeCompare(valueA);
+                  }
+                }
+                // Step 1.c: Check if both values are of "number" type
+                else if (
+                  typeof valueA === 'number' &&
+                  typeof valueB === 'number'
+                ) {
+                  if (sortDirection === sortStates.DESC) {
+                    return valueA - valueB;
+                  }
+
+                  return valueB - valueA;
+                }
+              }
+              // Step 2: cell values are assumed to be of "string" type
+              else {
+                if (sortDirection === sortStates.DESC) {
+                  return cellA.localeCompare(cellB);
+                }
+
+                return cellB.localeCompare(cellA);
+              }
+            }}
+          >
             {({
               rows,
               headers,

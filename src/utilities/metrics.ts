@@ -80,13 +80,16 @@ export function extractMetricDisplayName(metric: Metric): string {
 export function castToNumber(
   value: string | number,
   references?: MetricValue[],
+  key?: 'value' | 'displayValue',
 ): number {
   // If value is of type "string"
   if (typeof value === 'string') {
     // Step 1: Check if references are provided to convert "string" value to "numeric" value
     if (references) {
       // Step 1.a: Find appropriate reference by comparing "string" values
-      const reference = references.find((entry) => entry.value === value);
+      const reference = references.find((entry) =>
+        key ? entry[key] === value : entry.value === value,
+      );
 
       // Step 1.b: If numeric value exists in reference, then return it
       if (
@@ -96,7 +99,7 @@ export function castToNumber(
       ) {
         return reference.numericValue;
       } else {
-        return parseInt(value);
+        return parseFloat(value);
       }
     }
     // Step 2: Cast to int, if references are absent
