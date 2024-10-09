@@ -234,3 +234,26 @@ export interface Data extends TileData {
   tasks: Task[];
   readonly evaluations: TaskEvaluation[];
 }
+
+// ===================================================================================
+//                               WORKERS
+// ===================================================================================
+export interface RequestMessage {
+  evaluationsPerMetric: { [key: string]: TaskEvaluation[] };
+  filters: { [key: string]: string[] };
+  expression: object;
+  models: Model[];
+  agreementLevels: { [key: string]: number | string }[];
+  metric?: Metric;
+  allowedValues?: string[];
+  annotator?: string;
+}
+
+export interface ResponseMessage {
+  records: {
+    taskId: string;
+    modelName: string;
+    [key: string]: string | number;
+  }[];
+  evaluations: TaskEvaluation[];
+}

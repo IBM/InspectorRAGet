@@ -27,25 +27,18 @@ import {
   FilterableMultiSelect,
   Select,
   SelectItem,
-  Tooltip,
-  Button,
   Toggletip,
   ToggletipButton,
   ToggletipContent,
   ToggletipActions,
+  Loading,
 } from '@carbon/react';
-import {
-  Information,
-  WarningAlt,
-  Filter,
-  ChevronDown,
-  ChevronUp,
-} from '@carbon/icons-react';
+import { Information, WarningAlt } from '@carbon/icons-react';
 import { GroupedBarChart } from '@carbon/charts-react';
 import { ScaleTypes } from '@carbon/charts';
 
 import { useTheme } from '@/src/theme';
-import { TaskEvaluation, Model, Metric } from '@/src/types';
+import { TaskEvaluation, Model, Metric, ResponseMessage } from '@/src/types';
 import {
   AgreementLevels,
   AgreementLevelDefinitions,
@@ -54,9 +47,7 @@ import {
   bin,
   compareMetricAggregatedValues,
 } from '@/src/utilities/metrics';
-import { areObjectsIntersecting } from '@/src/utilities/objects';
 import { getModelColorPalette } from '@/src/utilities/colors';
-import { evaluate } from '@/src/utilities/expressions';
 import TasksTable from '@/src/views/tasks-table/TasksTable';
 import MetricSelector from '@/src/components/selectors/MetricSelector';
 import Filters from '@/src/components/filters/Filters';
@@ -151,186 +142,6 @@ function prepareGroupBarChartData(
     });
 }
 
-function process(
-  evaluationsPerMetric: { [key: string]: TaskEvaluation[] },
-  selectedAgreementLevels: { [key: string]: number | string }[],
-  selectedModels: Model[],
-  selectedMetric: Metric | undefined,
-  selectedAllowedValues: string[],
-  selectedAnnotator: string | undefined,
-  filters: { [key: string]: string[] },
-  expression?: object,
-): [(record & { [key: string]: string | number })[], TaskEvaluation[]] {
-  // Step 1: Initialize necessary variables
-  const models = selectedModels.reduce(
-    (obj, item) => ((obj[item.modelId] = item), obj),
-    {},
-  );
-  const records: (record & { [key: string]: string | number })[] = [];
-  const visibleEvaluations: TaskEvaluation[] = [];
-
-  // Step 2: If filters are specified
-  const filteredEvaluationsPerMetric: { [key: string]: TaskEvaluation[] } = {};
-  for (const [metric, evals] of Object.entries(evaluationsPerMetric)) {
-    filteredEvaluationsPerMetric[metric] = !isEmpty(filters)
-      ? evals.filter((e) => areObjectsIntersecting(filters, e))
-      : evals;
-  }
-
-  // Step 3: If a metric is selected
-  if (selectedMetric) {
-    // Step 3.a: If an expression is specified
-    if (expression && !isEmpty(expression)) {
-      // Step 3.a.ii: Build an object containing evaluations per model for every task
-      const evaluationsPerTaskPerModel: {
-        [key: string]: { [key: string]: TaskEvaluation };
-      } = {};
-      filteredEvaluationsPerMetric[selectedMetric.name].forEach(
-        (evaluation) => {
-          if (evaluationsPerTaskPerModel.hasOwnProperty(evaluation.taskId)) {
-            evaluationsPerTaskPerModel[evaluation.taskId][evaluation.modelId] =
-              evaluation;
-          } else {
-            evaluationsPerTaskPerModel[evaluation.taskId] = {
-              [evaluation.modelId]: evaluation,
-            };
-          }
-        },
-      );
-
-      // Step 3.a.iii: Find evaluations meeting expression criteria
-      evaluate(
-        evaluationsPerTaskPerModel,
-        expression,
-        selectedMetric,
-        selectedAnnotator,
-      ).forEach((evaluation) => {
-        // Step 3.a.iii.*: Create and add record
-        records.push({
-          taskId: evaluation.taskId,
-          modelName: models[evaluation.modelId].name,
-          [`${selectedMetric.name}_value`]:
-            evaluation[`${selectedMetric.name}_agg`].value,
-          [`${selectedMetric.name}_aggLevel`]:
-            evaluation[`${selectedMetric.name}_agg`].level,
-        });
-
-        // Step 3.a.iii.**: Add evaluation
-        visibleEvaluations.push(evaluation);
-      });
-    } else {
-      // Step 3.b: Filter evaluations for the selected metric
-      filteredEvaluationsPerMetric[selectedMetric.name].forEach(
-        (evaluation) => {
-          // Step 3.b.i: If individual annotator is selected, verify against annotator's value
-          if (selectedAnnotator) {
-            /**
-             * Evaluation's model id fall within selected models
-             * OR
-             * Evaluation's selected metric's value fall within allowed values
-             */
-            if (
-              evaluation.modelId in models &&
-              evaluation[selectedMetric.name].hasOwnProperty(
-                selectedAnnotator,
-              ) &&
-              (!selectedAllowedValues.length ||
-                selectedAllowedValues.includes(
-                  evaluation[selectedMetric.name][selectedAnnotator].value,
-                ))
-            ) {
-              // Step 3.b.i.*: Create and add record
-              records.push({
-                taskId: evaluation.taskId,
-                modelName: models[evaluation.modelId].name,
-                [`${selectedMetric.name}_value`]:
-                  evaluation[selectedMetric.name][selectedAnnotator].value,
-              });
-
-              // Step 3.b.i.**: Add evaluation
-              visibleEvaluations.push(evaluation);
-            }
-          } else {
-            // Step 3.b.ii: Verify against aggregate value
-            if (
-              evaluation.modelId in models &&
-              selectedAgreementLevels
-                .map((level) => level.value)
-                .includes(evaluation[`${selectedMetric.name}_agg`].level) &&
-              (!selectedAllowedValues.length ||
-                selectedAllowedValues.includes(
-                  evaluation[`${selectedMetric.name}_agg`].value,
-                ))
-            ) {
-              // Step 3.b.ii.*: Create and add record
-              records.push({
-                taskId: evaluation.taskId,
-                modelName: models[evaluation.modelId].name,
-                [`${selectedMetric.name}_value`]:
-                  evaluation[`${selectedMetric.name}_agg`].value,
-                [`${selectedMetric.name}_aggLevel`]:
-                  evaluation[`${selectedMetric.name}_agg`].level,
-              });
-
-              // Step 3.b.ii.**: Add evaluation
-              visibleEvaluations.push(evaluation);
-            }
-          }
-        },
-      );
-    }
-  } else {
-    // Step 3: For every metric
-    for (const [metric, evaluations] of Object.entries(
-      filteredEvaluationsPerMetric,
-    )) {
-      evaluations.forEach((evaluation) => {
-        // Step 3.a: If invidiual annotator is selected, verify against annotator's value
-        if (selectedAnnotator) {
-          /**
-           * Evaluation's model id fall within selected models
-           * OR
-           * Evaluation's selected metric's value fall within allowed values
-           */
-          if (
-            evaluation.modelId in models &&
-            evaluation[metric].hasOwnProperty(selectedAnnotator) &&
-            (!selectedAllowedValues.length ||
-              selectedAllowedValues.includes(
-                evaluation[metric][selectedAnnotator].value,
-              ))
-          ) {
-            records.push({
-              taskId: evaluation.taskId,
-              modelName: models[evaluation.modelId].name,
-              [`${metric}_value`]: evaluation[metric][selectedAnnotator].value,
-            });
-          }
-        } else {
-          // Step 3.a: Verify against aggregate value
-          if (
-            evaluation.modelId in models &&
-            selectedAgreementLevels
-              .map((level) => level.value)
-              .includes(evaluation[`${metric}_agg`].level) &&
-            (!selectedAllowedValues.length ||
-              selectedAllowedValues.includes(evaluation[`${metric}_agg`].value))
-          ) {
-            records.push({
-              taskId: evaluation.taskId,
-              modelName: models[evaluation.modelId].name,
-              [`${metric}_value`]: evaluation[`${metric}_agg`].value,
-              [`${metric}_aggLevel`]: evaluation[`${metric}_agg`].level,
-            });
-          }
-        }
-      });
-    }
-  }
-
-  return [records, visibleEvaluations];
-}
-
 // ===================================================================================
 //                               MAIN FUNCTION
 // ===================================================================================
@@ -342,6 +153,7 @@ export default function ModelBehavior({
   onTaskSelection,
 }: Props) {
   // Step 1: Initialize state and necessary variables
+  const [loading, setLoading] = useState<boolean>(false);
   const [WindowWidth, setWindowWidth] = useState<number>(
     global?.window && window.innerWidth,
   );
@@ -379,6 +191,7 @@ export default function ModelBehavior({
   const [visibleEvaluations, setVisibleEvaluations] = useState<
     TaskEvaluation[]
   >([]);
+  const [filterationWorker, setFilterationWorker] = useState<Worker>();
 
   // Step 2: Run effects
   // Step 2.a: Adjust graph width & heigh based on window size
@@ -400,7 +213,36 @@ export default function ModelBehavior({
   // Step 2.b: Fetch theme
   const { theme } = useTheme();
 
-  // Step 2.c: Identify all annotators
+  // Step 2.c: Set up a worker to perform data filtering
+  useEffect(() => {
+    // Step 2.c.i: Create a new web worker
+    const worker = new Worker(
+      new URL('../../workers/filter.ts', import.meta.url),
+    );
+
+    // Step 2.c.ii: Set up event listener for messages from the worker
+    worker.onmessage = function (event: MessageEvent<ResponseMessage>) {
+      // Step 2.c.ii.*: Copy over response data
+      const { records, evaluations } = event.data;
+
+      // Step 2.c.ii.**: Update graph records and visible evaluations
+      setGraphRecords(records);
+      setVisibleEvaluations(evaluations);
+
+      // Step 2.c.ii.***: Set loading to false
+      setLoading(false);
+    };
+
+    // Step 2.c.iii: Save the worker instance to state
+    setFilterationWorker(worker);
+
+    // Step 2.c.iv: Clean up the worker when the component unmounts
+    return () => {
+      worker.terminate();
+    };
+  }, []);
+
+  // Step 2.d: Identify all annotators
   const annotators = useMemo(() => {
     const annotatorsSet = new Set();
     const humanMetricNames = metrics
@@ -419,12 +261,12 @@ export default function ModelBehavior({
     return annotatorsSet;
   }, [evaluationsPerMetric, metrics]);
 
-  // Step 2.d: Reset expression, if selected metric changes
+  // Step 2.e: Reset expression, if selected metric changes
   useEffect(() => {
     setExpression({});
   }, [selectedMetric]);
 
-  // Step 2.e: Configure available majority values, if metric is selected
+  // Step 2.f: Configure available majority values, if metric is selected
   const availableAllowedValues = useMemo(() => {
     if (selectedMetric && selectedMetric.type === 'categorical') {
       if (selectedAnnotator) {
@@ -474,12 +316,12 @@ export default function ModelBehavior({
     selectedAgreementLevels,
   ]);
 
-  // Step 2.f: Update selected values list
+  // Step 2.g: Update selected values list
   useEffect(() => {
     setSelectedAllowedValues(availableAllowedValues);
   }, [availableAllowedValues]);
 
-  // Step 2.g: Calculate graph data and prepare visible evaluations list
+  // Step 2.h: Calculate graph data and prepare visible evaluations list
   /**
    * Adjust graph records based on selected agreement levels, models and annotator
    * visibleEvaluations : [{taskId: <>, modelId: <>, [metric]_score: <>}]
@@ -487,20 +329,22 @@ export default function ModelBehavior({
    *       * score field could be either majority score or individual annotator's score (based on selected annotator)
    */
   useEffect(() => {
-    const [records, evaluations] = process(
-      evaluationsPerMetric,
-      selectedAgreementLevels,
-      selectedModels,
-      selectedMetric,
-      selectedAllowedValues,
-      selectedAnnotator,
-      selectedFilters,
-      expression,
-    );
+    // Step 1: Set loading to true
+    setLoading(true);
 
-    // Set graph records and visible evaluations
-    setGraphRecords(records);
-    setVisibleEvaluations(evaluations);
+    // Step 2: Post message to worker to unblock main thread
+    if (filterationWorker) {
+      filterationWorker.postMessage({
+        evaluationsPerMetric: evaluationsPerMetric,
+        filters: selectedFilters,
+        expression: expression,
+        models: selectedModels,
+        agreementLevels: selectedAgreementLevels,
+        metric: selectedMetric,
+        allowedValues: selectedAllowedValues,
+        annotator: selectedAnnotator,
+      });
+    }
   }, [
     evaluationsPerMetric,
     selectedAgreementLevels,
@@ -512,7 +356,7 @@ export default function ModelBehavior({
     expression,
   ]);
 
-  // Step 2.h: Calculate visible tasks per metric
+  // Step 2.i: Calculate visible tasks per metric
   const visibleTasksPerMetric = useMemo(() => {
     const data = {};
     metrics.forEach((metric) => {
@@ -528,7 +372,7 @@ export default function ModelBehavior({
     return data;
   }, [graphRecords, metrics]);
 
-  // Step 2.i: Buckets human and algoritmic metrics into individual buckets
+  // Step 2.j: Buckets human and algoritmic metrics into individual buckets
   const [humanMetrics, algorithmMetrics] = useMemo(() => {
     const hMetrics: Metric[] = [];
     const aMetrics: Metric[] = [];
@@ -546,6 +390,7 @@ export default function ModelBehavior({
   // Step 3: Render
   return (
     <div className={classes.page}>
+      {loading ? <Loading /> : null}
       <div className={classes.selectors}>
         <div className={classes.modelSelector}>
           <FilterableMultiSelect
