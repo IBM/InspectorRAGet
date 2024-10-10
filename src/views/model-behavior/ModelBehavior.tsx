@@ -38,7 +38,12 @@ import { GroupedBarChart } from '@carbon/charts-react';
 import { ScaleTypes } from '@carbon/charts';
 
 import { useTheme } from '@/src/theme';
-import { TaskEvaluation, Model, Metric, ResponseMessage } from '@/src/types';
+import {
+  TaskEvaluation,
+  Model,
+  Metric,
+  FilterationResponse,
+} from '@/src/types';
 import {
   AgreementLevels,
   AgreementLevelDefinitions,
@@ -221,7 +226,7 @@ export default function ModelBehavior({
     );
 
     // Step 2.c.ii: Set up event listener for messages from the worker
-    worker.onmessage = function (event: MessageEvent<ResponseMessage>) {
+    worker.onmessage = function (event: MessageEvent<FilterationResponse>) {
       // Step 2.c.ii.*: Copy over response data
       const { records, evaluations } = event.data;
 
@@ -337,8 +342,8 @@ export default function ModelBehavior({
       filterationWorker.postMessage({
         evaluationsPerMetric: evaluationsPerMetric,
         filters: selectedFilters,
-        expression: expression,
         models: selectedModels,
+        expression: expression,
         agreementLevels: selectedAgreementLevels,
         metric: selectedMetric,
         allowedValues: selectedAllowedValues,

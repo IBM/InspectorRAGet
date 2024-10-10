@@ -236,20 +236,20 @@ export interface Data extends TileData {
 }
 
 // ===================================================================================
-//                               WORKERS
+//                          FILTERATION WORKER
 // ===================================================================================
-export interface RequestMessage {
+export interface FilterationRequest {
   evaluationsPerMetric: { [key: string]: TaskEvaluation[] };
   filters: { [key: string]: string[] };
-  expression: object;
   models: Model[];
-  agreementLevels: { [key: string]: number | string }[];
+  expression?: object;
+  agreementLevels?: { [key: string]: number | string }[];
   metric?: Metric;
   allowedValues?: string[];
   annotator?: string;
 }
 
-export interface ResponseMessage {
+export interface FilterationResponse {
   records: {
     taskId: string;
     modelName: string;

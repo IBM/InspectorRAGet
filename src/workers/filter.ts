@@ -18,11 +18,11 @@
 
 import { isEmpty } from 'lodash';
 
-import { RequestMessage, TaskEvaluation } from '@/src/types';
+import { FilterationRequest, TaskEvaluation } from '@/src/types';
 import { areObjectsIntersecting } from '@/src/utilities/objects';
 import { evaluate } from '@/src/utilities/expressions';
 
-onmessage = function (event: MessageEvent<RequestMessage>) {
+onmessage = function (event: MessageEvent<FilterationRequest>) {
   // Step 1: Initialize necessary variables
   const {
     evaluationsPerMetric,
@@ -55,7 +55,7 @@ onmessage = function (event: MessageEvent<RequestMessage>) {
   // Step 3: If a metric is selected
   if (metric) {
     // Step 3.a: If an expression is specified
-    if (event.data.expression && !isEmpty(event.data.expression)) {
+    if (expression && !isEmpty(expression)) {
       // Step 3.a.ii: Build an object containing evaluations per model for every task
       const evaluationsPerTaskPerModel: {
         [key: string]: { [key: string]: TaskEvaluation };
@@ -121,9 +121,10 @@ onmessage = function (event: MessageEvent<RequestMessage>) {
           // Step 3.b.ii: Verify against aggregate value
           if (
             evaluation.modelId in models &&
-            event.data.agreementLevels
-              .map((level) => level.value)
-              .includes(evaluation[`${metric.name}_agg`].level) &&
+            (!agreementLevels ||
+              agreementLevels
+                .map((level) => level.value)
+                .includes(evaluation[`${metric.name}_agg`].level)) &&
             (!allowedValues ||
               isEmpty(allowedValues) ||
               allowedValues.includes(evaluation[`${metric.name}_agg`].value))
@@ -173,9 +174,10 @@ onmessage = function (event: MessageEvent<RequestMessage>) {
           // Step 3.a: Verify against aggregate value
           if (
             evaluation.modelId in models &&
-            agreementLevels
-              .map((level) => level.value)
-              .includes(evaluation[`${metric}_agg`].level) &&
+            (!agreementLevels ||
+              agreementLevels
+                .map((level) => level.value)
+                .includes(evaluation[`${metric}_agg`].level)) &&
             (!allowedValues ||
               isEmpty(allowedValues) ||
               allowedValues.includes(evaluation[`${metric}_agg`].value))

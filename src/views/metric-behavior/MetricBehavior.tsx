@@ -353,7 +353,7 @@ export default memo(function MetricBehavior({
 
   // Step 2.b: Filter evaluations based on selected models
   const filteredEvaluationsPerMetric = useMemo(() => {
-    var filtered = {};
+    const filtered: { [key: string]: TaskEvaluation[] } = {};
     for (const [metric, evals] of Object.entries(evaluationsPerMetric)) {
       filtered[metric] = evals.filter(
         (evaluation) =>
@@ -700,18 +700,24 @@ export default memo(function MetricBehavior({
           </div>
         ) : (
           <div className={classes.row}>
+            <h4 className={classes.graphTitle}>
+              <strong>Spearman correlation</strong>
+              <span>
+                {`(${Object.values(filteredEvaluationsPerMetric)[0].length ? Object.values(filteredEvaluationsPerMetric)[0].length / (selectedModels ? selectedModels.length : 1) : 0}/${Object.values(evaluationsPerMetric)[0].length / models.length})`}
+              </span>
+            </h4>
             <HeatmapChart
               data={metricToMetricCorrelation}
               options={{
                 // @ts-ignore
                 axes: {
                   bottom: {
-                    title: 'metric',
+                    title: 'Metrics',
                     mapsTo: 'metricA',
                     scaleType: ScaleTypes.LABELS,
                   },
                   left: {
-                    title: 'metric',
+                    title: 'Metrics',
                     mapsTo: 'metricB',
                     scaleType: ScaleTypes.LABELS,
                   },
@@ -759,10 +765,15 @@ export default memo(function MetricBehavior({
           </div>
         ) : (
           <div className={classes.row}>
-            <h4>
-              % instances with same scores (
-              {extractMetricDisplayName(selectedMetricA)} vs.
-              {extractMetricDisplayName(selectedMetricB)})
+            <h4 className={classes.graphTitle}>
+              <strong>
+                % instances with same scores (
+                {extractMetricDisplayName(selectedMetricA)} vs.
+                {extractMetricDisplayName(selectedMetricB)})
+              </strong>
+              <span>
+                {`(${Object.values(filteredEvaluationsPerMetric)[0].length ? Object.values(filteredEvaluationsPerMetric)[0].length / (selectedModels ? selectedModels.length : 1) : 0}/${Object.values(evaluationsPerMetric)[0].length / models.length})`}
+              </span>
             </h4>
             <HeatmapChart
               ref={chartRef}

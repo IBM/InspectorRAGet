@@ -338,7 +338,7 @@ export default memo(function Example({ data }: { data: Data }) {
                   evaluationsPerMetric={evaluationsPerMetric}
                   models={data.models}
                   metrics={eligibleMetrics}
-                  filters={{}}
+                  filters={filters}
                   onTaskSelection={(taskId) => {
                     setSelectedTaskId(taskId);
                   }}
@@ -353,7 +353,7 @@ export default memo(function Example({ data }: { data: Data }) {
                   evaluationsPerMetric={evaluationsPerMetric}
                   models={data.models}
                   metrics={eligibleMetrics}
-                  filters={{}}
+                  filters={filters}
                   onTaskSelection={(taskId) => {
                     setSelectedTaskId(taskId);
                   }}
