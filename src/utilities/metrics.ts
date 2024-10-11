@@ -77,6 +77,33 @@ export function extractMetricDisplayName(metric: Metric): string {
     : metric.name.charAt(0).toUpperCase() + metric.name.slice(1).toLowerCase();
 }
 
+/**
+ * Converts numeric value to metric value using references in case of 'categorical' metrics
+ * @param value numeric value to convert
+ * @param references reference metric values
+ * @returns metric value
+ */
+export function castToValue(
+  value: number,
+  references?: MetricValue[],
+): string | number {
+  // Step 1: Check if references are provided to convert "numeric" value to "string" value
+  if (references) {
+    // Step 1.a: Find appropriate reference by comparing "string" values
+    const reference = references.find((entry) => entry.numericValue === value);
+
+    // Step 1.b: If value exists in reference, then return it
+    if (reference && reference.value) {
+      return reference.value;
+    } else {
+      return value;
+    }
+  }
+
+  // Default return
+  return value;
+}
+
 export function castToNumber(
   value: string | number,
   references?: MetricValue[],
@@ -116,61 +143,121 @@ export function castToNumber(
 }
 
 /**
- * Compute average value
- * @param counter distribution of values
- * @param numberOfAnnotators number of annotators
+ * Compute mean value
+ * @param metric metric under consideration
+ * @param scores distribution of values
  * @returns
  */
-function computeAverage(
+function computeMean(
   metric: Metric,
-  counter: { [key: string]: number },
-  numberOfAnnotators: number,
+  scores: string[] | number[],
 ): { level: number; value: number | string } {
-  // Step 0: Sort counter values
+  // Step 1: Create counter
+  const counter: { [key: string]: number } = countBy(scores);
+
+  // Step 2: Sort counter values
   const sorted_counter = Object.entries(counter);
   sorted_counter.sort((x, y) => {
     return y[1] - x[1];
   });
 
-  // Step 1: Number of unique values, most common value and its count
+  // Step 3: Number of unique values, most common value and its count
   const numberOfUniqueValues = sorted_counter.length;
   const mostCommonValueCount = sorted_counter[0][1];
 
-  // Step 2: Calculate average
+  // Step 4: Calculate mean
   let sum: number = 0;
   for (const [value, count] of Object.entries(counter)) {
     sum +=
       (typeof value === 'string' ? castToNumber(value, metric.values) : value) *
       count;
   }
-  const average =
-    Math.round((sum / numberOfAnnotators + Number.EPSILON) * 100) / 100;
+  const mean = Math.round((sum / scores.length + Number.EPSILON) * 100) / 100;
 
-  // Step 3: Common patterns
-  // Step 3.a: Absolute agreement
-  if (mostCommonValueCount === numberOfAnnotators)
+  // Step 5: Common patterns
+  // Step 5.a: Absolute agreement
+  if (mostCommonValueCount === scores.length)
     return {
       level: AgreementLevels.ABSOLUTE_AGREEMENT,
-      value: average,
+      value: mean,
     };
 
-  // Step 3.b: Absolute disagreement/No agreement
-  if (numberOfUniqueValues === numberOfAnnotators)
+  // Step 5.b: Absolute disagreement/No agreement
+  if (numberOfUniqueValues === scores.length)
     return {
       level: AgreementLevels.NO_AGREEMENT,
-      value: average,
+      value: mean,
     };
 
-  // Step 4: Default return
+  // Step 6: Default return
   return {
     level: AgreementLevels.HIGH_AGREEMENT,
-    value: average,
+    value: mean,
+  };
+}
+
+/**
+ * Compute median value
+ * @param metric metric under consideration
+ * @param counter distribution of values
+ * @returns
+ */
+function computeMedian(
+  metric: Metric,
+  scores: string[] | number[],
+): { level: number; value: number | string } {
+  // Step 1: Create counter
+  const counter: { [key: string]: number } = countBy(scores);
+
+  // Step 2: Sort counter values
+  const sorted_counter = Object.entries(counter);
+  sorted_counter.sort((x, y) => {
+    return y[1] - x[1];
+  });
+
+  // Step 3: Number of unique values, most common value and its count
+  const numberOfUniqueValues = sorted_counter.length;
+  const mostCommonValueCount = sorted_counter[0][1];
+
+  // Step 4: Cast score to numbers
+  const numericScores = scores.map((score) =>
+    typeof score === 'string' ? castToNumber(score, metric.values) : score,
+  );
+
+  // Step 5: Sort the numeric scores
+  const sortedNumericScores = numericScores.toSorted();
+
+  // Step 6: Calculate median
+  const median =
+    sortedNumericScores.length % 2 == 0
+      ? sortedNumericScores[sortedNumericScores.length / 2]
+      : sortedNumericScores[(sortedNumericScores.length + 1) / 2 - 1];
+
+  // Step 7: Common patterns
+  // Step 7.a: Absolute agreement
+  if (mostCommonValueCount === scores.length)
+    return {
+      level: AgreementLevels.ABSOLUTE_AGREEMENT,
+      value: castToValue(median, metric.values),
+    };
+
+  // Step 7.b: Absolute disagreement/No agreement
+  if (numberOfUniqueValues === scores.length)
+    return {
+      level: AgreementLevels.NO_AGREEMENT,
+      value: castToValue(median, metric.values),
+    };
+
+  // Step 8: Default return
+  return {
+    level: AgreementLevels.HIGH_AGREEMENT,
+    value: castToValue(median, metric.values),
   };
 }
 
 /**
  * Compute majority value
- * @param metric
+ * @param metric metric under consideration
  * @param counter distribution of values
  * @param numberOfAnnotators number of annotators
  * @returns
@@ -257,8 +344,10 @@ export function calculateAggregateValue(
       let scores: string[] | number[] = Object.values(entries).map(
         (entry) => entry.value,
       );
-      if (metric.aggregator === 'average') {
-        return computeAverage(metric, countBy(scores), scores.length);
+      if (metric.aggregator === 'average' || metric.aggregator === 'mean') {
+        return computeMean(metric, scores);
+      } else if (metric.aggregator === 'median') {
+        return computeMedian(metric, scores);
       } else {
         return computeMajority(metric, countBy(scores), scores.length);
       }
@@ -273,8 +362,10 @@ export function calculateAggregateValue(
       let scores: string[] | number[] = Object.values(entries).map(
         (entry) => entry.value,
       );
-      if (metric.aggregator === 'average') {
-        return computeAverage(metric, countBy(scores), scores.length);
+      if (metric.aggregator === 'average' || metric.aggregator === 'mean') {
+        return computeMean(metric, scores);
+      } else if (metric.aggregator === 'median') {
+        return computeMedian(metric, scores);
       } else {
         return computeMajority(metric, countBy(scores), scores.length);
       }

@@ -24,11 +24,11 @@ import {
   AggregationStatistics,
   MetricValue,
 } from '@/src/types';
-import { castToNumber } from '@/src/utilities/metrics';
+import { castToNumber, castToValue } from '@/src/utilities/metrics';
 
-export const averageAggregator: Aggregator = {
-  name: 'averagae',
-  displayName: 'Average',
+export const meanAggregator: Aggregator = {
+  name: 'mean',
+  displayName: 'Mean',
   apply: (
     scores: number[] | string[],
     references: MetricValue[],
@@ -53,6 +53,50 @@ export const averageAggregator: Aggregator = {
 
     return {
       value: Math.round((mean + Number.EPSILON) * 100) / 100,
+      std: Math.round((std + Number.EPSILON) * 100) / 100,
+      confidence:
+        mostCommonValueCount === scores.length
+          ? AggregationConfidenceLevels.HIGH
+          : numberOfUniqueValues === scores.length
+            ? AggregationConfidenceLevels.LOW
+            : AggregationConfidenceLevels.MEDIUM,
+    };
+  },
+};
+
+export const medianAggregator: Aggregator = {
+  name: 'median',
+  displayName: 'Median',
+  apply: (
+    scores: number[] | string[],
+    references: MetricValue[],
+  ): AggregationStatistics => {
+    // Step 1: Cast score to numbers
+    const numericScores = scores.map((score) =>
+      typeof score === 'string' ? castToNumber(score, references) : score,
+    );
+
+    // Step 2: Sort the numeric scores
+    const sortedNumericScores = numericScores.toSorted();
+
+    // Step 3: Calculate aggregate value & standard deviation
+    const median =
+      sortedNumericScores.length % 2 == 0
+        ? sortedNumericScores[sortedNumericScores.length / 2]
+        : sortedNumericScores[(sortedNumericScores.length + 1) / 2];
+    const std = Math.sqrt(
+      sortedNumericScores
+        .map((score) => Math.pow(score - median, 2))
+        .reduce((a, b) => a + b) / sortedNumericScores.length,
+    );
+
+    // Step 4: Calculate confidence level
+    const sorted_counter = Object.entries(countBy(scores));
+    const numberOfUniqueValues = sorted_counter.length;
+    const mostCommonValueCount = sorted_counter[0][1];
+
+    return {
+      value: castToValue(median, references),
       std: Math.round((std + Number.EPSILON) * 100) / 100,
       confidence:
         mostCommonValueCount === scores.length

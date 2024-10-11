@@ -53,7 +53,8 @@ import {
   castToNumber,
 } from '@/src/utilities/metrics';
 import {
-  averageAggregator,
+  meanAggregator,
+  medianAggregator,
   majorityAggregator,
 } from '@/src/utilities/aggregators';
 import { areObjectsIntersecting } from '@/src/utilities/objects';
@@ -372,7 +373,11 @@ export default function PerformanceOverview({
   const [WindowHeight, setWindowHeight] = useState<number>(
     global?.window && window.innerHeight,
   );
-  const aggregators: Aggregator[] = [averageAggregator, majorityAggregator];
+  const aggregators: Aggregator[] = [
+    meanAggregator,
+    medianAggregator,
+    majorityAggregator,
+  ];
   const [selectedAggregators, setSelectedAggregators] = useState<{
     [key: string]: Aggregator;
   }>(
@@ -383,7 +388,9 @@ export default function PerformanceOverview({
           metric.name,
           metric.aggregator === 'majority'
             ? majorityAggregator
-            : averageAggregator,
+            : metric.aggregator === 'median'
+              ? medianAggregator
+              : meanAggregator,
         ]),
     ),
   );
@@ -460,7 +467,7 @@ export default function PerformanceOverview({
       for (const [metric, evaluations] of Object.entries(
         evaluationsPerMetric,
       )) {
-        const aggregator = selectedAggregators[metric] || averageAggregator;
+        const aggregator = selectedAggregators[metric] || meanAggregator;
 
         // Select evaluations based on selected filters
         const selectedEvaluations = !isEmpty(selectedFilters)

@@ -140,7 +140,8 @@ function prepareGroupBarChartData(
       return {
         ...entry,
         key:
-          metric.aggregator && metric.aggregator === 'majority'
+          metric.aggregator &&
+          (metric.aggregator === 'majority' || metric.aggregator === 'median')
             ? extractMetricDisplayValue(entry.key, metric.values)
             : entry.key,
       };
