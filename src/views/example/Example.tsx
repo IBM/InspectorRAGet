@@ -260,6 +260,7 @@ export default memo(function Example({ data }: { data: Data }) {
             className={classes.tabList}
             aria-label="Metrics tab"
             contained
+            fullWidth
           >
             <Tab key={'data-characteristics-tab'} renderIcon={DataVis_4}>
               Data Characteristics

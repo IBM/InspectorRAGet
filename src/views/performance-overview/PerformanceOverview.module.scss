@@ -45,6 +45,7 @@
 }
 
 .column {
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -64,6 +65,7 @@
 }
 
 .performanceTable {
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   row-gap: $spacing-03;
