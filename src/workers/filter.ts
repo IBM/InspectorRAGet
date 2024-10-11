@@ -103,7 +103,6 @@ onmessage = function (event: MessageEvent<FilterationRequest>) {
             evaluation.modelId in models &&
             evaluation[metric.name].hasOwnProperty(annotator) &&
             (!allowedValues ||
-              isEmpty(allowedValues) ||
               allowedValues.includes(evaluation[metric.name][annotator].value))
           ) {
             // Step 3.b.i.*: Create and add record
@@ -126,7 +125,6 @@ onmessage = function (event: MessageEvent<FilterationRequest>) {
                 .map((level) => level.value)
                 .includes(evaluation[`${metric.name}_agg`].level)) &&
             (!allowedValues ||
-              isEmpty(allowedValues) ||
               allowedValues.includes(evaluation[`${metric.name}_agg`].value))
           ) {
             // Step 3.b.ii.*: Create and add record
@@ -161,7 +159,6 @@ onmessage = function (event: MessageEvent<FilterationRequest>) {
             evaluation.modelId in models &&
             evaluation[metric].hasOwnProperty(annotator) &&
             (!allowedValues ||
-              isEmpty(allowedValues) ||
               allowedValues.includes(evaluation[metric][annotator].value))
           ) {
             records.push({
@@ -179,7 +176,6 @@ onmessage = function (event: MessageEvent<FilterationRequest>) {
                 .map((level) => level.value)
                 .includes(evaluation[`${metric}_agg`].level)) &&
             (!allowedValues ||
-              isEmpty(allowedValues) ||
               allowedValues.includes(evaluation[`${metric}_agg`].value))
           ) {
             records.push({

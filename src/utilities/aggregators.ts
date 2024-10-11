@@ -82,8 +82,8 @@ export const medianAggregator: Aggregator = {
     // Step 3: Calculate aggregate value & standard deviation
     const median =
       sortedNumericScores.length % 2 == 0
-        ? sortedNumericScores[sortedNumericScores.length / 2]
-        : sortedNumericScores[(sortedNumericScores.length + 1) / 2];
+        ? sortedNumericScores[sortedNumericScores.length / 2 - 1]
+        : sortedNumericScores[(sortedNumericScores.length + 1) / 2 - 1];
     const std = Math.sqrt(
       sortedNumericScores
         .map((score) => Math.pow(score - median, 2))

@@ -180,9 +180,8 @@ export default function ModelBehavior({
   const [selectedMetric, setSelectedMetric] = useState<Metric | undefined>(
     undefined,
   );
-  const [selectedAllowedValues, setSelectedAllowedValues] = useState<string[]>(
-    [],
-  );
+  const [selectedAllowedValues, setSelectedAllowedValues] =
+    useState<string[]>();
   const [selectedAnnotator, setSelectedAnnotator] = useState<
     string | undefined
   >(undefined);
@@ -313,7 +312,7 @@ export default function ModelBehavior({
       ).sort();
     }
 
-    return [];
+    return undefined;
   }, [
     evaluationsPerMetric,
     selectedModels,
@@ -519,8 +518,11 @@ export default function ModelBehavior({
         ) : null}
 
         {selectedMetric &&
-        selectedMetric.aggregator === 'majority' &&
-        availableAllowedValues ? (
+        selectedMetric.type === 'categorical' &&
+        (selectedMetric.aggregator === 'majority' ||
+          selectedMetric.aggregator === 'median') &&
+        availableAllowedValues &&
+        selectedAllowedValues ? (
           <div className={classes.allowedValueSelector}>
             <FilterableMultiSelect
               key={'allowed-value-selector' + selectedAllowedValues.join('::')}

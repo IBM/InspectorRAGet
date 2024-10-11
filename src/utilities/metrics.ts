@@ -230,7 +230,7 @@ function computeMedian(
   // Step 6: Calculate median
   const median =
     sortedNumericScores.length % 2 == 0
-      ? sortedNumericScores[sortedNumericScores.length / 2]
+      ? sortedNumericScores[sortedNumericScores.length / 2 - 1]
       : sortedNumericScores[(sortedNumericScores.length + 1) / 2 - 1];
 
   // Step 7: Common patterns
