@@ -80,11 +80,26 @@ export default function HidePanel({
       </Tooltip>
       {show ? (
         <div className={cx(classes.container, show && classes.visible)}>
-          <div className={classes.selector}>
+          <div
+            key={'models-limiter--' + `${ignoredModels === models}`}
+            className={classes.selector}
+          >
             <FilterableMultiSelect
               id={'model--limiter'}
-              titleText="Models"
+              titleText={
+                <div className={classes.selectorLabel}>
+                  <span>Models</span>
+                  <Button
+                    kind="ghost"
+                    size="sm"
+                    onClick={() => setIgnoredModels(models)}
+                  >
+                    select all
+                  </Button>
+                </div>
+              }
               items={models}
+              initialSelectedItems={ignoredModels}
               itemToString={(item) => (item.name ? item.name : item.modelId)}
               onChange={(event) => {
                 setIgnoredModels(event.selectedItems);
@@ -103,11 +118,26 @@ export default function HidePanel({
               })}
             </div>
           </div>
-          <div className={classes.selector}>
+          <div
+            key={'metrics-limiter--' + `${ignoredMetrics === metrics}`}
+            className={classes.selector}
+          >
             <FilterableMultiSelect
               id={'metrics--limiter'}
-              titleText="Metrics"
+              titleText={
+                <div className={classes.selectorLabel}>
+                  <span>Metrics</span>
+                  <Button
+                    kind="ghost"
+                    size="sm"
+                    onClick={() => setIgnoredMetrics(metrics)}
+                  >
+                    select all
+                  </Button>
+                </div>
+              }
               items={metrics}
+              initialSelectedItems={ignoredMetrics}
               itemToString={(item) =>
                 item.displayName ? item.displayName : item.name
               }

@@ -47,7 +47,7 @@
   margin: 0 0 $spacing-03 $spacing-05;
   padding: $spacing-05;
   display: none;
-  column-gap: $spacing-09;
+  column-gap: $spacing-12;
   box-shadow: 0 0 5px 2px $gray-40;
 }
 
@@ -71,4 +71,14 @@
 
 .selector {
   max-width: 30%;
+}
+
+.selector label {
+  width: 100%;
+}
+
+.selectorLabel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }

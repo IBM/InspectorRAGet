@@ -666,7 +666,7 @@ export default function ModelComparator({
             <Slider
               ariaLabelInput="Lower bound"
               unstable_ariaLabelInputUpper="Upper bound"
-              labelText={`${extractMetricDisplayName(selectedMetric)} Range`}
+              labelText={`Choose range`}
               value={
                 selectedMetricRange
                   ? selectedMetricRange[0]

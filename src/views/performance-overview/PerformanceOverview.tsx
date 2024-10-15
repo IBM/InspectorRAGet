@@ -825,25 +825,48 @@ export default function PerformanceOverview({
                 <>
                   <RadarChart
                     data={humanMetricsData.map((entry) => {
+                      // Step 1: Find metric under consideration
                       const metric = metrics.find(
                         (m) => m.displayName === entry.metric,
                       );
+
+                      // Step 2: Calculate normalized score
+                      let normalizedScore = entry.score;
+                      if (
+                        metric?.minValue !== undefined &&
+                        metric.maxValue !== undefined
+                      ) {
+                        // Step 2.a: Fetch minimum value
+                        const minValue =
+                          typeof metric.minValue === 'number'
+                            ? metric.minValue
+                            : castToNumber(
+                                metric.minValue?.value,
+                                metric.values,
+                              );
+
+                        // Step 2.b: Fetch maximum value
+                        const maxValue =
+                          typeof metric.maxValue === 'number'
+                            ? metric.maxValue
+                            : castToNumber(
+                                metric.maxValue?.value,
+                                metric.values,
+                              );
+
+                        // Step 2.c: Calculate min-max normalized score
+                        normalizedScore =
+                          Math.round(
+                            ((entry.score - minValue) / (maxValue - minValue)) *
+                              100,
+                          ) / 100;
+                      }
+
+                      // Step 3: Return
                       return {
                         model: entry.model,
                         metric: entry.metric,
-                        score:
-                          metric && metric.maxValue
-                            ? Math.round(
-                                (entry.score /
-                                  (typeof metric.maxValue === 'number'
-                                    ? metric.maxValue
-                                    : castToNumber(
-                                        metric.maxValue?.value,
-                                        metric.values,
-                                      ))) *
-                                  100,
-                              ) / 100
-                            : entry.score,
+                        score: normalizedScore,
                       };
                     })}
                     options={{
@@ -899,10 +922,50 @@ export default function PerformanceOverview({
                     data={algorithmicMetricsData
                       .sort((a, b) => (a.model > b.model ? -1 : 1))
                       .map((entry) => {
+                        // Step 1: Find metric under consideration
+                        const metric = metrics.find(
+                          (m) => m.displayName === entry.metric,
+                        );
+
+                        // Step 2: Calculate normalized score
+                        let normalizedScore = entry.score;
+
+                        if (
+                          metric?.minValue !== undefined &&
+                          metric.maxValue !== undefined
+                        ) {
+                          // Step 2.a: Fetch minimum value
+                          const minValue =
+                            typeof metric.minValue === 'number'
+                              ? metric.minValue
+                              : castToNumber(
+                                  metric.minValue?.value,
+                                  metric.values,
+                                );
+
+                          // Step 2.b: Fetch maximum value
+                          const maxValue =
+                            typeof metric.maxValue === 'number'
+                              ? metric.maxValue
+                              : castToNumber(
+                                  metric.maxValue?.value,
+                                  metric.values,
+                                );
+
+                          // Step 2.c: Calculate min-max normalized score
+                          normalizedScore =
+                            Math.round(
+                              ((entry.score - minValue) /
+                                (maxValue - minValue)) *
+                                100,
+                            ) / 100;
+                        }
+
+                        // Step 3: Return
                         return {
                           group: entry.model,
                           key: entry.metric,
-                          value: entry.score,
+                          value: normalizedScore,
                         };
                       })}
                     options={{
