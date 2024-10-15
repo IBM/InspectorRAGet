@@ -75,3 +75,13 @@
 .filterSelector {
   max-width: 25%;
 }
+
+.filterSelector label {
+  width: 100%;
+}
+
+.filterLabel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}

@@ -128,15 +128,43 @@ export default function Filters({
                     {Object.entries(filters).map(([filterType, values]) => {
                       return (
                         <div
-                          key={`${keyPrefix}-filter` + filterType + '-selector'}
+                          key={
+                            `${keyPrefix}-filter` +
+                            filterType +
+                            '-selector--' +
+                            `${selectedFilters && selectedFilters[filterType] && selectedFilters[filterType] === values}`
+                          }
                           className={classes.filterSelector}
                         >
                           <FilterableMultiSelect
                             id={
                               `${keyPrefix}-filter` + filterType + '-selector'
                             }
-                            titleText={filterType}
+                            titleText={
+                              <div className={classes.filterLabel}>
+                                <span>{filterType}</span>
+                                <Button
+                                  kind="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    setSelectedFilters((prevState) => {
+                                      return {
+                                        ...prevState,
+                                        [filterType]: values,
+                                      };
+                                    })
+                                  }
+                                >
+                                  select all
+                                </Button>
+                              </div>
+                            }
                             items={values}
+                            initialSelectedItems={
+                              selectedFilters && selectedFilters[filterType]
+                                ? selectedFilters[filterType]
+                                : []
+                            }
                             itemToString={(item) => String(item)}
                             onChange={(event) => {
                               setSelectedFilters((prevState) =>
@@ -185,13 +213,41 @@ export default function Filters({
               {Object.entries(filters).map(([filterType, values]) => {
                 return (
                   <div
-                    key={`${keyPrefix}-filter` + filterType + '-selector'}
+                    key={
+                      `${keyPrefix}-filter` +
+                      filterType +
+                      '-selector--' +
+                      `${selectedFilters && selectedFilters[filterType] && selectedFilters[filterType] === values}`
+                    }
                     className={classes.filterSelector}
                   >
                     <FilterableMultiSelect
                       id={`${keyPrefix}-filter` + filterType + '-selector'}
-                      titleText={filterType}
+                      titleText={
+                        <div className={classes.filterLabel}>
+                          <span>{filterType}</span>
+                          <Button
+                            kind="ghost"
+                            size="sm"
+                            onClick={() =>
+                              setSelectedFilters((prevState) => {
+                                return {
+                                  ...prevState,
+                                  [filterType]: values,
+                                };
+                              })
+                            }
+                          >
+                            select all
+                          </Button>
+                        </div>
+                      }
                       items={values}
+                      initialSelectedItems={
+                        selectedFilters && selectedFilters[filterType]
+                          ? selectedFilters[filterType]
+                          : []
+                      }
                       itemToString={(item) => String(item)}
                       onChange={(event) => {
                         setSelectedFilters((prevState) =>

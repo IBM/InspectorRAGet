@@ -61,7 +61,7 @@ import { areObjectsIntersecting } from '@/src/utilities/objects';
 import { getModelColorPalette } from '@/src/utilities/colors';
 import AggregatorSelector from '@/src/components/selectors/AggregatorSelector';
 import Filters from '@/src/components/filters/Filters';
-import FilterMetrics from '@/src/views/performance-overview/FilterMetrics';
+import HidePanel from '@/src/views/performance-overview/Hide';
 
 import '@carbon/charts-react/styles.css';
 import classes from './PerformanceOverview.module.scss';
@@ -398,6 +398,7 @@ export default function PerformanceOverview({
     [key: string]: string[];
   }>({});
   const [modelColors, modelOrder] = getModelColorPalette(models);
+  const [hiddenModels, setHiddenModels] = useState<Model[]>([]);
   const [hiddenMetrics, setHiddenMetrics] = useState<Metric[]>([]);
 
   // Step 2: Run effects
@@ -656,13 +657,30 @@ export default function PerformanceOverview({
         );
       }
 
-      // Step 4: Generate add rank information
+      // Step 4: Filter hidden models data
+      const hiddenModelNames = hiddenModels.map((model) =>
+        model.name ? model.name : model.modelId,
+      );
       // Step 4.a: Human metrics
+      if (Array.isArray(hData)) {
+        hData = hData.filter(
+          (entry) => !hiddenModelNames.includes(entry.model),
+        );
+      }
+      // Step 4.b: Algorithmic metrics
+      if (Array.isArray(aData)) {
+        aData = aData.filter(
+          (entry) => !hiddenModelNames.includes(entry.model),
+        );
+      }
+
+      // Step 5: Generate add rank information
+      // Step 5.a: Human metrics
       if (Array.isArray(hData)) {
         calculateRanks(hData);
       }
 
-      // Step 4.b: Algorithmic metrics
+      // Step 5.b: Algorithmic metrics
       if (Array.isArray(aData)) {
         calculateRanks(aData);
       }
@@ -674,6 +692,7 @@ export default function PerformanceOverview({
       models,
       selectedAggregators,
       selectedFilters,
+      hiddenModels,
       hiddenMetrics,
     ]);
 
@@ -731,9 +750,12 @@ export default function PerformanceOverview({
         />
       ) : null}
 
-      <FilterMetrics
+      <HidePanel
+        models={models}
         metrics={metrics}
+        hiddenModels={hiddenModels}
         hiddenMetrics={hiddenMetrics}
+        setHiddenModels={setHiddenModels}
         setHiddenMetrics={setHiddenMetrics}
       />
 
