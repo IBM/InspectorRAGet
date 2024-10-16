@@ -44,7 +44,7 @@
 }
 
 .container {
-  margin: 0 0 $spacing-03 $spacing-05;
+  margin: 0 $spacing-05 $spacing-03;
   display: none;
   box-shadow: 0 0 5px 2px $gray-40;
 }
@@ -52,7 +52,7 @@
 .filters {
   padding: $spacing-05;
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   column-gap: $spacing-09;
 }
 

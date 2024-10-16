@@ -45,11 +45,15 @@
 }
 
 .column {
-  max-width: 100%;
+  max-width: 50%;
   display: flex;
   flex-direction: column;
   align-items: center;
   row-gap: $spacing-03;
+}
+
+.expand {
+  max-width: 100%;
 }
 
 .seperator {

@@ -768,7 +768,12 @@ export default function PerformanceOverview({
         )}
       >
         {humanMetricsInData.size ? (
-          <div className={classes.column}>
+          <div
+            className={cx(
+              classes.column,
+              algorithmicmetricsInData.size === 0 ? classes.expand : null,
+            )}
+          >
             <h4>
               Human Evaluations ({numSelectedTasks}/{numTasks})
             </h4>
@@ -904,7 +909,12 @@ export default function PerformanceOverview({
           <div className={classes.seperator}></div>
         ) : null}
         {algorithmicmetricsInData.size ? (
-          <div className={classes.column}>
+          <div
+            className={cx(
+              classes.column,
+              humanMetricsInData.size === 0 ? classes.expand : null,
+            )}
+          >
             <h4>
               Algorithmic Evaluations ({numSelectedTasks}/{numTasks})
             </h4>
