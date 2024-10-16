@@ -334,9 +334,11 @@ function renderResult(
             axes: {
               left: {
                 mapsTo: 'value',
-                ...(metric.type === 'numerical' && {
-                  domain: [metric.minValue, metric.maxValue],
-                }),
+                ...(metric.type === 'numerical' &&
+                  typeof metric.minValue === 'number' &&
+                  typeof metric.maxValue === 'number' && {
+                    domain: [metric.minValue, metric.maxValue],
+                  }),
                 ...(metric.type === 'categorical' &&
                   typeof metric.minValue !== 'number' &&
                   typeof metric.maxValue !== 'number' && {
@@ -851,12 +853,14 @@ export default function ModelComparator({
                     axes: {
                       left: {
                         mapsTo: 'value',
-                        ...(selectedMetric.type === 'numerical' && {
-                          domain: [
-                            selectedMetric.minValue,
-                            selectedMetric.maxValue,
-                          ],
-                        }),
+                        ...(selectedMetric.type === 'numerical' &&
+                          typeof selectedMetric.minValue === 'number' &&
+                          typeof selectedMetric.maxValue === 'number' && {
+                            domain: [
+                              selectedMetric.minValue,
+                              selectedMetric.maxValue,
+                            ],
+                          }),
                         ...(selectedMetric.type === 'categorical' &&
                           typeof selectedMetric.minValue !== 'number' &&
                           typeof selectedMetric.maxValue !== 'number' && {
