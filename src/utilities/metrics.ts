@@ -225,7 +225,7 @@ function computeMedian(
   );
 
   // Step 5: Sort the numeric scores
-  const sortedNumericScores = numericScores.toSorted();
+  const sortedNumericScores = numericScores.toSorted((a, b) => a - b);
 
   // Step 6: Calculate median
   const median =
