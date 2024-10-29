@@ -77,7 +77,7 @@ export const medianAggregator: Aggregator = {
     );
 
     // Step 2: Sort the numeric scores
-    const sortedNumericScores = numericScores.toSorted();
+    const sortedNumericScores = numericScores.toSorted((a, b) => a - b);
 
     // Step 3: Calculate aggregate value & standard deviation
     const median =
