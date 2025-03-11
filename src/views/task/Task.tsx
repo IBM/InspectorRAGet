@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2024 InspectorRAGet Team
+ * Copyright 2023-2025 InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ import AddCommentModal from '@/src/components/comments/AddCommentModal';
 import ViewComments from '@/src/components/comments/CommentsViewer';
 import RAGTask from '@/src/views/task/RAGTask';
 import TextGenerationTask from '@/src/views/task/TextGenerationTask';
+import ChatTask from '@/src/views/task/ChatTask';
 
 import classes from './Task.module.scss';
 
@@ -262,6 +263,21 @@ export default function Task({ taskId, onClose }: Props) {
             />
           ) : task.taskType === 'text_generation' ? (
             <TextGenerationTask
+              task={task}
+              models={models}
+              metrics={metrics}
+              taskCopierModalOpen={taskCopierModalOpen}
+              setTaskCopierModalOpen={setTaskCopierModalOpen}
+              updateCommentProvenance={(provenance: string) => {
+                updateCommentProvenance(
+                  provenance,
+                  setCommentProvenance,
+                  createNotification,
+                );
+              }}
+            />
+          ) : task.taskType === 'chat' ? (
+            <ChatTask
               task={task}
               models={models}
               metrics={metrics}

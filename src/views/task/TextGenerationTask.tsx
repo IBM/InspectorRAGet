@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2024 InspectorRAGet Team
+ * Copyright 2023-2025 InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -188,6 +188,8 @@ export default function TextGenerationTask({
               </>
             ) : null}
           </div>
+
+          <div className={classes.separator} />
 
           <div className={classes.evaluationsContainer}>
             <Tabs

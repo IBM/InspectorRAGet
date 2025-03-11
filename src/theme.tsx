@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2024 InspectorRAGet Team
+ * Copyright 2023-2025 InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,16 +23,16 @@ import { Theme } from '@carbon/react';
 
 export const ThemeContext = createContext<{
   theme: string;
-  set: (theme: 'white' | 'g10' | 'g90' | 'g100') => void;
+  set: (theme: 'g10' | 'g90') => void;
 }>({
-  theme: 'g100',
+  theme: 'g10',
   set(theme) {},
 });
 
 export function ThemeProvider({ children }: { children: any }) {
-  const [theme, setTheme] = useState<'white' | 'g10' | 'g90' | 'g100'>('g100');
+  const [theme, setTheme] = useState<'g10' | 'g90'>('g10');
 
-  const set = (theme: 'white' | 'g10' | 'g90' | 'g100') => {
+  const set = (theme: 'g10' | 'g90') => {
     setTheme(theme);
   };
 

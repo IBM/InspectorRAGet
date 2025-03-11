@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2024 InspectorRAGet Team
+ * Copyright 2023-2025 InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,13 +58,13 @@ export default memo(function HeaderView() {
       <HeaderGlobalBar>
         <HeaderGlobalAction
           aria-label={
-            theme === 'white' ? 'Switch to dark mode' : 'Switch to light mode'
+            theme === 'g10' ? 'Switch to dark mode' : 'Switch to light mode'
           }
           onClick={() => {
-            theme === 'white' ? set('g100') : set('white');
+            theme === 'g10' ? set('g90') : set('g10');
           }}
         >
-          {theme === 'white' ? <Asleep size={20} /> : <Awake size={20} />}
+          {theme === 'g10' ? <Asleep size={20} /> : <Awake size={20} />}
         </HeaderGlobalAction>
         <HeaderGlobalAction
           aria-label="Export"

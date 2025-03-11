@@ -219,9 +219,10 @@ Notes:
 Notes: 
 
 1. Each task must have a unique `task_id`.
-2. Task type can be of `question_answering`, `conversation`, or of `rag` type.
-3. `input` is an array of utterances. An utterance's speaker could be either `user` or `agent`. Each utterance must have a `text` field.
-4. `contexts` field represents a subset of documents from the `documents` field relevant to the `input` and is available to the generative models. 
+2. Task type can be of `rag`, or of `text_generation`, or of `chat` type.
+3. For `rag` and `text_generation` type task, `input` is an array of utterances. An utterance's speaker could be either `user` or `agent`. Each utterance must have a `text` field.
+4. For `chat` type task, `input` must be array of messages as defined by OpenAI's chat completion APIs (https://platform.openai.com/docs/api-reference/chat/create#chat-create-messages).
+4. For `rag` task, `contexts` field represents a subset of documents from the `documents` field relevant to the `input` and is available to the generative models. 
 5. `targets` field is an array of expected gold or reference texts. 
 6. `category` is an optional field that represents the type of task for grouping similar tasks.
 7. `filters` is a top-level field (parallel to `tasks`) which specifies an array of fields defined inside `tasks` for filtering tasks during analysis. 

@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2024 InspectorRAGet Team
+ * Copyright 2023-2025 InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,10 +38,10 @@ import {
   Model,
   StringMatchObject,
   TaskEvaluation,
-  Document,
+  RetrievedDocument,
   Task,
   Metric,
-  DocumentAnnotation,
+  RetrievedDocumentAnnotation,
 } from '@/src/types';
 import { useDataStore } from '@/src/store';
 import { truncate, overlaps } from '@/src/utilities/strings';
@@ -89,7 +89,7 @@ export default function RAGTask({
   // Step 2.b: Fetch documents and evaluations
   const [documentsPerEvaluation, evaluations] = useMemo(() => {
     // Step 2.b.i: Initialize necessary variables
-    const contextsPerEvaluation: Document[][] = [];
+    const contextsPerEvaluation: RetrievedDocument[][] = [];
 
     // Step 2.b.i: Fetch evaluations
     let taskEvaluations: TaskEvaluation[] | undefined = undefined;
@@ -100,7 +100,7 @@ export default function RAGTask({
 
       // Step 2.b.i.*: Identify context document for each evaluation and compute context-response overlap and add to evaluation object
       taskEvaluations.forEach((evaluation) => {
-        const contextDocuments: Document[] = [];
+        const contextDocuments: RetrievedDocument[] = [];
         const contexts = evaluation.contexts
           ? evaluation.contexts
           : task.contexts
@@ -118,7 +118,7 @@ export default function RAGTask({
                   task?.annotations &&
                   task.annotations.hasOwnProperty('context_relevance')
                 ) {
-                  const documentAnnotation: DocumentAnnotation = {
+                  const documentAnnotation: RetrievedDocumentAnnotation = {
                     text: 'Relevant',
                     authors: [],
                     color: 'green',
@@ -344,6 +344,8 @@ export default function RAGTask({
               </div>
             )}
           </div>
+
+          <div className={classes.separator} />
 
           <div className={classes.evaluationsContainer}>
             <Tabs

@@ -1,0 +1,165 @@
+/**
+ *
+ * Copyright 2023-2025 InspectorRAGet Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ **/
+
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/colors' as *;
+
+.line {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+  align-items: flex-end;
+  margin-bottom: 1.25rem;
+  gap: 24px;
+}
+
+.assistantLine {
+  justify-content: flex-start;
+  flex-direction: row;
+}
+
+.latestResponse {
+  margin-bottom: 3rem;
+}
+
+.baloon {
+  display: flex;
+  flex-direction: column;
+  border-radius: 1rem;
+  border-bottom-right-radius: 0;
+  background: var(--cds-layer-01);
+  width: 80%;
+}
+
+.assistantBaloon {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 1rem;
+}
+
+.toolCallBaloon {
+  background-color: var(--cds-highlight);
+}
+
+.toolResponseBaloon {
+  background-color: var(--cds-tag-background-green);
+}
+
+.message {
+  font-size: 16px;
+  line-height: 22px;
+  margin: $spacing-04 $spacing-05;
+  min-width: 120px;
+}
+
+.toolCall {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-03;
+}
+
+.toolCall :global(.cds--snippet--multi) {
+  min-inline-size: 100%;
+  max-inline-size: 100%;
+  padding: 0 0 $spacing-03;
+  background-color: var(--cds-background);
+}
+
+.toolCall :global(.cds--snippet-container) {
+  padding: $spacing-03;
+}
+
+.toolResponse {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-03;
+}
+
+.toolResponse :global(.cds--snippet--multi) {
+  max-inline-size: 100%;
+  padding: 0 0 $spacing-03;
+  background-color: var(--cds-background);
+}
+
+.toolResponse :global(.cds--snippet-container) {
+  padding: $spacing-03;
+}
+
+.viewDocumentsButton {
+  border: 1px solid var(--cds-background-inverse);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  margin: -10px auto -16px;
+  background: var(--cds-background);
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.viewDocumentsIcon {
+  color: var(--cds-background-inverse);
+}
+
+.toolbar {
+  border: none;
+  cursor: pointer;
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 $spacing-05;
+  align-items: baseline;
+}
+
+.btnActive {
+  background-color: var(--cds-background-selected);
+}
+
+.superscript {
+  vertical-align: super;
+  font-size: 12px;
+  margin-left: $spacing-01;
+}
+
+.citations {
+  margin: 0 $spacing-05;
+}
+
+.feedbackContainer {
+  width: 500px;
+  display: flex;
+  flex-direction: column;
+  margin: 0 $spacing-05 $spacing-03;
+  align-self: flex-start;
+  row-gap: $spacing-03;
+}
+
+.feedbackMetricContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.feedbackMetricDescription {
+  display: flex;
+  column-gap: $spacing-02;
+}
+
+.feedbackMetricValues {
+  margin-left: auto;
+  align-self: flex-end;
+}

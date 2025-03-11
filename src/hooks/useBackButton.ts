@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2024 InspectorRAGet Team
+ * Copyright 2023-2025 InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,10 +24,13 @@ import { useEffect } from 'react';
  *
  */
 export function useBackButton(warningMessage?: string) {
-  const BACK_BUTTON_MESSAGE = 'Going back will make you lose the current progress. Are you sure you want to go back?';
+  const BACK_BUTTON_MESSAGE =
+    'Going back will make you lose the current progress. Are you sure you want to go back?';
 
   const onBackButtonEvent = (e) => {
-    const leaveThisPage = window.confirm(warningMessage? warningMessage: BACK_BUTTON_MESSAGE);
+    const leaveThisPage = window.confirm(
+      warningMessage ? warningMessage : BACK_BUTTON_MESSAGE,
+    );
     if (leaveThisPage) {
       // Let user go back
       window.history.back();
@@ -44,7 +47,5 @@ export function useBackButton(warningMessage?: string) {
     };
   }, []);
 
-  return {
-
-  };
+  return {};
 }

@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2024 InspectorRAGet Team
+ * Copyright 2023-2025 InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -86,7 +86,11 @@ function computeWordCount(tasks: Task[], filters: string[]) {
       text = task.input;
     } else if (Array.isArray(task.input)) {
       task.input.forEach((turn) => {
-        text += turn.text.trim();
+        if (turn.hasOwnProperty('text') && turn.text) {
+          text += turn.text.trim();
+        } else if (turn.hasOwnProperty('content') && turn.content) {
+          text += turn.content.trim();
+        }
       });
     }
 
