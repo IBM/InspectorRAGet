@@ -29,7 +29,7 @@ yarn dev
 ### Build
 To build a static production bundle, please run the following command.
 ```shell
-yarn dev
+yarn build
 ```
 
 ### Production server
