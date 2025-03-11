@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2024 InspectorRAGet Team
+ * Copyright 2023-2025 InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -62,6 +62,9 @@ export interface HomePageAttributes {
   cards: ComponentHomeCard[];
 }
 
+// ===================================================================================
+//                                  MODEL
+// ===================================================================================
 export interface Model {
   modelId: string;
   name: string;
@@ -73,6 +76,9 @@ export interface Model {
   trainingDetails?: any;
 }
 
+// ===================================================================================
+//                                  METRIC
+// ===================================================================================
 export interface MetricValue {
   value: string | number;
   numericValue?: number;
@@ -125,13 +131,16 @@ export interface Aggregator {
   readonly apply: Function;
 }
 
-export interface DocumentAnnotation {
+// ===================================================================================
+//                                RAG TASK REQUIREMENTS
+// ===================================================================================
+export interface RetrievedDocumentAnnotation {
   text: string;
   authors: string[];
   color?: string;
 }
 
-export interface Document {
+export interface RetrievedDocument {
   documentId: string;
   text: string;
   formattedText?: string;
@@ -139,15 +148,81 @@ export interface Document {
   title?: string;
   score?: number;
   query?: {};
-  annotations?: DocumentAnnotation[];
+  annotations?: RetrievedDocumentAnnotation[];
 }
 
+// ===================================================================================
+//                                CHAT TASK REQUIREMENTS
+// ===================================================================================
+interface FunctionTool {
+  name: string;
+  arguments: object | any[];
+}
+
+export interface ToolCall {
+  id: string;
+  type: 'function';
+  function: FunctionTool;
+  parents?: string[];
+  children?: string[];
+}
+
+interface Step {
+  id: string;
+  input: any;
+  output: any;
+  parents?: string[];
+  children?: string[];
+}
+
+export interface Message {
+  role: 'system' | 'developer' | 'user' | 'tool' | 'assistant';
+  utterance_id?: string;
+  content?: any;
+  name?: string;
+  timestamp?: number;
+}
+
+interface SystemMessage extends Message {
+  role: 'system';
+}
+
+interface DeveloperMessage extends Message {
+  role: 'developer';
+}
+
+interface UserMessage extends Message {
+  role: 'user';
+}
+
+export interface ToolMessageDocument {
+  text: string;
+  url?: string;
+  title?: string;
+  score?: number;
+}
+export interface ToolMessage extends Message {
+  role: 'tool';
+  tool_id: string;
+  type?: 'text' | 'documents' | 'json';
+  content: string | object | ToolMessageDocument[];
+}
+
+export interface AssistantMessage extends Message {
+  role: 'assistant';
+  refusal?: string;
+  tool_calls?: ToolCall[];
+  steps?: Step[];
+}
+
+// ===================================================================================
+//                                        TASK
+// ===================================================================================
 export interface TaskCommentProvenance {
   component: string;
   text?: string;
   offsets?: number[];
 }
-
 export interface TaskComment {
   comment: string;
   author: string;
@@ -156,17 +231,20 @@ export interface TaskComment {
   provenance?: TaskCommentProvenance;
 }
 
-// FIXME: `question_answering` and `conversation` task types are deprecated and will be removed in future release.
 export interface Task {
   readonly taskId: string;
-  readonly taskType:
-    | 'question_answering'
-    | 'conversation'
-    | 'rag'
-    | 'text_generation'
-    | 'json_generation';
-  readonly contexts: { readonly documentId: string }[];
-  readonly input: { text: string; speaker: string }[] | string;
+  readonly taskType: 'rag' | 'text_generation' | 'json_generation' | 'chat';
+  readonly contexts?: { readonly documentId: string }[];
+  readonly input:
+    | { text: string; speaker: string }[]
+    | string
+    | (
+        | SystemMessage
+        | DeveloperMessage
+        | UserMessage
+        | ToolMessage
+        | AssistantMessage
+      )[];
   readonly targets?: {
     readonly text?: string;
   }[];
@@ -178,6 +256,9 @@ export interface Task {
   [key: string]: any;
 }
 
+// ===================================================================================
+//                                  TASK EVALUATIONS
+// ===================================================================================
 export interface Annotation {
   readonly value: string | number;
   readonly timestamp?: number;
@@ -191,16 +272,19 @@ export interface TaskEvaluation {
   readonly annotations: {
     [key: string]: { [key: string]: Annotation };
   };
-  readonly contexts?: Document[];
+  readonly contexts?: RetrievedDocument[];
   [key: string]: any;
 }
 
+// ===================================================================================
+//                                  INPUT FILE
+// ===================================================================================
 export interface RawData {
   readonly name?: string;
   readonly models: Model[];
   readonly metrics: Metric[];
   readonly filters?: string[];
-  readonly documents?: Document[];
+  readonly documents?: RetrievedDocument[];
   readonly tasks: Task[];
   readonly evaluations: TaskEvaluation[];
 }
@@ -217,6 +301,9 @@ export interface DisqualifiedTasks {
   };
 }
 
+// ===================================================================================
+//                                  DATA TILE
+// ===================================================================================
 export interface TileData {
   readonly name: string;
   readonly exampleId: string;
@@ -228,8 +315,11 @@ export interface TileData {
   readonly endTimestamp?: number;
 }
 
+// ===================================================================================
+//                                  PROCESSED DATA
+// ===================================================================================
 export interface Data extends TileData {
-  readonly documents?: Document[];
+  readonly documents?: RetrievedDocument[];
   readonly filters?: string[];
   tasks: Task[];
   readonly evaluations: TaskEvaluation[];

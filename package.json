@@ -6,12 +6,13 @@
   "author": "kpfadnis@us.ibm.com",
   "license": "ISC",
   "scripts": {
-    "postinstall": "husky install",
+    "postinstall": "husky init",
     "dev": "next dev",
-    "build": "next build && node ./scripts/license",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint && stylelint \"**/*.{css,scss}\"",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "prepare": "husky"
   },
   "husky": {
     "hooks": {
@@ -19,42 +20,44 @@
     }
   },
   "devDependencies": {
-    "@next/eslint-plugin-next": "^13.4.2",
-    "@types/node": "18.16.3",
+    "@next/eslint-plugin-next": "^15.2.1",
+    "@types/node": "^22.13.10",
     "cross-env": "^7.0.3",
-    "eslint": "^8.23.0",
-    "eslint-config-next": "^13.1.6",
-    "eslint-config-prettier": "^8.8.0",
-    "husky": "^8.0.3",
-    "prepend-file": "^2.0.1",
-    "prettier": "^3.0.3",
-    "sass": "^1.54.3",
-    "typescript": "^5.0.4",
-    "stylelint": "16.2.1",
-    "stylelint-config-standard-scss": "13.0.0"
+    "eslint": "^9.22.0",
+    "eslint-config-next": "^15.2.1",
+    "eslint-config-prettier": "^10.1.1",
+    "husky": "^9.1.7",
+    "prettier": "^3.5.3",
+    "sass": "^1.85.1",
+    "typescript": "^5.8.2",
+    "stylelint": "^16.15.0",
+    "stylelint-config-standard-scss": "^14.0.0"
   },
   "dependencies": {
-    "@carbon/colors": "^11.4.0",
-    "@carbon/themes": "^11.8.0",
-    "@carbon/icons-react": "^11.34.1",
-    "@carbon/pictograms-react": "^11.49.0",
-    "@carbon/charts": "^1.7.4",
-    "@carbon/charts-react": "^1.7.4",
-    "@carbon/react": "^1.17.0",
+    "@carbon/colors": "^11.30.0",
+    "@carbon/themes": "^11.47.0",
+    "@carbon/icons-react": "^11.56.0",
+    "@carbon/pictograms-react": "^11.73.0",
+    "@carbon/charts": "^1.23.0",
+    "@carbon/charts-react": "^1.23.0",
+    "@carbon/react": "1.75.0",
     "d3": "^7.8.4",
     "date-fns": "^2.30.0",
     "dompurify": "3.1.7",
     "html-react-parser": "^5.1.1",
-    "lodash": "^4.17.4",
+    "lodash": "^4.17.21",
     "next": "^14.1.1",
-    "prop-types": "^15.7.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-intl": "^6.1.0",
-    "react-markdown": "^8.0.7",
+    "react-markdown": "^10.0.0",
     "rehype-raw": "^7.0.0",
-    "remark-gfm": "^3.0.1",
+    "remark-gfm": "^4.0.1",
     "statistics.js": "^1.0.0",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "react-wrap-balancer": "^1.1.1"
+  },
+  "resolutions": {
+    "@carbon/styles": "1.75.0"
   }
 }

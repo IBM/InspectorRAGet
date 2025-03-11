@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2024 InspectorRAGet Team
+ * Copyright 2023-2025 InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ import {
   TileAboveTheFoldContent,
   TileBelowTheFoldContent,
   Tag,
-  Button,
   DefinitionTooltip,
   Toggletip,
   ToggletipButton,
@@ -33,7 +32,7 @@ import {
   UnorderedList,
   ListItem,
 } from '@carbon/react';
-import { Microscope, Download, Information } from '@carbon/icons-react';
+import { Microscope, Information } from '@carbon/icons-react';
 
 import { TileData } from '@/src/types';
 import {
@@ -44,15 +43,13 @@ import { calculateDuration } from '@/src/utilities/time';
 
 import styles from './ExampleTile.module.scss';
 
-export default function ExperimentTile({
+export default function ExampleTile({
   data,
   disableNavigation = false,
-  disableActions = false,
   expanded = true,
 }: {
   data: TileData;
   disableNavigation?: boolean;
-  disableActions?: boolean;
   expanded?: boolean;
 }) {
   const [
@@ -176,24 +173,6 @@ export default function ExperimentTile({
               </div>
             ) : null}
           </div>
-          {!disableActions && (
-            <>
-              <div className={styles.divider}></div>
-              <div className={styles.actions}>
-                <Button
-                  id="download-evaluations"
-                  renderIcon={Download}
-                  kind={'ghost'}
-                  iconDescription={'Download evaluations'}
-                  tooltipAlignment={'end'}
-                  tooltipPosition={'bottom'}
-                  disabled
-                >
-                  Download evaluations
-                </Button>
-              </div>
-            </>
-          )}
         </div>
       </TileBelowTheFoldContent>
     </ExpandableTile>

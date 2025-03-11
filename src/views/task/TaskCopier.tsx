@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2024 InspectorRAGet Team
+ * Copyright 2023-2025 InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,13 @@
 import { useState, useMemo } from 'react';
 import { Modal, RadioTile, CodeSnippet } from '@carbon/react';
 
-import { Metric, Model, Task, Document, TaskEvaluation } from '@/src/types';
+import {
+  Metric,
+  Model,
+  Task,
+  RetrievedDocument,
+  TaskEvaluation,
+} from '@/src/types';
 import { WarningAlt } from '@carbon/icons-react';
 
 import classes from './TaskCopier.module.scss';
@@ -33,7 +39,7 @@ interface Props {
   evaluations: TaskEvaluation[];
   onClose: Function;
   open: boolean;
-  documents?: Document[];
+  documents?: RetrievedDocument[];
 }
 
 function prepareText(
@@ -41,7 +47,7 @@ function prepareText(
   metrics: Metric[],
   task: Task,
   evaluations: TaskEvaluation[],
-  documents?: Document[],
+  documents?: RetrievedDocument[],
 ): string {
   const separator = '=======================================================\n';
   let input, context, responses;
@@ -101,7 +107,7 @@ function prepareLaTEXT(
   metrics: Metric[],
   task: Task,
   evaluations: TaskEvaluation[],
-  documents?: Document[],
+  documents?: RetrievedDocument[],
 ): string {
   let input, context, responses;
 
@@ -164,7 +170,7 @@ function prepareJSON(
   metrics: Metric[],
   task: Task,
   evaluations: TaskEvaluation[],
-  documents?: Document[],
+  documents?: RetrievedDocument[],
 ): string {
   return JSON.stringify(
     {

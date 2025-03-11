@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2024 InspectorRAGet Team
+ * Copyright 2023-2025 InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ import { RawData } from '@/src/types';
 import { DataErrorKinds, processData } from '@/src/processor';
 
 import { useNotification } from '@/src/components/notification/Notification';
-import ExperimentTile from '@/src/components/example-tile/ExampleTile';
+import ExampleTile from '@/src/components/example-tile/ExampleTile';
 
 import classes from './DataVerification.module.scss';
 
@@ -139,11 +139,10 @@ export default memo(function DataVerificationView({
     <div className={classes.root}>
       {exampleData ? (
         <>
-          <ExperimentTile
+          <ExampleTile
             data={exampleData}
             disableNavigation={true}
-            disableActions={true}
-          ></ExperimentTile>
+          ></ExampleTile>
 
           {isEmpty(rows) ? (
             <div className={classes.successMessageContainer}>

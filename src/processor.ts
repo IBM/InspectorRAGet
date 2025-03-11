@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2024 InspectorRAGet Team
+ * Copyright 2023-2025 InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ import {
   DisqualificationReason,
   DisqualifiedTasks,
   Task,
-  Document,
+  RetrievedDocument,
   Notification,
 } from '@/src/types';
 
@@ -269,24 +269,6 @@ export function processData(
     }
   });
 
-  // Step 7: Add warning notification, if qualified tasks has invalid task type
-  for (const task of qualifiedTasks) {
-    if (
-      task.taskType === 'question_answering' ||
-      task.taskType === 'conversation'
-    ) {
-      // Add notification
-      notifications.push({
-        kind: 'warning',
-        title: `Deprecation warning for "${task.taskType}" task type.`,
-        subtitle: 'Please migrate to using "rag" task type instead.',
-      });
-
-      // Exit
-      break;
-    }
-  }
-
   return [
     {
       name: data.name || 'Example',
@@ -318,11 +300,7 @@ export function processData(
       tasks: qualifiedTasks.map((task) => {
         return {
           ...task,
-          taskType:
-            task.taskType === 'question_answering' ||
-            task.taskType === 'conversation'
-              ? 'rag'
-              : task.taskType,
+          taskType: task.taskType,
         };
       }),
       documents: data.documents,
@@ -374,12 +352,13 @@ export function exportData(
       // Step 1.a: Create reduced analytics data, if not all tasks are specified
       if (data.tasks.length !== tasks.length) {
         // Step 1.a.i: Build documents map
-        const documentsMap: Map<string, Document> = new Map(
+        const documentsMap: Map<string, RetrievedDocument> = new Map(
           data.documents?.map((document) => [document.documentId, document]),
         );
 
         // Step 1.a.ii: Necessary variables
-        const relevantDocuments: Set<Document> = new Set<Document>();
+        const relevantDocuments: Set<RetrievedDocument> =
+          new Set<RetrievedDocument>();
         const relevantTaskIds: Set<string> = new Set<string>();
 
         // Step 1.a.iii: Iterate over tasks to identify referened documents/relevant context
@@ -388,7 +367,7 @@ export function exportData(
           relevantTaskIds.add(task.taskId);
 
           if (documentsMap.size !== 0) {
-            task.contexts.forEach((context) => {
+            task.contexts?.forEach((context) => {
               // Add referenced document to relevant documents list
               if (typeof context !== 'string') {
                 const referenceDocument = documentsMap.get(context.documentId);

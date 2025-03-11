@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2024 InspectorRAGet Team
+ * Copyright 2023-2025 InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -85,8 +85,26 @@ function populateTableRows(
       const row = { id: task.taskId, task: task.taskId };
       if (typeof task.input === 'string') {
         row['task'] = truncate(task.input, 80);
-      } else if (Array.isArray(task.input)) {
-        row['task'] = truncate(task.input[task.input.length - 1].text, 80);
+      } else if (
+        Array.isArray(task.input) &&
+        task.input[task.input.length - 1].hasOwnProperty('text') &&
+        task.input[task.input.length - 1]['text']
+      ) {
+        row['task'] = truncate(task.input[task.input.length - 1]['text'], 80);
+      } else if (
+        Array.isArray(task.input) &&
+        task.input[task.input.length - 1].hasOwnProperty('role') &&
+        (task.input[task.input.length - 1]['role'] === 'system' ||
+          task.input[task.input.length - 1]['role'] === 'developer' ||
+          task.input[task.input.length - 1]['role'] === 'user' ||
+          task.input[task.input.length - 1]['role'] === 'assistant') &&
+        task.input[task.input.length - 1].hasOwnProperty('content') &&
+        task.input[task.input.length - 1]['content']
+      ) {
+        row['task'] = truncate(
+          task.input[task.input.length - 1]['content'],
+          80,
+        );
       }
 
       // Step 2.b: Add first target, if present

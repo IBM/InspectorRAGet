@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2024 InspectorRAGet Team
+ * Copyright 2023-2025 InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ import {
   ImproveRelevance,
 } from '@carbon/icons-react';
 
-import { Document } from '@/src/types';
+import { RetrievedDocument } from '@/src/types';
 
 import classes from './DocumentPanel.module.scss';
 
@@ -73,7 +73,7 @@ export default function DocumentPanel({
   onMouseDown,
   onMouseUp,
 }: {
-  documents: Document[];
+  documents: RetrievedDocument[];
   className?: string;
   onMouseDown: Function;
   onMouseUp: Function;
@@ -130,14 +130,14 @@ export default function DocumentPanel({
         ) : null}
         {renderAnnotations(documents[documentIndex].annotations)}
         <article className={classes.documentContainer}>
-          <ReactMarkdown
-            className={classes.markdown}
-            remarkPlugins={[remarkGfm]}
-            // @ts-expect-error
-            rehypePlugins={[rehypeRaw]}
-          >
-            {documents[documentIndex].text}
-          </ReactMarkdown>
+          <div className={classes.markdown}>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeRaw]}
+            >
+              {documents[documentIndex].text}
+            </ReactMarkdown>
+          </div>
         </article>
       </div>
     </>

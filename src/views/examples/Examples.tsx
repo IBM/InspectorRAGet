@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2024 InspectorRAGet Team
+ * Copyright 2023-2025 InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import { memo } from 'react';
 import { Bulldozer } from '@carbon/pictograms-react';
 
 import { TileData } from '@/src/types';
-import ExperimentTile from '@/src/components/example-tile/ExampleTile';
+import ExampleTile from '@/src/components/example-tile/ExampleTile';
 
 import classes from './Examples.module.scss';
 
@@ -36,7 +36,7 @@ export default memo(function ExamplesView({ examples }: Props) {
           <h2 className={classes.title}>Examples</h2>
           <div className={classes.experimentList}>
             {examples.map((example) => (
-              <ExperimentTile
+              <ExampleTile
                 key={'example-' + example.exampleId}
                 data={example}
               />

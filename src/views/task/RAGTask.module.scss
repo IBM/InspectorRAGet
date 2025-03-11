@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2024 InspectorRAGet Team
+ * Copyright 2023-2025 InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,12 @@
   display: flex;
   flex-direction: column;
   row-gap: $spacing-03;
+}
+
+.separator {
+  width: 1px;
+  margin: 0 $spacing-03;
+  border-left: dashed 1px var(--cds-border-inverse);
 }
 
 .evaluationsContainer {

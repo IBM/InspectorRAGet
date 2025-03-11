@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2024 InspectorRAGet Team
+ * Copyright 2023-2025 InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -96,14 +96,12 @@ function isValidTask(task): boolean {
     return false;
   }
 
-  // FIXME: `question_answering` and `conversation` task types are deprecated and will be removed in future release.
   if (
     !task.hasOwnProperty('taskType') ||
-    (task.taskType !== 'question_answering' &&
-      task.taskType !== 'conversation' &&
-      task.taskType !== 'rag' &&
+    (task.taskType !== 'rag' &&
       task.taskType !== 'text_generation' &&
-      task.taskType !== 'json_generation')
+      task.taskType !== 'json_generation' &&
+      task.taskType !== 'chat')
   ) {
     return false;
   }

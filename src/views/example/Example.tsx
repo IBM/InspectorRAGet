@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2024 InspectorRAGet Team
+ * Copyright 2023-2025 InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ import { useDataStore } from '@/src/store';
 import { useBackButton } from '@/src/hooks/useBackButton';
 
 import Task from '@/src/views/task/Task';
-import ExperimentTile from '@/src/components/example-tile/ExampleTile';
+import ExampleTile from '@/src/components/example-tile/ExampleTile';
 import DisabledTab from '@/src/components/disabled/DisabledTab';
 import DataCharacteristics from '@/src/views/data-characteristics/DataCharacteristics';
 import PredictionsTable from '@/src/views/predictions-table/PredictionsTable';
@@ -102,8 +102,23 @@ export default memo(function Example({ data }: { data: Data }) {
       // Step 1.c.ii.**: Add to queries map
       if (typeof task.input === 'string') {
         queries.set(task.taskId, task.input);
-      } else if (Array.isArray(task.input)) {
-        queries.set(task.taskId, task.input[task.input.length - 1].text);
+      } else if (
+        Array.isArray(task.input) &&
+        task.input[task.input.length - 1].hasOwnProperty('text') &&
+        task.input[task.input.length - 1]['text']
+      ) {
+        queries.set(task.taskId, task.input[task.input.length - 1]['text']);
+      } else if (
+        Array.isArray(task.input) &&
+        task.input[task.input.length - 1].hasOwnProperty('role') &&
+        (task.input[task.input.length - 1]['role'] === 'system' ||
+          task.input[task.input.length - 1]['role'] === 'developer' ||
+          task.input[task.input.length - 1]['role'] === 'user' ||
+          task.input[task.input.length - 1]['role'] === 'assistant') &&
+        task.input[task.input.length - 1].hasOwnProperty('content') &&
+        task.input[task.input.length - 1]['content']
+      ) {
+        queries.set(task.taskId, task.input[task.input.length - 1]['content']);
       } else {
         queries.set(task.taskId, task.taskId);
       }
@@ -247,12 +262,7 @@ export default memo(function Example({ data }: { data: Data }) {
       </div>
 
       <div className={classes.headerContainer}>
-        <ExperimentTile
-          data={data}
-          disableNavigation={true}
-          disableActions={true}
-          expanded={false}
-        />
+        <ExampleTile data={data} disableNavigation={true} expanded={false} />
       </div>
       <div className={classes.analysisContainer}>
         <Tabs>
