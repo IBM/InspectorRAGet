@@ -106,7 +106,7 @@ function isValidTask(task): boolean {
     return false;
   }
 
-  if (!task.hasOwnProperty('contexts')) {
+  if (task.taskType === 'rag' && !task.hasOwnProperty('contexts')) {
     return false;
   }
 
@@ -151,21 +151,6 @@ export function validateInputData(data): { valid: boolean; reasons: string[] } {
     );
   }
 
-  // Step : Validate documents releated requirements
-  if (!data.hasOwnProperty('documents')) {
-    valid = false;
-    reasons.push("Missing mandatory 'documents' information.");
-  }
-  if (
-    data.hasOwnProperty('documents') &&
-    !data.documents.every((document) => isValidDocument(document))
-  ) {
-    valid = false;
-    reasons.push(
-      "One or more documents are incorrectly specified. Please refer to 'sample.json' on the format for a document.",
-    );
-  }
-
   // Step : Validate tasks releated requirements
   if (!data.hasOwnProperty('tasks')) {
     valid = false;
@@ -178,6 +163,26 @@ export function validateInputData(data): { valid: boolean; reasons: string[] } {
     valid = false;
     reasons.push(
       "One or more tasks are incorrectly specified. Please refer to 'sample.json' on the format for a task.",
+    );
+  }
+
+  // Step : Validate documents releated requirements
+  if (
+    data.tasks.some((task) => task.taskType === 'rag') &&
+    !data.hasOwnProperty('documents')
+  ) {
+    valid = false;
+    reasons.push(
+      "Missing mandatory 'documents' information when `rag` type tasks are included.",
+    );
+  }
+  if (
+    data.hasOwnProperty('documents') &&
+    !data.documents.every((document) => isValidDocument(document))
+  ) {
+    valid = false;
+    reasons.push(
+      "One or more documents are incorrectly specified. Please refer to 'sample.json' on the format for a document.",
     );
   }
 
