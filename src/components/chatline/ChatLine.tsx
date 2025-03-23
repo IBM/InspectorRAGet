@@ -74,7 +74,7 @@ function ToolResponse({
   return (
     <div className={cx(classes.message, classes.toolResponse)}>
       <span>
-        Tool ID: {message.tool_id}&nbsp;
+        Tool Call ID: {message.tool_call_id}&nbsp;
         {message.name ? <span>({message.name})</span> : null}
       </span>
       {message.type === 'documents' && Array.isArray(message.content) ? (

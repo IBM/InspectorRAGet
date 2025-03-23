@@ -40,7 +40,7 @@ import { truncate, overlaps } from '@/src/utilities/strings';
 import { mark } from '@/src/utilities/highlighter';
 
 import AnnotationsTable from '@/src/views/annotations-table/AnnotationsTable';
-import TaskCopierModal from '@/src/views/task/TaskCopier';
+import TextGenerationTaskCopierModal from '@/src/components/task-copier/TextGenerationTaskCopier';
 
 import classes from './TextGenerationTask.module.scss';
 
@@ -117,7 +117,7 @@ export default function TextGenerationTask({
   return (
     <>
       {models && metrics && task && evaluations && (
-        <TaskCopierModal
+        <TextGenerationTaskCopierModal
           open={taskCopierModalOpen}
           models={Array.from(models.values())}
           metrics={metrics}
@@ -126,7 +126,7 @@ export default function TextGenerationTask({
           onClose={() => {
             setTaskCopierModalOpen(false);
           }}
-        ></TaskCopierModal>
+        ></TextGenerationTaskCopierModal>
       )}
 
       {task && models && evaluations && (

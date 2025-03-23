@@ -167,7 +167,7 @@ export interface ToolCall {
   children?: string[];
 }
 
-interface Step {
+export interface MessageStep {
   id: string;
   input: any;
   output: any;
@@ -203,7 +203,7 @@ export interface ToolMessageDocument {
 }
 export interface ToolMessage extends Message {
   role: 'tool';
-  tool_id: string;
+  tool_call_id: string;
   type?: 'text' | 'documents' | 'json';
   content: string | object | ToolMessageDocument[];
 }
@@ -212,7 +212,7 @@ export interface AssistantMessage extends Message {
   role: 'assistant';
   refusal?: string;
   tool_calls?: ToolCall[];
-  steps?: Step[];
+  steps?: MessageStep[];
 }
 
 // ===================================================================================
@@ -273,6 +273,7 @@ export interface TaskEvaluation {
     [key: string]: { [key: string]: Annotation };
   };
   readonly contexts?: RetrievedDocument[];
+  readonly steps?: MessageStep[];
   [key: string]: any;
 }
 

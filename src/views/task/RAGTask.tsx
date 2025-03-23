@@ -49,7 +49,7 @@ import { mark } from '@/src/utilities/highlighter';
 
 import DocumentPanel from '@/src/views/document/DocumentPanel';
 import AnnotationsTable from '@/src/views/annotations-table/AnnotationsTable';
-import TaskCopierModal from '@/src/views/task/TaskCopier';
+import RAGTaskCopierModal from '@/src/components/task-copier/RAGTaskCopier';
 
 import classes from './RAGTask.module.scss';
 
@@ -192,7 +192,7 @@ export default function RAGTask({
   return (
     <>
       {models && metrics && task && evaluations && (
-        <TaskCopierModal
+        <RAGTaskCopierModal
           open={taskCopierModalOpen}
           models={Array.from(models.values())}
           metrics={metrics}
@@ -202,7 +202,7 @@ export default function RAGTask({
           onClose={() => {
             setTaskCopierModalOpen(false);
           }}
-        ></TaskCopierModal>
+        ></RAGTaskCopierModal>
       )}
 
       {task && models && evaluations && (

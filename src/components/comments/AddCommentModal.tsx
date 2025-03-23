@@ -45,7 +45,10 @@ export default function AddCommentModal({
   const [author, setAuthor] = useState<string>('');
   const [tag, tagType] = useMemo(() => {
     if (provenance) {
-      if (provenance.component.includes('input')) {
+      if (
+        provenance.component.includes('input') ||
+        provenance.component.includes('messages')
+      ) {
         return ['Input', 'purple'];
       } else if (provenance.component.includes('document_')) {
         return ['Contexts', 'cyan'];

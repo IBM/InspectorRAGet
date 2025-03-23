@@ -60,3 +60,17 @@
 .responseContainer {
   line-height: 1.4em;
 }
+
+.evaluationContainer {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-03;
+  overflow: auto;
+}
+
+.stepContainer {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-03;
+  overflow: auto;
+}

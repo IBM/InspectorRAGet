@@ -32,13 +32,13 @@ import {
   ContainedListItem,
 } from '@carbon/react';
 
-import { Model, TaskEvaluation, Task, Metric } from '@/src/types';
+import { Model, TaskEvaluation, Task, Metric, MessageStep } from '@/src/types';
 import { useDataStore } from '@/src/store';
 import { truncate } from '@/src/utilities/strings';
 
 import AnnotationsTable from '@/src/views/annotations-table/AnnotationsTable';
 import ChatLine from '@/src/components/chatline/ChatLine';
-import TaskCopierModal from '@/src/views/task/TaskCopier';
+import ChatTaskCopierModal from '@/src/components/task-copier/ChatTaskCopier';
 
 import classes from './ChatTask.module.scss';
 
@@ -55,6 +55,55 @@ interface Props {
 }
 
 // ===================================================================================
+//                               RENDER FUNCTIONS
+// ===================================================================================
+
+function Evaluation({
+  evaluation,
+  hMetrics,
+  aMetrics,
+}: {
+  evaluation: TaskEvaluation;
+  hMetrics: Map<string, Metric>;
+  aMetrics: Map<string, Metric>;
+}) {
+  return (
+    <div className={classes.evaluationContainer}>
+      {evaluation.annotations && hMetrics.size ? (
+        <>
+          <h5>Human Evaluations:</h5>
+          <AnnotationsTable
+            annotations={evaluation.annotations}
+            metrics={[...hMetrics.values()]}
+          ></AnnotationsTable>
+        </>
+      ) : null}
+      {evaluation.annotations && aMetrics.size ? (
+        <>
+          <h5>Algorithmic Evaluations:</h5>
+          <AnnotationsTable
+            annotations={evaluation.annotations}
+            metrics={[...aMetrics.values()]}
+          ></AnnotationsTable>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+function Steps({ steps }: { steps?: MessageStep[] }) {
+  return (
+    <div className={classes.stepsContainer}>
+      {steps && !isEmpty(steps) ? (
+        <></>
+      ) : (
+        <h4>No steps information is available.</h4>
+      )}
+    </div>
+  );
+}
+
+// ===================================================================================
 //                               MAIN FUNCTION
 // ===================================================================================
 export default function ChatTask({
@@ -68,7 +117,6 @@ export default function ChatTask({
   // Step 1: Initialize state and necessary variables
   const [selectedEvaluationIndex, setSelectedEvaluationIndex] =
     useState<number>(0);
-  const [activeDocumentIndex, setActiveDocumentIndex] = useState<number>(0);
 
   // Step 2: Run effects
   // Step 2.a: Fetch data from data store
@@ -103,10 +151,21 @@ export default function ChatTask({
     return [humanMetrics, algorithmicMetrics];
   }, [metrics]);
 
-  console.log(task);
   // Step 3: Render
   return (
     <>
+      {models && metrics && task && evaluations && (
+        <ChatTaskCopierModal
+          open={taskCopierModalOpen}
+          models={Array.from(models.values())}
+          metrics={metrics}
+          task={task}
+          evaluations={evaluations}
+          onClose={() => {
+            setTaskCopierModalOpen(false);
+          }}
+        ></ChatTaskCopierModal>
+      )}
       {task && models && evaluations && (
         <>
           <div className={classes.inputContainer}>
@@ -117,7 +176,18 @@ export default function ChatTask({
                     messageId={`data_point__message--${messageIdx}`}
                     message={message}
                     onSelection={updateCommentProvenance}
-                    focused={false}
+                    focused={
+                      Array.isArray(task.input) &&
+                      messageIdx === task.input.length - 1
+                        ? true
+                        : false
+                    }
+                    latestResponse={
+                      Array.isArray(task.input) &&
+                      messageIdx === task.input.length - 1
+                        ? true
+                        : false
+                    }
                   ></ChatLine>
                 ))
               : null}
@@ -129,14 +199,9 @@ export default function ChatTask({
             <Tabs
               onChange={(e) => {
                 setSelectedEvaluationIndex(e.selectedIndex);
-                setActiveDocumentIndex(0);
               }}
             >
-              <TabList
-                className={classes.tabList}
-                aria-label="Models tab"
-                contained
-              >
+              <TabList aria-label="Models tab" contained>
                 {evaluations.map((evaluation) => (
                   <Tab key={'model-' + evaluation.modelId}>
                     {truncate(
@@ -207,24 +272,43 @@ export default function ChatTask({
                           )}
                         </ContainedList>
                       ) : null}
-                      {evaluation.annotations && hMetrics.size ? (
-                        <>
-                          <h5>Human Evaluations:</h5>
-                          <AnnotationsTable
-                            annotations={evaluation.annotations}
-                            metrics={[...hMetrics.values()]}
-                          ></AnnotationsTable>
-                        </>
-                      ) : null}
-                      {evaluation.annotations && aMetrics.size ? (
-                        <>
-                          <h5>Algorithmic Evaluations:</h5>
-                          <AnnotationsTable
-                            annotations={evaluation.annotations}
-                            metrics={[...aMetrics.values()]}
-                          ></AnnotationsTable>
-                        </>
-                      ) : null}
+
+                      <Tabs>
+                        <TabList
+                          aria-label="Model performance tab"
+                          contained
+                          fullWidth
+                        >
+                          <Tab
+                            key={'model-' + evaluation.modelId + '-evaluations'}
+                          >
+                            Evaluations
+                          </Tab>
+                          <Tab key={'model-' + evaluation.modelId + '-steps'}>
+                            Steps
+                          </Tab>
+                        </TabList>
+                        <TabPanels>
+                          <TabPanel
+                            key={
+                              'model-' +
+                              evaluation.modelId +
+                              '-evaluations-panel'
+                            }
+                          >
+                            <Evaluation
+                              evaluation={evaluation}
+                              hMetrics={hMetrics}
+                              aMetrics={aMetrics}
+                            />
+                          </TabPanel>
+                          <TabPanel
+                            key={'model-' + evaluation.modelId + '-steps-panel'}
+                          >
+                            <Steps steps={evaluation.steps} />
+                          </TabPanel>
+                        </TabPanels>
+                      </Tabs>
                     </div>
                   </TabPanel>
                 ))}

@@ -72,6 +72,23 @@ function prepareText(
         );
       }
     }
+  } else if (task.taskType === 'chat') {
+    if (typeof task.input === 'string') {
+      input = `${separator}Question: ${task.input.trim()}`;
+    } else if (Array.isArray(task.input)) {
+      if (task.input.length == 1) {
+        input = `${separator}Question: ${task.input[0]['text'].trim()}`;
+      } else {
+        input = `${separator}Conversation\n${separator}`;
+        task.input.map(
+          (utterance) =>
+            (input += `${
+              utterance.speaker.charAt(0).toUpperCase() +
+              utterance.speaker.slice(1).toLowerCase()
+            }: ${utterance.text.trim()}\n`),
+        );
+      }
+    }
   }
 
   // Step 2: Prepare context
@@ -191,7 +208,7 @@ function prepareJSON(
   );
 }
 
-export default function TaskCopierModal({
+export default function RAGTaskCopierModal({
   models,
   metrics,
   task,

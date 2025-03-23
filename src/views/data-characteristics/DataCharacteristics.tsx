@@ -88,7 +88,10 @@ function computeWordCount(tasks: Task[], filters: string[]) {
       task.input.forEach((turn) => {
         if (turn.hasOwnProperty('text') && turn.text) {
           text += turn.text.trim();
-        } else if (turn.hasOwnProperty('content') && turn.content) {
+        } else if (
+          turn.hasOwnProperty('content') &&
+          typeof turn.content === 'string'
+        ) {
           text += turn.content.trim();
         }
       });

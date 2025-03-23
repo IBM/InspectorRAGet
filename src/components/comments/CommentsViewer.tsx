@@ -56,7 +56,10 @@ function Comment({
 
   const [tag, tagType]: [string, string] = useMemo(() => {
     if (comment.provenance) {
-      if (comment.provenance.component.includes('input')) {
+      if (
+        comment.provenance.component.includes('input') ||
+        comment.provenance.component.includes('messages')
+      ) {
         return ['Input', 'purple'];
       } else if (comment.provenance.component.includes('document_')) {
         return ['Contexts', 'cyan'];
