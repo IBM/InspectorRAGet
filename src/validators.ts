@@ -121,7 +121,7 @@ export function validateInputData(data): { valid: boolean; reasons: string[] } {
   let valid: boolean = true;
   const reasons: string[] = [];
 
-  // Step : Validate models releated requirements
+  // Validate models
   if (!data.hasOwnProperty('models')) {
     valid = false;
     reasons.push("Missing mandatory 'models' information.");
@@ -136,7 +136,7 @@ export function validateInputData(data): { valid: boolean; reasons: string[] } {
     );
   }
 
-  // Step : Validate metrics releated requirements
+  // Validate metrics
   if (!data.hasOwnProperty('metrics')) {
     valid = false;
     reasons.push("Missing mandatory 'metrics' information.");
@@ -151,7 +151,7 @@ export function validateInputData(data): { valid: boolean; reasons: string[] } {
     );
   }
 
-  // Step : Validate tasks releated requirements
+  // Validate tasks
   if (!data.hasOwnProperty('tasks')) {
     valid = false;
     reasons.push("Missing mandatory 'tasks' information.");
@@ -187,7 +187,7 @@ export function validateInputData(data): { valid: boolean; reasons: string[] } {
     );
   }
 
-  // Step : Validate evaluations releated requirements
+  // Validate evaluations
   if (!data.hasOwnProperty('evaluations')) {
     valid = false;
     reasons.push("Missing mandatory 'evaluations' information.");

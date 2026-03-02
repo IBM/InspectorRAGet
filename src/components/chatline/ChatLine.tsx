@@ -67,10 +67,8 @@ function ToolResponse({
   message: ToolMessage;
   onSelection?: Function;
 }) {
-  // Step 1: Initialize state and necessary variables
   const [documentIndex, setDocumentIndex] = useState<number>(0);
 
-  // Step 2: Render
   return (
     <div className={cx(classes.message, classes.toolResponse)}>
       <span>
@@ -182,11 +180,8 @@ export default function ChatLine({
   onSelection,
   focused,
 }: ChatLineProps) {
-  // Step 1: Initialize state and necessary variables
   const anchorRef = useRef<HTMLDivElement>(null);
 
-  // Step 2: Run effects
-  // Step 2.a: Scroll into view
   useEffect(() => {
     if (anchorRef.current && focused) {
       anchorRef.current.scrollIntoView({
@@ -197,13 +192,10 @@ export default function ChatLine({
     }
   }, [focused, message.role]);
 
-  // Step 3: Render
-  // Step 3.a: Return "null" if message is undefined
   if (!message) {
     return null;
   }
 
-  // Step 3.b: Render chat line
   return (
     <div
       ref={anchorRef}

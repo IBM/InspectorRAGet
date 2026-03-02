@@ -51,12 +51,9 @@ export function extractMetricDisplayValue(
 ): string {
   // If value is of type "string"
   if (typeof value === 'string') {
-    // Step 1: Check if references are provided to convert "string" value to "numeric" value
     if (references) {
-      // Step 1.a: Find appropriate reference by comparing "string" values
       const reference = references.find((entry) => entry.value === value);
 
-      // Step 1.b: If numeric value exists in reference, then return it
       if (reference && reference.displayValue) {
         return reference.displayValue;
       } else {
@@ -87,12 +84,9 @@ export function castToValue(
   value: number,
   references?: MetricValue[],
 ): string | number {
-  // Step 1: Check if references are provided to convert "numeric" value to "string" value
   if (references) {
-    // Step 1.a: Find appropriate reference by comparing "string" values
     const reference = references.find((entry) => entry.numericValue === value);
 
-    // Step 1.b: If value exists in reference, then return it
     if (reference && reference.value) {
       return reference.value;
     } else {
@@ -111,14 +105,11 @@ export function castToNumber(
 ): number {
   // If value is of type "string"
   if (typeof value === 'string') {
-    // Step 1: Check if references are provided to convert "string" value to "numeric" value
     if (references) {
-      // Step 1.a: Find appropriate reference by comparing "string" values
       const reference = references.find((entry) =>
         key ? entry[key] === value : entry.value === value,
       );
 
-      // Step 1.b: If numeric value exists in reference, then return it
       if (
         reference &&
         reference.hasOwnProperty('numericValue') &&
@@ -129,7 +120,7 @@ export function castToNumber(
         return parseFloat(value);
       }
     }
-    // Step 2: Cast to int, if references are absent
+    // Fall back to parsing when no references are available
     else if (value === 'N/A' || value === '') {
       return 0;
     } else {
@@ -152,20 +143,15 @@ function computeMean(
   metric: Metric,
   scores: string[] | number[],
 ): { level: number; value: number | string } {
-  // Step 1: Create counter
   const counter: { [key: string]: number } = countBy(scores);
-
-  // Step 2: Sort counter values
   const sorted_counter = Object.entries(counter);
   sorted_counter.sort((x, y) => {
     return y[1] - x[1];
   });
 
-  // Step 3: Number of unique values, most common value and its count
   const numberOfUniqueValues = sorted_counter.length;
   const mostCommonValueCount = sorted_counter[0][1];
 
-  // Step 4: Calculate mean
   let sum: number = 0;
   for (const [value, count] of Object.entries(counter)) {
     sum +=
@@ -174,22 +160,20 @@ function computeMean(
   }
   const mean = Math.round((sum / scores.length + Number.EPSILON) * 100) / 100;
 
-  // Step 5: Common patterns
-  // Step 5.a: Absolute agreement
+  // Absolute agreement
   if (mostCommonValueCount === scores.length)
     return {
       level: AgreementLevels.ABSOLUTE_AGREEMENT,
       value: mean,
     };
 
-  // Step 5.b: Absolute disagreement/No agreement
+  // No agreement: every annotator chose a different value
   if (numberOfUniqueValues === scores.length)
     return {
       level: AgreementLevels.NO_AGREEMENT,
       value: mean,
     };
 
-  // Step 6: Default return
   return {
     level: AgreementLevels.HIGH_AGREEMENT,
     value: mean,
@@ -206,49 +190,40 @@ function computeMedian(
   metric: Metric,
   scores: string[] | number[],
 ): { level: number; value: number | string } {
-  // Step 1: Create counter
   const counter: { [key: string]: number } = countBy(scores);
-
-  // Step 2: Sort counter values
   const sorted_counter = Object.entries(counter);
   sorted_counter.sort((x, y) => {
     return y[1] - x[1];
   });
 
-  // Step 3: Number of unique values, most common value and its count
   const numberOfUniqueValues = sorted_counter.length;
   const mostCommonValueCount = sorted_counter[0][1];
 
-  // Step 4: Cast score to numbers
   const numericScores = scores.map((score) =>
     typeof score === 'string' ? castToNumber(score, metric.values) : score,
   );
 
-  // Step 5: Sort the numeric scores
   const sortedNumericScores = numericScores.toSorted((a, b) => a - b);
 
-  // Step 6: Calculate median
   const median =
     sortedNumericScores.length % 2 == 0
       ? sortedNumericScores[sortedNumericScores.length / 2 - 1]
       : sortedNumericScores[(sortedNumericScores.length + 1) / 2 - 1];
 
-  // Step 7: Common patterns
-  // Step 7.a: Absolute agreement
+  // Absolute agreement
   if (mostCommonValueCount === scores.length)
     return {
       level: AgreementLevels.ABSOLUTE_AGREEMENT,
       value: castToValue(median, metric.values),
     };
 
-  // Step 7.b: Absolute disagreement/No agreement
+  // No agreement: every annotator chose a different value
   if (numberOfUniqueValues === scores.length)
     return {
       level: AgreementLevels.NO_AGREEMENT,
       value: castToValue(median, metric.values),
     };
 
-  // Step 8: Default return
   return {
     level: AgreementLevels.HIGH_AGREEMENT,
     value: castToValue(median, metric.values),
@@ -267,37 +242,30 @@ function computeMajority(
   counter: { [key: string]: number },
   numberOfAnnotators: number,
 ): { level: number; value: number | string } {
-  // Step 0: Sort counter values
   const sorted_counter = Object.entries(counter);
   sorted_counter.sort((x, y) => {
     return y[1] - x[1];
   });
 
-  // Step 1: Number of unique values, most common value and its count
   const numberOfUniqueValues = sorted_counter.length;
   const mostCommonValue = sorted_counter[0][0];
   const mostCommonValueCount = sorted_counter[0][1];
 
-  // Step 2: Common patterns
-  // Step 2.a: Absolute agreement
+  // Absolute agreement
   if (mostCommonValueCount === numberOfAnnotators)
     return {
       level: AgreementLevels.ABSOLUTE_AGREEMENT,
       value: mostCommonValue,
     };
 
-  // Step 2.b: Absolute disagreement/No agreement
+  // No agreement: every annotator chose a different value
   if (numberOfUniqueValues === numberOfAnnotators)
     return {
       level: AgreementLevels.NO_AGREEMENT,
       value: 'Indeterminate',
     };
 
-  // Step 3: Calculate agreement levels
-  // Step 3.a: No agreement
-  // * More than half annotators selected different values
-  // OR
-  // * Less than half annotators selected same value and Top-2 most common values are greater than 1 unit apart
+  // No agreement: more than half selected different values, or top-2 values are far apart
   if (
     numberOfUniqueValues > Math.ceil(numberOfAnnotators / 2) ||
     (mostCommonValueCount < Math.ceil(numberOfAnnotators / 2) &&
@@ -313,8 +281,7 @@ function computeMajority(
     };
   }
 
-  // Step 3.b: High agreement
-  // * Maximum two unique values and those are less than 2 unit apart
+  // High agreement: only two unique values that are close together
   if (
     numberOfUniqueValues == 2 &&
     Math.abs(
@@ -328,7 +295,6 @@ function computeMajority(
     };
   }
 
-  // Step 3.c: Default return
   return {
     level: AgreementLevels.LOW_AGREEMENT,
     value: mostCommonValue,

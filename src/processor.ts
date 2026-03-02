@@ -71,21 +71,17 @@ function disqualifyEvaluation(
   disqualifiedTasks: DisqualifiedTasks,
   evaluationsPerTask: { [key: string]: TaskEvaluation[] },
 ) {
-  // Step 1: Move from evaluations per task list to disqualified tasks list, if required
+  // If task was previously qualified, move all its evaluations to disqualified
   if (evaluationsPerTask.hasOwnProperty(evaluation.taskId)) {
-    // Step 1.a: Copy task to remove
     const qualifiedEvaluations = evaluationsPerTask[evaluation.taskId];
-
-    // Step 1.b: Remove task from qualified tasks list
     delete evaluationsPerTask[evaluation.taskId];
 
-    // Step 1.c: Add to disqualified tasks list
     disqualifiedTasks[evaluation.taskId] = {
       reasons: reasons,
       evaluations: [...qualifiedEvaluations, evaluation],
     };
   } else {
-    // Step 1: Add to disqualified tasks list
+    // Task already disqualified or new: append reasons and evaluation
     if (disqualifiedTasks.hasOwnProperty(evaluation.taskId)) {
       disqualifiedTasks[evaluation.taskId].reasons = [
         ...disqualifiedTasks[evaluation.taskId].reasons,
@@ -104,27 +100,25 @@ function disqualifyEvaluation(
 export function processData(
   data: RawData,
 ): [Data, DisqualifiedTasks, Notification[]] {
-  // Step 0: Define notifications
   const notifications: Notification[] = [];
 
-  // Step 1: Identify all plottable metrics and required model IDs
   const plottableMetrics = data.metrics.filter(
     (metric) => metric.type === 'numerical' || metric.type === 'categorical',
   );
   const requiredModelIDs = new Set(data.models.map((model) => model.modelId));
 
+  // --- Disqualify evaluations missing required metrics or models ---
+
   /**
-   * Step 2: Disqualify tasks based on following guidelines
-   * 1. Only preserve evaluations for models specified in the models sections
-   * 2. If task does not have evaluations for all the models from models section
-   * 3. If task does not have every metric from metrics section for all the models from models section
+   * Disqualification rules:
+   * - Only preserve evaluations for models listed in the models section
+   * - A task needs evaluations for every listed model
+   * - Each evaluation must have annotations for every plottable metric
    */
   const disqualifiedTasks: DisqualifiedTasks = {};
   const evaluationsPerTask: { [key: string]: TaskEvaluation[] } = {};
 
-  // Step 2.a: Iterate over every evaluation entry
   data.evaluations.forEach((evaluation) => {
-    // Step 2.a.i: Verfify annotations for all plottable metrics exist
     const disqualificationReasons: DisqualificationReason[] = [];
     plottableMetrics.forEach((metric) => {
       if (!evaluation.annotations.hasOwnProperty(metric.name)) {
@@ -157,9 +151,8 @@ export function processData(
       }
     });
 
-    // Step 2.a.ii: If annotations for all plottable metrics exist
     if (isEmpty(disqualificationReasons)) {
-      // Step 2.a.ii.*: Only add if evaluation belongs to one of the models specified in the models section
+      // Only keep evaluations for models listed in the models section
       if (requiredModelIDs.has(evaluation.modelId)) {
         if (evaluationsPerTask.hasOwnProperty(evaluation.taskId)) {
           evaluationsPerTask[evaluation.taskId].push(evaluation);
@@ -172,7 +165,6 @@ export function processData(
         }
       }
     } else {
-      // Step 2.a.ii: Disqualify evaluation and associated task
       disqualifyEvaluation(
         disqualificationReasons,
         evaluation,
@@ -182,10 +174,10 @@ export function processData(
     }
   });
 
-  // Step 3.: Verify evaluations exist for every model from the models section
-  // Step 3.a: Check first in all disqualified tasks
+  // --- Verify model coverage: every task must have an evaluation per model ---
+
+  // Check already-disqualified tasks for additional missing models
   Object.keys(disqualifiedTasks).forEach((taskId) => {
-    // Step 3.a.i: If more or less number of evaluations exists
     if (disqualifiedTasks[taskId].evaluations.length !== data.models.length) {
       const availableModelIDs = new Set(
         disqualifiedTasks[taskId].evaluations.map(
@@ -193,12 +185,10 @@ export function processData(
         ),
       );
 
-      // Step 3.a.i.*: Missing model IDs
       const missingModelIDs = [...requiredModelIDs].filter(
         (modelId) => !availableModelIDs.has(modelId),
       );
 
-      // Step 3.a.i.**: Update disqualified task's reasons
       if (!isEmpty(missingModelIDs)) {
         disqualifiedTasks[taskId].reasons = [
           ...disqualifiedTasks[taskId].reasons,
@@ -210,19 +200,16 @@ export function processData(
     }
   });
 
-  // Step 3.b: Check in qualified tasks
+  // Check qualified tasks -- demote to disqualified if any model is missing
   Object.keys(evaluationsPerTask).forEach((taskId) => {
-    // Step 3.b.i: If more or less number of evaluations exists
     if (data.models.length !== evaluationsPerTask[taskId].length) {
       const availableModelIDs = new Set(
         evaluationsPerTask[taskId].map((evaluation) => evaluation.modelId),
       );
-      // Step 3.b.i.*: Missing model IDs
       const missingModelIDs = [...requiredModelIDs].filter(
         (modelId) => !availableModelIDs.has(modelId),
       );
 
-      // Step 3.b.i.**: Move task from qualified task list to disqualified task list
       if (!isEmpty(missingModelIDs)) {
         const disqualifiedEvaluations = evaluationsPerTask[taskId];
         disqualifiedTasks[taskId] = {
@@ -237,13 +224,12 @@ export function processData(
     }
   });
 
-  // Step 5: Flatten qualified tasks into qualified evaluations list
-  // Step 5.a: Retain unique qaulified task ID, annotator and qualified evaluation
+  // --- Flatten qualified evaluations and collect annotators ---
+
   const uniqueQuailifiedTaskIds = new Set<string>();
   const annotators = new Set<string>();
   const qualifiedEvaluations: TaskEvaluation[] = [];
 
-  // Step 5.b: Iterate over each qualified task
   Object.keys(evaluationsPerTask).forEach((taskId) => {
     uniqueQuailifiedTaskIds.add(taskId);
     evaluationsPerTask[taskId].forEach((evaluation) => {
@@ -255,7 +241,8 @@ export function processData(
     });
   });
 
-  // Step 6: Create a list of qualified tasks
+  // --- Build the final qualified task list ---
+
   const tasksMap = new Map(
     data.tasks.map((task) => {
       return [task.taskId, task];
@@ -275,12 +262,11 @@ export function processData(
       exampleId: hash(JSON.stringify(data)),
       models: data.models,
       metrics: data.metrics.map((metric) => {
-        // Step 1: Sort metric values, if present
         if (metric.values) {
           sortMetricValues(metric.values);
         }
 
-        // Step 2: Return with additional attributes
+        // Attach computed min/max from sorted values (categorical) or range (numerical)
         return {
           ...metric,
           ...(metric.type === 'categorical' &&
@@ -317,7 +303,6 @@ export function exportData(
   data: Data | undefined,
   tasks: Task[] | undefined,
 ): boolean {
-  // Step 0: Verify if data is provided
   if (data) {
     let dataToExport: RawData = {
       name: data.name,
@@ -340,35 +325,30 @@ export function exportData(
       }),
     };
 
-    // Step 1: If tasks are defined
     if (tasks) {
-      // Step 0: update flagged property
+      // Ensure every task has a flagged property before export
       tasks.forEach((task) => {
         if (!task.hasOwnProperty('flagged')) {
           task.flagged = false;
         }
       });
 
-      // Step 1.a: Create reduced analytics data, if not all tasks are specified
+      // Subset export: only include documents and evaluations for the given tasks
       if (data.tasks.length !== tasks.length) {
-        // Step 1.a.i: Build documents map
         const documentsMap: Map<string, RetrievedDocument> = new Map(
           data.documents?.map((document) => [document.documentId, document]),
         );
 
-        // Step 1.a.ii: Necessary variables
         const relevantDocuments: Set<RetrievedDocument> =
           new Set<RetrievedDocument>();
         const relevantTaskIds: Set<string> = new Set<string>();
 
-        // Step 1.a.iii: Iterate over tasks to identify referened documents/relevant context
+        // Collect referenced document IDs from the subset of tasks
         tasks.forEach((task) => {
-          // Add task ID to relevant task ID set
           relevantTaskIds.add(task.taskId);
 
           if (documentsMap.size !== 0) {
             task.contexts?.forEach((context) => {
-              // Add referenced document to relevant documents list
               if (typeof context !== 'string') {
                 const referenceDocument = documentsMap.get(context.documentId);
                 if (referenceDocument) {
@@ -379,7 +359,6 @@ export function exportData(
           }
         });
 
-        // Step 1.a.iv: Create an object to be exported
         dataToExport = {
           name: data.name,
           ...(data.exampleId && { exampleId: data.exampleId }),
@@ -403,7 +382,7 @@ export function exportData(
             }),
         };
       } else {
-        // Step 1.b: Create an object to be exported by copying over tasks information
+        // Full export: all tasks provided, just copy tasks with their flagged state
         dataToExport = {
           name: data.name,
           ...(data.exampleId && { exampleId: data.exampleId }),
@@ -427,10 +406,8 @@ export function exportData(
       }
     }
 
-    // Step 2: Create <a> tag
+    // Trigger a browser download via a temporary anchor element
     var element = document.createElement('a');
-
-    // Step 2.a: Set attributes
     element.setAttribute(
       'href',
       'data:application/json;charset=utf-8, ' +
@@ -438,17 +415,12 @@ export function exportData(
     );
     element.setAttribute('download', 'analytics.json');
 
-    // Step 2.b: Add to DOM tree and click it
     document.body.appendChild(element);
     element.click();
-
-    // Step 2.c : Cleanup
     document.body.removeChild(element);
 
-    // Step 3: Retun "true" indicating success
     return true;
   }
 
-  // Step 3: Retun "false" indicating failure
   return false;
 }

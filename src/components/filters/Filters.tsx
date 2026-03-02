@@ -68,18 +68,15 @@ export default function Filters({
   expression,
   setExpression,
 }: Props) {
-  // Step 1: Initialize state and necessary variables
   const [showFilters, setShowFilters] = useState<boolean>(true);
 
-  // Step 2: Run effects
-  // Step 2.a: If no filters are found, set show filters to false
+  // Hide the filter panel when neither static filters nor expression builder is available
   useEffect(() => {
     if (filters === undefined && setExpression === undefined) {
       setShowFilters(false);
     }
   }, [filters]);
 
-  // Step 3: Render
   return (
     <>
       {filters && (

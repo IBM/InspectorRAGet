@@ -37,7 +37,7 @@ export function hash(text: string): string {
  * @param text
  * @returns
  */
-function normalize(text) {
+function normalize(text: string) {
   var normalizedText = text;
   // normalize double and single quotes
   normalizedText = text.replace(/[“”]/g, '"');
@@ -59,15 +59,13 @@ function normalize(text) {
  * @returns starting position index of next token
  */
 function getNextTokenStart(text: string, offset: number = 0): number {
-  // Step 1: Set starting index to provided offset
   var startIndex = offset;
 
-  // Step 2: Skip over non-alphanumeric characters at the start
+  // Skip over non-alphanumeric characters
   while (startIndex < text.length && /\W/.test(text.charAt(startIndex))) {
     startIndex++;
   }
 
-  // Step 3: Return
   return startIndex;
 }
 
@@ -78,10 +76,9 @@ function getNextTokenStart(text: string, offset: number = 0): number {
  * @returns ending position index of next token
  */
 function getNextTokenEnd(text: string, offset: number = 0): number {
-  // Step 1: Set end index to be starting index of next token
   var endIndex = getNextTokenStart(text, offset);
 
-  // Step 2: Include alphanumeric characters until the first non-alphanumeric character is found
+  // Advance through alphanumeric characters until a word boundary
   while (endIndex < text.length && !/\W/.test(text.charAt(endIndex))) {
     endIndex++;
   }
@@ -107,11 +104,11 @@ function createRegex(text: string): RegExp {
  * @param text
  * @returns
  */
-function match(query: string, text: string) {
-  // Step 1: Create regular expression
+function match(
+  query: string,
+  text: string,
+): { readonly start: number; readonly end: number }[] {
   const regex = createRegex(query);
-
-  // Step 2: Find matches
   const matches: { readonly start: number; readonly end: number }[] = [];
   let match;
   while ((match = regex.exec(text)) !== null) {
@@ -121,7 +118,6 @@ function match(query: string, text: string) {
     });
   }
 
-  // Step 3: Return
   return matches;
 }
 
@@ -137,30 +133,25 @@ export function overlaps(
   target: string,
   min_match_tokens: number = 3,
 ) {
-  // Step 1: Normalize source and target text
   const normalizedSource = normalize(source).toLowerCase();
   const normalizedTarget = normalize(target).toLowerCase();
-
-  // Step 2: Define necessary variables
   const matches: StringMatchObject[] = [];
 
-  // Step 3: Find matches
-  // Step 3.a: Identify starting position for next token in the source and set current end position to same starting position
   let curStartPos = getNextTokenStart(normalizedSource, 0);
 
-  // Step 3.b: Keep finding next starting position till all tokens in the source are seen
+  // Walk through each token in the source, greedily extending matches into the target
   while (curStartPos < normalizedSource.length) {
     let curEndPos = curStartPos;
     let matchTokenLength = 0;
     let substringEndPos = curStartPos;
 
-    // Step 3.b.i: Identify next minimum match tokens
+    // Advance past the minimum token threshold before checking for matches
     while (matchTokenLength < min_match_tokens - 1) {
       substringEndPos = getNextTokenEnd(normalizedSource, substringEndPos);
       matchTokenLength++;
     }
 
-    // Step 3.b.ii:
+    // Greedily extend the substring while it still matches in the target
     do {
       // Update temporary end position
       substringEndPos = getNextTokenEnd(normalizedSource, substringEndPos);

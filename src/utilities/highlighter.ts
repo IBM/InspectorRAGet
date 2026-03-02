@@ -21,14 +21,12 @@ import { StringMatchObject } from '@/src/types';
 export function extractMatchesInTarget(
   matches: StringMatchObject[],
 ): { start: number; end: number; text: string }[] {
-  // Step 1: Sort matches based on starting index of matches in the target
   const orderedMatches: StringMatchObject[] = Array.from(matches).toSorted(
     function (a: StringMatchObject, b: StringMatchObject) {
       return a.matchesInTarget[0].start - b.matchesInTarget[0].start;
     },
   );
 
-  // Step 2: Return first match from target
   return orderedMatches.map((entry: StringMatchObject) => {
     return {
       start: entry.matchesInTarget[0].start,

@@ -50,20 +50,15 @@ export default function ExpressionBuilder({
   metric,
   setExpression,
 }: Props) {
-  // Step 1: Initialize state and necessary variables
   const [updatedExpressionText, setUpdatedExpressionText] = useState<string>(
     expression ? JSON.stringify(expression) : PLACHOLDER_EXPRESSION_TEXT,
   );
   const [errorMessage, setErrorMessage] = useState<string>();
 
-  // Step 2: Run effects
-  // Step 2.a: Validate expression when updated
   useEffect(() => {
     try {
-      // Step 2.a: Check JSON validity
       const updatedExpression = JSON.parse(updatedExpressionText);
 
-      // Step 2.b: Check expression validity
       const errorMessage = validate(
         updatedExpression,
         models?.map((model) => model.modelId),
@@ -119,10 +114,7 @@ export default function ExpressionBuilder({
           kind="secondary"
           disabled={expression === undefined || isEmpty(expression)}
           onClick={() => {
-            // Step 1: Reset updated expression text
             setUpdatedExpressionText('{}');
-
-            // Step 2: Reset expression
             if (setExpression) {
               setExpression({});
             }

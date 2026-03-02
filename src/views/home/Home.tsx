@@ -55,16 +55,14 @@ export default memo(function HomePage({ page }: Props) {
             {page.subtitleLink != null && (
               <>
                 {' '}
-                <Link href={page.subtitleLink.href} passHref legacyBehavior>
-                  <CarbonLink
-                    inline
-                    target={
-                      page.subtitleLink.openInNewTab ? '_blank' : undefined
-                    }
-                  >
-                    {page.subtitleLink.content}
-                  </CarbonLink>
-                </Link>
+                <CarbonLink
+                  as={Link}
+                  href={page.subtitleLink.href}
+                  inline
+                  target={page.subtitleLink.openInNewTab ? '_blank' : undefined}
+                >
+                  {page.subtitleLink.content}
+                </CarbonLink>
               </>
             )}
           </p>

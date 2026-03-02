@@ -114,17 +114,12 @@ export default function ChatTask({
   setTaskCopierModalOpen,
   updateCommentProvenance,
 }: Props) {
-  // Step 1: Initialize state and necessary variables
   const [selectedEvaluationIndex, setSelectedEvaluationIndex] =
     useState<number>(0);
 
-  // Step 2: Run effects
-  // Step 2.a: Fetch data from data store
   const { item: data } = useDataStore();
 
-  // Step 2.b: Fetch documents and evaluations
   const evaluations = useMemo(() => {
-    // Step 2.b.i: Fetch evaluations
     let taskEvaluations: TaskEvaluation[] | undefined = undefined;
     if (data) {
       taskEvaluations = data.evaluations.filter(
@@ -135,7 +130,6 @@ export default function ChatTask({
     return taskEvaluations;
   }, [task.taskId, data]);
 
-  // Step 2.c: Build human & algorithmic metric maps
   const [hMetrics, aMetrics] = useMemo(() => {
     const humanMetrics = new Map(
       metrics
@@ -151,7 +145,6 @@ export default function ChatTask({
     return [humanMetrics, algorithmicMetrics];
   }, [metrics]);
 
-  // Step 3: Render
   return (
     <>
       {models && metrics && task && evaluations && (

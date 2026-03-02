@@ -158,7 +158,6 @@ export default function ModelBehavior({
   filters,
   onTaskSelection,
 }: Props) {
-  // Step 1: Initialize state and necessary variables
   const [loading, setLoading] = useState<boolean>(false);
   const [WindowWidth, setWindowWidth] = useState<number>(
     global?.window && window.innerWidth,
@@ -198,56 +197,40 @@ export default function ModelBehavior({
   >([]);
   const [filterationWorker, setFilterationWorker] = useState<Worker>();
 
-  // Step 2: Run effects
-  // Step 2.a: Adjust graph width & heigh based on window size
   useEffect(() => {
-    // Step 1: Define window resize function
     const handleWindowResize = () => {
       setWindowWidth(window.innerWidth);
     };
 
-    // Step 2: Add event listener
     window.addEventListener('resize', handleWindowResize);
 
-    // Step 3: Cleanup to remove event listener
     return () => {
       window.removeEventListener('resize', handleWindowResize);
     };
   }, []);
 
-  // Step 2.b: Fetch theme
   const { theme } = useTheme();
 
-  // Step 2.c: Set up a worker to perform data filtering
+  // Initialize a Web Worker for background data filtering
   useEffect(() => {
-    // Step 2.c.i: Create a new web worker
     const worker = new Worker(
       new URL('../../workers/filter.ts', import.meta.url),
     );
 
-    // Step 2.c.ii: Set up event listener for messages from the worker
     worker.onmessage = function (event: MessageEvent<FilterationResponse>) {
-      // Step 2.c.ii.*: Copy over response data
       const { records, evaluations } = event.data;
-
-      // Step 2.c.ii.**: Update graph records and visible evaluations
       setGraphRecords(records);
       setVisibleEvaluations(evaluations);
-
-      // Step 2.c.ii.***: Set loading to false
       setLoading(false);
     };
 
-    // Step 2.c.iii: Save the worker instance to state
     setFilterationWorker(worker);
 
-    // Step 2.c.iv: Clean up the worker when the component unmounts
     return () => {
       worker.terminate();
     };
   }, []);
 
-  // Step 2.d: Identify all annotators
   const annotators = useMemo(() => {
     const annotatorsSet = new Set();
     const humanMetricNames = metrics
@@ -266,12 +249,11 @@ export default function ModelBehavior({
     return annotatorsSet;
   }, [evaluationsPerMetric, metrics]);
 
-  // Step 2.e: Reset expression, if selected metric changes
+  // Reset expression when selected metric changes
   useEffect(() => {
     setExpression({});
   }, [selectedMetric]);
 
-  // Step 2.f: Configure available majority values, if metric is selected
   const availableAllowedValues = useMemo(() => {
     if (selectedMetric && selectedMetric.type === 'categorical') {
       if (selectedAnnotator) {
@@ -321,12 +303,10 @@ export default function ModelBehavior({
     selectedAgreementLevels,
   ]);
 
-  // Step 2.g: Update selected values list
   useEffect(() => {
     setSelectedAllowedValues(availableAllowedValues);
   }, [availableAllowedValues]);
 
-  // Step 2.h: Calculate graph data and prepare visible evaluations list
   /**
    * Adjust graph records based on selected agreement levels, models and annotator
    * visibleEvaluations : [{taskId: <>, modelId: <>, [metric]_score: <>}]
@@ -334,10 +314,9 @@ export default function ModelBehavior({
    *       * score field could be either majority score or individual annotator's score (based on selected annotator)
    */
   useEffect(() => {
-    // Step 1: Set loading to true
     setLoading(true);
 
-    // Step 2: Post message to worker to unblock main thread
+    // Delegate filtering to Web Worker to keep the main thread responsive
     if (filterationWorker) {
       filterationWorker.postMessage({
         evaluationsPerMetric: evaluationsPerMetric,
@@ -361,7 +340,6 @@ export default function ModelBehavior({
     expression,
   ]);
 
-  // Step 2.i: Calculate visible tasks per metric
   const visibleTasksPerMetric = useMemo(() => {
     const data = {};
     metrics.forEach((metric) => {
@@ -377,7 +355,6 @@ export default function ModelBehavior({
     return data;
   }, [graphRecords, metrics]);
 
-  // Step 2.j: Buckets human and algoritmic metrics into individual buckets
   const [humanMetrics, algorithmMetrics] = useMemo(() => {
     const hMetrics: Metric[] = [];
     const aMetrics: Metric[] = [];
@@ -392,7 +369,6 @@ export default function ModelBehavior({
     return [hMetrics, aMetrics];
   }, [metrics]);
 
-  // Step 3: Render
   return (
     <div className={classes.page}>
       {loading ? <Loading /> : null}

@@ -116,7 +116,6 @@ export default function DocumentsViewer({
   setDocumentIndex,
   onSelection,
 }: Props) {
-  // Step 1: Render
   if (isEmpty(documents)) {
     return null;
   } else {

@@ -45,9 +45,7 @@ import TasksTable from '@/src/views/tasks-table/TasksTable';
 import '@carbon/charts-react/styles.css';
 import classes from './MetricBehavior.module.scss';
 
-// ===================================================================================
-//                                TYPES
-// ===================================================================================
+// --- Types ---
 interface Props {
   evaluationsPerMetric: { [key: string]: TaskEvaluation[] };
   models: Model[];
@@ -56,9 +54,7 @@ interface Props {
   onTaskSelection: Function;
 }
 
-// ===================================================================================
-//                               COMPUTE FUNCTIONS
-// ===================================================================================
+// --- Compute functions ---
 /**
  * Calculate correlation for every metric against every other metric
  * @param evaluationsPerMetric
@@ -71,7 +67,6 @@ function calculateCorrelation(
   },
   metrics: Metric[],
 ) {
-  // Step 1: Prepare value arrays for metrics pair
   let valueArrays: {
     [key: string]: { [key: string]: any[] };
   } = {};
@@ -82,7 +77,7 @@ function calculateCorrelation(
     );
   });
 
-  // Step2: Build evaluations map per metric for faster access later
+  // Index evaluations by metric for O(1) lookup in the pairing loop below
   const evaluationsMapPerMetric = new Map();
   for (const [metric, evaluations] of Object.entries(evaluationsPerMetric)) {
     evaluationsMapPerMetric.set(
@@ -96,7 +91,6 @@ function calculateCorrelation(
     );
   }
 
-  // Step 3: Populate values array
   for (const metricA of Object.keys(evaluationsPerMetric)) {
     for (const metricB of Object.keys(evaluationsPerMetric)) {
       if (metricA !== metricB) {
@@ -130,7 +124,6 @@ function calculateCorrelation(
     }
   }
 
-  // Step 4: Build spearman correlation map
   const correlationMap: { [key: string]: string | number }[] = [];
   for (const [metricNameA, values] of Object.entries(valueArrays)) {
     const metricA = metrics.find((entry) => entry.name === metricNameA);
@@ -161,11 +154,10 @@ function calculateOverlap(
   metricA: Metric,
   metricB: Metric,
 ) {
-  // Step 1: Identify evaluations for selected model and metrics
   const modelEvaluationsForMetricA = evaluationsPerMetric[metricA.name];
   const modelEvaluationsForMetricB = evaluationsPerMetric[metricB.name];
 
-  // Step 2: Initialize a MxN matrix (where M and N are ranges of metricA and metricB) with 0s
+  // Initialize MxN overlap matrix (metric value ranges x metric value ranges)
   const overlapMap: { [key: string]: { [key: string]: number } } = {};
   if (metricA.values && metricB.values) {
     // Initializing indereminate row
@@ -182,7 +174,7 @@ function calculateOverlap(
     }
   }
 
-  // Step 3: Create a MxN matrix (where M and N are ranges of metricA and metricB)
+  // Populate the overlap counts by matching evaluations across both metrics
   modelEvaluationsForMetricA.forEach((evaluationA) => {
     const valueA = bin(evaluationA[`${metricA.name}_agg`].value, metricA);
     const taskId = evaluationA.taskId;
@@ -206,7 +198,6 @@ function calculateOverlap(
     }
   });
 
-  // Step 4: Sorted MxN matrix (where M and N are ranges of metricA and metricB)
   const sortedOverlapMap: { [key: string]: { [key: string]: number } } = {};
   // Only sort keys when metric is of 'numerical' type
   if (metricA.type === 'numerical') {
@@ -245,15 +236,12 @@ function sortMetricAggregatedValues(values: string[], metric: Metric) {
     .map((entry) => entry.key);
 }
 
-// ===================================================================================
-//                               RENDER FUNCTIONS
-// ===================================================================================
+// --- Render functions ---
 export function prepareHeatMapData(
   metricA: Metric,
   metricB: Metric,
   heatMap: { [key: string]: { [key: string]: number } },
 ) {
-  // step 1: Sort heatmap keys
   const sortedMetricAVals = sortMetricAggregatedValues(
     Object.keys(heatMap),
     metricA,
@@ -268,7 +256,6 @@ export function prepareHeatMapData(
   }
   const sortedMetricBVals = sortMetricAggregatedValues(metricBVals, metricB);
 
-  // Step 2: Prepare heat map data
   const temp: any[] = [];
   let count: number = 0;
   sortedMetricAVals.forEach((metricValA) => {
@@ -286,7 +273,6 @@ export function prepareHeatMapData(
     });
   });
 
-  // Step 3: Normalize the counts to percentages
   if (count > 0) {
     const temp2 = temp.map((entry) => ({
       ...entry,
@@ -299,9 +285,7 @@ export function prepareHeatMapData(
   return temp;
 }
 
-// ===================================================================================
-//                               MAIN FUNCTION
-// ===================================================================================
+// --- Main component ---
 export default memo(function MetricBehavior({
   evaluationsPerMetric,
   models,
@@ -309,7 +293,6 @@ export default memo(function MetricBehavior({
   filters,
   onTaskSelection,
 }: Props) {
-  // Step 1: Initialize state and necessary variables
   const [WindowWidth, setWindowWidth] = useState<number>(
     global?.window && window.innerWidth,
   );
@@ -331,27 +314,21 @@ export default memo(function MetricBehavior({
   const tableRef = useRef(null);
   const chartRef = useRef(null);
 
-  // Step 2: Run effects
-  // Step 2.a: Window resizing
   useEffect(() => {
     const handleWindowResize = () => {
       setWindowWidth(window.innerWidth);
       setWindowHeight(window.innerHeight);
     };
 
-    // Step: Add event listener
     window.addEventListener('resize', handleWindowResize);
 
-    // Step: Cleanup to remove event listener
     return () => {
       window.removeEventListener('resize', handleWindowResize);
     };
   }, []);
 
-  // Step 2.a: Fetch theme
   const { theme } = useTheme();
 
-  // Step 2.b: Filter evaluations based on selected models
   const filteredEvaluationsPerMetric = useMemo(() => {
     const filtered: { [key: string]: TaskEvaluation[] } = {};
     for (const [metric, evals] of Object.entries(evaluationsPerMetric)) {
@@ -368,12 +345,10 @@ export default memo(function MetricBehavior({
     return filtered;
   }, [evaluationsPerMetric, selectedModels, selectedFilters]);
 
-  // Step 2.c: Calculate metric-to-metric correlation for selected models
   const metricToMetricCorrelation = useMemo(() => {
     return calculateCorrelation(filteredEvaluationsPerMetric, metrics);
   }, [filteredEvaluationsPerMetric, metrics]);
 
-  // Step 2.d: Calculate metric-to-metric overlap for selected models and metrics
   const metricToMetricOverlap = useMemo(() => {
     if (selectedMetricA && selectedMetricB) {
       return calculateOverlap(
@@ -386,21 +361,18 @@ export default memo(function MetricBehavior({
     }
   }, [filteredEvaluationsPerMetric, selectedMetricA, selectedMetricB]);
 
-  // Step 2.e: Reset ranges on selected metric change
   useEffect(() => {
     setSelectedMetricARange(undefined);
     setSelectedMetricBRange(undefined);
   }, [selectedMetricA, selectedMetricB]);
 
-  // Step 2.f: Identify visible evaluations
   const visibleEvaluations: TaskEvaluation[] = useMemo(() => {
     if (selectedMetricA && selectedMetricB) {
-      // Step 1: Initialize necessary variables
       const selectedModelIds = selectedModels.map((model) => model.modelId);
 
       const evaluationsPerTask: { [key: string]: TaskEvaluation } = {};
 
-      // Step 2: Add eligible evaluations for 1st selected metric (A)
+      // Collect evaluations for metric A, filtered by selected range
       filteredEvaluationsPerMetric[selectedMetricA.name].forEach(
         (evaluation) => {
           if (selectedModelIds.includes(evaluation.modelId)) {
@@ -462,7 +434,7 @@ export default memo(function MetricBehavior({
         },
       );
 
-      // Step 2: Add eligible evaluations for 2nd selected metric (B)
+      // Collect evaluations for metric B, filtered by selected range
       filteredEvaluationsPerMetric[selectedMetricB.name].forEach(
         (evaluation) => {
           if (selectedModelIds.includes(evaluation.modelId)) {
@@ -524,7 +496,7 @@ export default memo(function MetricBehavior({
         },
       );
 
-      // Step 3: Only retains evaluation tasks where both metric values are available
+      // Only retain tasks where both metric values are available
       return Object.values(evaluationsPerTask).filter(
         (evaluation) =>
           evaluation.hasOwnProperty(`${selectedMetricA.name}`) &&
@@ -543,9 +515,8 @@ export default memo(function MetricBehavior({
     selectedMetricBRange,
   ]);
 
-  // Step 2.g: Add chart event
+  // Attach click handler to the heatmap so clicking a cell filters the tasks table
   useEffect(() => {
-    // Step 2.g.i: Update function
     function onClick(event) {
       // Set range for 1st selected metric (A)
       if (selectedMetricA?.type === 'numerical') {
@@ -582,10 +553,9 @@ export default memo(function MetricBehavior({
       }
     }
 
-    // Step 2.g.ii: Local copy of reference
+    // Keep a local copy so cleanup can remove the listener even if chartRef changes
     let ref = null;
 
-    // Step 2.g.iii: Update reference and add event
     if (chartRef && chartRef.current) {
       ref = chartRef.current;
 
@@ -593,7 +563,6 @@ export default memo(function MetricBehavior({
       ref.chart.services.events.addEventListener('heatmap-click', onClick);
     }
 
-    // Step 2.g.iv: Cleanup function
     return () => {
       if (ref) {
         //@ts-ignore
@@ -602,7 +571,7 @@ export default memo(function MetricBehavior({
     };
   }, [chartRef, selectedMetricA, selectedMetricB, metricToMetricOverlap]);
 
-  // Step 2.h: Scroll task table into view
+  // Scroll the tasks table into view when a heatmap cell is selected
   useEffect(() => {
     if (
       selectedMetricARange &&
@@ -619,7 +588,6 @@ export default memo(function MetricBehavior({
     }
   }, [tableRef, selectedMetricARange, selectedMetricBRange]);
 
-  // Step 3: Render
   return (
     <div className={classes.page}>
       <div className={classes.selectors}>

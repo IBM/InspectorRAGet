@@ -85,25 +85,20 @@ export const windows = {
 };
 
 export const getDates = (window: string) => {
-  // Step 1: Identify dates for x-axis
   const today = endOfDay(new Date());
   const dates: Date[] = [];
 
-  // Step 1.a: If time window is 1-week long
   if (window === windows['Past 1 week']) {
     for (let days = 7; days > 0; days--) {
       dates.push(sub(today, { days: days }));
     }
-    // Step 1.a.ii: Add today's date as final entry
     dates.push(today);
   }
 
-  // Step 1.b: If time window is 1-month long
   if (window === windows['Past 1 month']) {
-    // Step 1.b.i: Add 1 month before day as a 1'st date
     dates.push(endOfDay(sub(today, { months: 1 })));
 
-    // Step 1.b.ii: Add dates every 3 days apart
+    // Fill in dates at 3-day intervals
     let nextDate = add(dates[dates.length - 1], { days: 3 });
     while (
       Math.floor(nextDate.getTime() / 1000) < Math.floor(today.getTime() / 1000)
@@ -112,16 +107,13 @@ export const getDates = (window: string) => {
       nextDate = add(nextDate, { days: 3 });
     }
 
-    // Step 1.b.iii: Add today's date as final entry
     dates.push(today);
   }
 
-  // Step 1.c: If time window is 3-months long,
   if (window === windows['Past 3 months']) {
-    // Step 1.c.i: Add 3 months before day as a 1'st date
     dates.push(endOfDay(sub(today, { months: 3 })));
 
-    // Step 1.c.ii: Add dates every 7 days apart
+    // Fill in dates at 7-day intervals
     let nextDate = add(dates[dates.length - 1], { days: 7 });
     while (
       Math.floor(nextDate.getTime() / 1000) < Math.floor(today.getTime() / 1000)
@@ -130,16 +122,13 @@ export const getDates = (window: string) => {
       nextDate = add(nextDate, { days: 7 });
     }
 
-    // Step 1.c.iii: Add today's date as final entry
     dates.push(today);
   }
 
-  // Step 1.d: If time window is year long,
   if (window === windows['Year to date']) {
-    // Step 1.d.i: Add 1'st day of the year as a 1'st date
     dates.push(endOfDay(startOfYear(today)));
 
-    // Step 1.d.ii: Add dates every 2 weeks apart
+    // Fill in dates at 2-week intervals
     let nextDate = add(dates[dates.length - 1], { weeks: 2 });
     while (
       Math.floor(nextDate.getTime() / 1000) < Math.floor(today.getTime() / 1000)
@@ -148,7 +137,6 @@ export const getDates = (window: string) => {
       nextDate = add(nextDate, { weeks: 2 });
     }
 
-    // Step 1.d.iii: Add today's date as final entry
     dates.push(today);
   }
 

@@ -76,29 +76,23 @@ export default function RAGTask({
   setTaskCopierModalOpen,
   updateCommentProvenance,
 }: Props) {
-  // Step 1: Initialize state and necessary variables
   const [selectedEvaluationIndex, setSelectedEvaluationIndex] =
     useState<number>(0);
   const [showOverlap, setShowOverlap] = useState<boolean>(false);
   const [activeDocumentIndex, setActiveDocumentIndex] = useState<number>(0);
 
-  // Step 2: Run effects
-  // Step 2.a: Fetch data from data store
   const { item: data } = useDataStore();
 
-  // Step 2.b: Fetch documents and evaluations
   const [documentsPerEvaluation, evaluations] = useMemo(() => {
-    // Step 2.b.i: Initialize necessary variables
     const contextsPerEvaluation: RetrievedDocument[][] = [];
 
-    // Step 2.b.i: Fetch evaluations
     let taskEvaluations: TaskEvaluation[] | undefined = undefined;
     if (data) {
       taskEvaluations = data.evaluations.filter(
         (evaluation) => evaluation.taskId === task.taskId,
       );
 
-      // Step 2.b.i.*: Identify context document for each evaluation and compute context-response overlap and add to evaluation object
+      // Identify context documents for each evaluation and compute context-response overlaps
       taskEvaluations.forEach((evaluation) => {
         const contextDocuments: RetrievedDocument[] = [];
         const contexts = evaluation.contexts
@@ -113,7 +107,7 @@ export default function RAGTask({
                 (document) => document.documentId === context.documentId,
               );
               if (referenceDocument) {
-                // Step 2.b.i.*: Fetch context relevant annotations, if present
+                // Attach context-relevance annotations when present
                 if (
                   task?.annotations &&
                   task.annotations.hasOwnProperty('context_relevance')
@@ -172,7 +166,6 @@ export default function RAGTask({
     return [contextsPerEvaluation, taskEvaluations];
   }, [task.taskId, task.contexts, data]);
 
-  // Step 2.c: Build human & algorithmic metric maps
   const [hMetrics, aMetrics] = useMemo(() => {
     const humanMetrics = new Map(
       metrics
@@ -188,7 +181,6 @@ export default function RAGTask({
     return [humanMetrics, algorithmicMetrics];
   }, [metrics]);
 
-  // Step 3: Render
   return (
     <>
       {models && metrics && task && evaluations && (

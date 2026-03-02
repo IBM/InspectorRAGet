@@ -36,33 +36,25 @@ interface Props {
 }
 
 function prepareTextForMessage(message: Message) {
-  // Step 1: Initialize necessary variable
   let text = '';
 
-  // Step 2: Extract text from message object
-  // Step 2.a: If message with "tool" role
   if (message.role === 'tool') {
     text += JSON.stringify({
       tool_call_id: message['tool_call_id'],
       content: message.content,
     });
-  }
-  // Step 2.b: If message with "assistant" role and with "tool_calls"
-  else if (
+  } else if (
     message.role === 'assistant' &&
     message.hasOwnProperty('tool_calls')
   ) {
     text += JSON.stringify(message['tool_calls']);
-  }
-  // Step 2.c: Default extraction policy
-  else {
+  } else {
     text +=
       typeof message.content === 'string'
         ? message.content
         : JSON.stringify(message.content);
   }
 
-  // Step 3: Return
   return text;
 }
 
@@ -75,7 +67,6 @@ function prepareText(
   const separator = '=======================================================\n';
   let input, responses;
 
-  // Step 1: Prepare input
   input = `${separator}Input\n${separator}`;
   if (Array.isArray(task.input)) {
     task.input.map(
@@ -84,7 +75,6 @@ function prepareText(
     );
   }
 
-  // Step 2: Prepare responses
   if (evaluations && evaluations.length) {
     responses = `${separator}Responses\n${separator}`;
     const responseSeparator =
@@ -108,7 +98,6 @@ function prepareLaTEXT(
 ): string {
   let input, responses;
 
-  // Step 1: Prepare input
   input =
     '\\multicolumn{1}{|c|}{\\textbf{Conversation}} \\\\ \n\t\\toprule \n\t';
   if (Array.isArray(task.input)) {
@@ -120,7 +109,6 @@ function prepareLaTEXT(
     );
   }
 
-  // Step 2: Prepare responses
   if (evaluations && evaluations.length) {
     responses =
       '\\toprule \n\t\\multicolumn{1}{|c|}{\\textbf{Responses}} \\\\ \n\t';
@@ -190,10 +178,7 @@ export default function ChatTaskCopierModal({
       primaryButtonText="Copy"
       secondaryButtonText="Cancel"
       onRequestSubmit={() => {
-        //Step 1: Copy to clipboard
         navigator.clipboard.writeText(textToCopy);
-
-        // Step 2: Close model
         onClose();
       }}
       onRequestClose={() => {

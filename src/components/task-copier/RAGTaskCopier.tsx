@@ -52,7 +52,6 @@ function prepareText(
   const separator = '=======================================================\n';
   let input, context, responses;
 
-  // Step 1: Prepare input
   if (task.taskType === 'text_generation' && typeof task.input === 'string') {
     input = `${separator}Input\n${separator}${task.input.trim()}`;
   } else if (task.taskType === 'rag') {
@@ -91,7 +90,6 @@ function prepareText(
     }
   }
 
-  // Step 2: Prepare context
   if (documents && documents.length) {
     context = `${separator}Contexts\n${separator}`;
     if (documents.length > 1) {
@@ -103,7 +101,6 @@ function prepareText(
     }
   }
 
-  // Step 3: Prepare responses
   if (evaluations && evaluations.length) {
     responses = `${separator}Responses\n${separator}`;
     const responseSeparator =
@@ -128,7 +125,6 @@ function prepareLaTEXT(
 ): string {
   let input, context, responses;
 
-  // Step 1: Prepare input
   if (task.taskType === 'text_generation' && typeof task.input === 'string') {
     input = `\\multicolumn{1}{|c|}{\\textbf{Input}} \\\\ \n\t\\toprule \n\t${task.input.trim()}  \\\\ \n\t`;
   } else if (task.taskType === 'rag') {
@@ -153,7 +149,6 @@ function prepareLaTEXT(
     }
   }
 
-  // Step 2: Prepare context
   if (documents && documents.length) {
     if (documents.length > 1) {
       context =
@@ -166,7 +161,6 @@ function prepareLaTEXT(
     }
   }
 
-  // Step 3: Prepare responses
   if (evaluations && evaluations.length) {
     responses =
       '\\toprule \n\t\\multicolumn{1}{|c|}{\\textbf{Responses}} \\\\ \n\t';
@@ -239,10 +233,7 @@ export default function RAGTaskCopierModal({
       primaryButtonText="Copy"
       secondaryButtonText="Cancel"
       onRequestSubmit={() => {
-        //Step 1: Copy to clipboard
         navigator.clipboard.writeText(textToCopy);
-
-        // Step 2: Close model
         onClose();
       }}
       onRequestClose={() => {

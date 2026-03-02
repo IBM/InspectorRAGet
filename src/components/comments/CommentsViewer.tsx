@@ -83,10 +83,7 @@ function Comment({
         open={editing}
         onClose={() => setEditing(false)}
         onSubmit={(updatedComment) => {
-          // Step 1: Update comment
           onEdit(updatedComment);
-
-          // Step 2: Close editing modal
           setEditing(false);
         }}
         models={models}

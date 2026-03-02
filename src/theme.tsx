@@ -29,7 +29,7 @@ export const ThemeContext = createContext<{
   set(theme) {},
 });
 
-export function ThemeProvider({ children }: { children: any }) {
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<'g10' | 'g90'>('g10');
 
   const set = (theme: 'g10' | 'g90') => {

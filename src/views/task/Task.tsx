@@ -84,7 +84,6 @@ function updateCommentProvenance(
 //                               MAIN FUNCTION
 // ===================================================================================
 export default function Task({ taskId, onClose }: Props) {
-  // Step 1: Initialize state and necessary variables
   const [addCommentModalOpen, setAddCommentModalOpen] =
     useState<boolean>(false);
   const [taskCopierModalOpen, setTaskCopierModalOpen] =
@@ -93,19 +92,13 @@ export default function Task({ taskId, onClose }: Props) {
     TaskCommentProvenance | undefined
   >(undefined);
 
-  // Step 2: Run effects
-  // Step 2.a: Notification hook
   const { createNotification } = useNotification();
 
-  // Step 2.b: Handle task close event
+  // Close task view on Escape key press
   useEffect(() => {
     const handleEsc = (event) => {
-      // If "Escape" key is pressed
       if (event.key === 'Escape') {
-        // Step 1: Close task view
         onClose();
-
-        // Step 2: Stop event propogation
         event.preventDefault();
       }
     };
@@ -116,13 +109,10 @@ export default function Task({ taskId, onClose }: Props) {
     };
   }, []);
 
-  // Step 2.c: Fetch data from data store
   const { item: data, taskMap, updateTask } = useDataStore();
 
-  // Step 2.d: Configure model's map and metrics
   const [models, metrics] = useMemo(() => {
     if (data) {
-      // Step 2.d.i: Make model_id -> model_name map
       const modelsMap = new Map<string, Model>(
         data.models.map((model) => [model.modelId, model]),
       );
@@ -134,19 +124,16 @@ export default function Task({ taskId, onClose }: Props) {
     return [undefined, undefined];
   }, [data?.models, data?.metrics]);
 
-  // Step 2.e: Fetch task
   const task = useMemo(() => {
     if (taskMap && taskId) {
       return taskMap.get(taskId);
     }
   }, [taskId, taskMap]);
 
-  // Step 2.f: Initialize comment viewer status
   const [showComments, setShowComments] = useState<boolean>(
     (task?.comments?.length && task.comments.length > 0) || false,
   );
 
-  // Step 2.g: Fetch evaluations for the current task
   const evaluations = useMemo(() => {
     let taskEvaluations: TaskEvaluation[] | undefined = undefined;
     if (data) {
@@ -158,14 +145,12 @@ export default function Task({ taskId, onClose }: Props) {
     return taskEvaluations;
   }, [taskId, task?.contexts, data?.documents, data?.evaluations]);
 
-  // Step 3: Render
   return (
     <div className={classes.page}>
       <AddCommentModal
         open={addCommentModalOpen}
         selectedText={commentProvenance ? commentProvenance.text : undefined}
         onSubmit={(comment: string, author: string) => {
-          // Step 1: Create comment to add
           const commentToAdd = {
             comment: comment,
             author: author,
@@ -174,20 +159,14 @@ export default function Task({ taskId, onClose }: Props) {
             provenance: commentProvenance,
           };
 
-          // Step 2: Add comment to task
           updateTask(taskId, {
             comments: task?.comments
               ? [...task?.comments, commentToAdd]
               : [commentToAdd],
           });
 
-          // Step 3: Clear provenance
           setCommentProvenance(undefined);
-
-          // Step 4: Close modal
           setAddCommentModalOpen(false);
-
-          // Step 5: Open comments viewer
           setShowComments(true);
         }}
         onClose={() => {
@@ -217,7 +196,6 @@ export default function Task({ taskId, onClose }: Props) {
             evaluations={evaluations}
             expanded={false}
             onClickFlagIcon={() => {
-              // Step 1.a: Update global copy
               updateTask(task.taskId, {
                 flagged: !task?.flagged,
               });

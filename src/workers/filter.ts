@@ -23,7 +23,6 @@ import { areObjectsIntersecting } from '@/src/utilities/objects';
 import { evaluate } from '@/src/utilities/expressions';
 
 onmessage = function (event: MessageEvent<FilterationRequest>) {
-  // Step 1: Initialize necessary variables
   const {
     evaluationsPerMetric,
     filters,
@@ -44,7 +43,7 @@ onmessage = function (event: MessageEvent<FilterationRequest>) {
   }[] = [];
   const visibleEvaluations: TaskEvaluation[] = [];
 
-  // Step 2: If filters are specified
+  // Apply task-level filters when specified
   const filteredEvaluationsPerMetric: { [key: string]: TaskEvaluation[] } = {};
   for (const [metric, evals] of Object.entries(evaluationsPerMetric)) {
     filteredEvaluationsPerMetric[metric] = !isEmpty(filters)
@@ -52,11 +51,9 @@ onmessage = function (event: MessageEvent<FilterationRequest>) {
       : evals;
   }
 
-  // Step 3: If a metric is selected
   if (metric) {
-    // Step 3.a: If an expression is specified
     if (expression && !isEmpty(expression)) {
-      // Step 3.a.ii: Build an object containing evaluations per model for every task
+      // Group evaluations by task and model so the expression can compare across models
       const evaluationsPerTaskPerModel: {
         [key: string]: { [key: string]: TaskEvaluation };
       } = {};
@@ -71,14 +68,12 @@ onmessage = function (event: MessageEvent<FilterationRequest>) {
         }
       });
 
-      // Step 3.a.iii: Find evaluations meeting expression criteria
       evaluate(
         evaluationsPerTaskPerModel,
         expression,
         metric,
         annotator,
       ).forEach((evaluation) => {
-        // Step 3.a.iii.*: Create and add record
         records.push({
           taskId: evaluation.taskId,
           modelName: models[evaluation.modelId].name,
@@ -86,13 +81,11 @@ onmessage = function (event: MessageEvent<FilterationRequest>) {
           [`${metric.name}_aggLevel`]: evaluation[`${metric.name}_agg`].level,
         });
 
-        // Step 3.a.iii.**: Add evaluation
         visibleEvaluations.push(evaluation);
       });
     } else {
-      // Step 3.b: Filter evaluations for the selected metric
+      // No expression: filter evaluations directly for the selected metric
       filteredEvaluationsPerMetric[metric.name].forEach((evaluation) => {
-        // Step 3.b.i: If individual annotator is selected, verify against annotator's value
         if (annotator) {
           /**
            * Evaluation's model id fall within selected models
@@ -105,7 +98,6 @@ onmessage = function (event: MessageEvent<FilterationRequest>) {
             (!allowedValues ||
               allowedValues.includes(evaluation[metric.name][annotator].value))
           ) {
-            // Step 3.b.i.*: Create and add record
             records.push({
               taskId: evaluation.taskId,
               modelName: models[evaluation.modelId].name,
@@ -113,11 +105,9 @@ onmessage = function (event: MessageEvent<FilterationRequest>) {
                 evaluation[metric.name][annotator].value,
             });
 
-            // Step 3.b.i.**: Add evaluation
             visibleEvaluations.push(evaluation);
           }
         } else {
-          // Step 3.b.ii: Verify against aggregate value
           if (
             evaluation.modelId in models &&
             (!agreementLevels ||
@@ -127,7 +117,6 @@ onmessage = function (event: MessageEvent<FilterationRequest>) {
             (!allowedValues ||
               allowedValues.includes(evaluation[`${metric.name}_agg`].value))
           ) {
-            // Step 3.b.ii.*: Create and add record
             records.push({
               taskId: evaluation.taskId,
               modelName: models[evaluation.modelId].name,
@@ -136,19 +125,17 @@ onmessage = function (event: MessageEvent<FilterationRequest>) {
                 evaluation[`${metric.name}_agg`].level,
             });
 
-            // Step 3.b.ii.**: Add evaluation
             visibleEvaluations.push(evaluation);
           }
         }
       });
     }
   } else {
-    // Step 3: For every metric
+    // No specific metric selected: iterate all metrics
     for (const [metric, evaluations] of Object.entries(
       filteredEvaluationsPerMetric,
     )) {
       evaluations.forEach((evaluation) => {
-        // Step 3.a: If invidiual annotator is selected, verify against annotator's value
         if (annotator) {
           /**
            * Evaluation's model id fall within selected models
@@ -168,7 +155,6 @@ onmessage = function (event: MessageEvent<FilterationRequest>) {
             });
           }
         } else {
-          // Step 3.a: Verify against aggregate value
           if (
             evaluation.modelId in models &&
             (!agreementLevels ||
@@ -190,6 +176,5 @@ onmessage = function (event: MessageEvent<FilterationRequest>) {
     }
   }
 
-  // Step 4: Return results
   postMessage({ records: records, evaluations: visibleEvaluations });
 };

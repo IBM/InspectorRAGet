@@ -66,7 +66,6 @@ export default memo(function TaskTile({
   onClickCommentsIcon,
   onClickCopyToClipboardIcon,
 }: Props) {
-  // Step 1: Extract neccessary information
   const [annotators, metrics, models, duration] = useMemo(() => {
     const annotatorsMap: { [key: string]: number } = {};
     const metricsSet: Set<string> = new Set();
@@ -241,7 +240,6 @@ export default memo(function TaskTile({
                   <DefinitionTooltip
                     definition={Object.keys(annotators).map(
                       (annotator, idx) => {
-                        // Step 1: Convert duration to string
                         const [
                           durationInDaysForAnnotator,
                           durationInHoursForAnnotator,

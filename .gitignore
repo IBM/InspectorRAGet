@@ -20,6 +20,9 @@ node_modules
 # Next files
 .next
 
+# TypeScript incremental build cache
+*.tsbuildinfo
+
 # Husky files
 .husky
 

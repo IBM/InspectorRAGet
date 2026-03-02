@@ -33,12 +33,10 @@ export const meanAggregator: Aggregator = {
     scores: number[] | string[],
     references: MetricValue[],
   ): AggregationStatistics => {
-    // Step 1: Cast score to numbers
     const numericScores = scores.map((score) =>
       typeof score === 'string' ? castToNumber(score, references) : score,
     );
 
-    // Step 2: Calculate aggregate value & standard deviation
     const mean = numericScores.reduce((a, b) => a + b) / numericScores.length;
     const std = Math.sqrt(
       numericScores
@@ -46,7 +44,6 @@ export const meanAggregator: Aggregator = {
         .reduce((a, b) => a + b) / numericScores.length,
     );
 
-    // Step 3: Calculate confidence level
     const sorted_counter = Object.entries(countBy(scores));
     const numberOfUniqueValues = sorted_counter.length;
     const mostCommonValueCount = sorted_counter[0][1];
@@ -71,15 +68,12 @@ export const medianAggregator: Aggregator = {
     scores: number[] | string[],
     references: MetricValue[],
   ): AggregationStatistics => {
-    // Step 1: Cast score to numbers
     const numericScores = scores.map((score) =>
       typeof score === 'string' ? castToNumber(score, references) : score,
     );
 
-    // Step 2: Sort the numeric scores
     const sortedNumericScores = numericScores.toSorted((a, b) => a - b);
 
-    // Step 3: Calculate aggregate value & standard deviation
     const median =
       sortedNumericScores.length % 2 == 0
         ? sortedNumericScores[sortedNumericScores.length / 2 - 1]
@@ -90,7 +84,6 @@ export const medianAggregator: Aggregator = {
         .reduce((a, b) => a + b) / sortedNumericScores.length,
     );
 
-    // Step 4: Calculate confidence level
     const sorted_counter = Object.entries(countBy(scores));
     const numberOfUniqueValues = sorted_counter.length;
     const mostCommonValueCount = sorted_counter[0][1];
@@ -115,29 +108,23 @@ export const majorityAggregator: Aggregator = {
     scores: number[] | string[],
     references: MetricValue[],
   ): AggregationStatistics => {
-    // Step 0: Create counter
     const counter: { [key: string]: number } = countBy(scores);
-    // Step 1: Sort counter values
     const sorted_counter = Object.entries(counter);
     sorted_counter.sort((x, y) => {
       return y[1] - x[1];
     });
 
-    // Step 2: Number of unique values, most common value and its count
     const numberOfAnnotators = scores.length;
     const numberOfUniqueValues = sorted_counter.length;
     const mostCommonValue = sorted_counter[0][0];
     const mostCommonValueCount = sorted_counter[0][1];
 
-    // Step 3: Initialize defaults for aggregate value, standard deviation and confidence level
     let value = 'Indeterminate';
     let confidence = AggregationConfidenceLevels.LOW;
 
-    // Step 3.a: Cast score to numbers
     const numericScores = scores.map((score) =>
       typeof score === 'string' ? castToNumber(score, references) : score,
     );
-    // Step 2: Calculate aggregate value & standard deviation
     const mean = numericScores.reduce((a, b) => a + b) / numericScores.length;
     const std = Math.sqrt(
       numericScores
@@ -145,7 +132,6 @@ export const majorityAggregator: Aggregator = {
         .reduce((a, b) => a + b) / numericScores.length,
     );
 
-    // Step 3: Calculate aggregate value, standard deviation and confidence level
     if (mostCommonValueCount === numberOfAnnotators) {
       value = mostCommonValue;
       confidence = AggregationConfidenceLevels.HIGH;
@@ -220,11 +206,10 @@ export const majorityUnionAggregator: Aggregator = {
   name: 'majority',
   displayName: 'Majority',
   apply: (scores: number[][] | string[][]): (number | string)[] => {
-    // Step 1: Determine number of annotators
     const numberOfAnnotators = scores.length;
     const annotatorIds = range(numberOfAnnotators);
 
-    // Step 2: Create combination of annotators
+    // Build sliding-window combinations from largest to majority-size groups
     const annotatorIdCombinations: number[][] = [];
     for (
       let size = numberOfAnnotators;
@@ -242,7 +227,7 @@ export const majorityUnionAggregator: Aggregator = {
       }
     }
 
-    // Step 3: Combine relevant contexts chosen by at least majority of annotators
+    // Union of intersections: items chosen by at least a majority of annotators
     return union(
       ...annotatorIdCombinations.map((annotatorIdCombination) => {
         return intersection(

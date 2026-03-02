@@ -54,9 +54,7 @@ import { exportData } from '@/src/processor';
 
 import classes from './TasksTable.module.scss';
 
-// ===================================================================================
-//                                TYPES
-// ===================================================================================
+// --- Types ---
 type EvaluationRow = {
   id: string;
   taskId: string;
@@ -70,9 +68,7 @@ interface Props {
   onClick: Function;
 }
 
-// ===================================================================================
-//                               COMPUTE FUNCTIONS
-// ===================================================================================
+// --- Compute functions ---
 /**
  * Helper function to compute evaluation table headers and rows
  * @param evaluations full set of evaluations
@@ -97,12 +93,12 @@ function populateTable(
   ];
   const rows: EvaluationRow[] = [];
 
-  // Step 1: Build evaluations map combining different model evaluations
+  // Combine evaluations across models into a single map keyed by taskId
   const evaluationsMap = new Map<string, any>();
   evaluations.forEach((evaluation) => {
     const entry = evaluationsMap.get(evaluation.taskId) || {};
 
-    // Step 1.a: Add filter value, if exists in evaluation and not already added
+    // Only populate filter values on the first evaluation for this task
     if (isEmpty(entry) && !isEmpty(filters)) {
       for (const filter of Object.keys(filters)) {
         if (evaluation.hasOwnProperty(filter)) {
@@ -134,14 +130,10 @@ function populateTable(
       }
     });
 
-    // Step 1.b: Save updated entry into evaluations map
     evaluationsMap.set(evaluation.taskId, entry);
-
-    // Step 1.c: Add model id to set of model ids
     modelIds.add(evaluation.modelId);
   });
 
-  // Step 2: Update evaluation table header based on filters
   applicableFilters.forEach((filter) => {
     const header = filter.split('_').join(' ');
     headers.push({
@@ -150,7 +142,6 @@ function populateTable(
     });
   });
 
-  // Step 3: Update evaluation table headers based on model ids
   modelIds.forEach((modelId) => {
     headers.push({
       key: `${modelId}::value`,
@@ -159,18 +150,14 @@ function populateTable(
     });
   });
 
-  // Step 4: Populate evaluation table rows
   evaluationsMap.forEach((record, taskId) => {
     rows.push({ id: taskId, task: taskInputMap[taskId] || taskId, ...record });
   });
 
-  // Step 3: Populate evaluation table rows
   return [headers, rows];
 }
 
-// ===================================================================================
-//                               RENDER FUNCTIONS
-// ===================================================================================
+// --- Render functions ---
 /**
  * Build sparkline graph
  */
@@ -266,9 +253,7 @@ function sparkline(
   return null;
 }
 
-// ===================================================================================
-//                               MAIN FUNCTION
-// ===================================================================================
+// --- Main component ---
 export default function TasksTable({
   metrics,
   evaluations,
@@ -277,22 +262,14 @@ export default function TasksTable({
   annotator,
   onClick,
 }: Props) {
-  // Step 1: Initialize state and necessary variables
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [visibleRows, setVisibleRows] = useState<EvaluationRow[]>([]);
 
-  // Step 2: Run effects
-  // Step 2.a: Fetch theme
   const { theme } = useTheme();
-
-  // Step 2.b: Fetch data from data store
   const { item, taskMap, updateTask: updateTask } = useDataStore();
-
-  // Step 2.c: Notification hook
   const { createNotification } = useNotification();
 
-  // Step 2.d: Build evaluations map
   const evaluationsMap = useMemo(() => {
     return Object.fromEntries(
       evaluations.map((evaluation) => [
@@ -304,7 +281,6 @@ export default function TasksTable({
     );
   }, [evaluations, metrics]);
 
-  // Step 2.e: Build tasks map
   const taskInputMap = useMemo(() => {
     return Object.fromEntries(
       evaluations.map((evaluation) => [
@@ -314,7 +290,6 @@ export default function TasksTable({
     );
   }, [evaluations]);
 
-  // Step 2.f: Populate table header and rows
   var [headers, rows]: [{ key: string; header: string }[], EvaluationRow[]] =
     useMemo(
       () =>
@@ -329,7 +304,6 @@ export default function TasksTable({
       [evaluations, metrics, models, filters, taskInputMap, annotator],
     );
 
-  // Step 2.g: Identify visible rows
   useEffect(() => {
     // Set visible rows
     setVisibleRows(() => {
@@ -343,7 +317,6 @@ export default function TasksTable({
     });
   }, [rows, page, pageSize]);
 
-  // Step 3: Render
   return (
     <>
       {headers && rows && (
@@ -353,15 +326,12 @@ export default function TasksTable({
             headers={headers}
             isSortable
             sortRow={(cellA, cellB, { sortDirection, sortStates }) => {
-              // Step 1: Check if cell values are objects
               if (typeof cellA === 'object' && typeof cellB === 'object') {
-                // Step 1.a: Get first value for each cell object
                 const valueA = Object.values(cellA)[0];
                 const valueB = Object.values(cellB)[0];
 
-                // Step 1.b: Check if both values are of "string" type
                 if (typeof valueA === 'string' && typeof valueB === 'string') {
-                  // Step 1.b.i: Check if both values are purely numeric
+                  // Numeric strings should sort numerically, not lexicographically
                   if (
                     !isNaN(parseFloat(valueA)) &&
                     !isNaN(parseFloat(valueB))
@@ -377,9 +347,7 @@ export default function TasksTable({
 
                     return valueB.localeCompare(valueA);
                   }
-                }
-                // Step 1.c: Check if both values are of "number" type
-                else if (
+                } else if (
                   typeof valueA === 'number' &&
                   typeof valueB === 'number'
                 ) {
@@ -389,9 +357,7 @@ export default function TasksTable({
 
                   return valueB - valueA;
                 }
-              }
-              // Step 2: cell values are assumed to be of "string" type
-              else {
+              } else {
                 if (sortDirection === sortStates.DESC) {
                   return cellA.localeCompare(cellB);
                 }
@@ -576,13 +542,10 @@ export default function TasksTable({
                                           const taskId =
                                             cell.id.split(':task')[0];
 
-                                          // Step 0: Fetch task to update
                                           const task: Task | undefined =
                                             taskMap?.get(taskId);
 
-                                          // Step 1: Update, if possible
                                           if (task) {
-                                            // Step 1.a: Update global copy
                                             updateTask(taskId, {
                                               flagged: !task?.flagged,
                                             });
@@ -686,9 +649,7 @@ export default function TasksTable({
             pageSizes={[10, 25, 50]}
             totalItems={rows.length}
             onChange={(event: any) => {
-              // Step 1: Update page size
               setPageSize(event.pageSize);
-              // Step 2: Update page
               setPage(event.page);
             }}
           ></Pagination>

@@ -50,7 +50,11 @@ const NotificationComponent = ({
   />
 );
 
-export const NotificationProvider = ({ children }: { children: any }) => {
+export const NotificationProvider = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
   const [notification, setNotification] = useState<
     NotificationType | undefined
   >();

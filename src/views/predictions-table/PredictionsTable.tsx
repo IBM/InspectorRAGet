@@ -61,7 +61,7 @@ function populateTableRows(
   evaluations: TaskEvaluation[],
   eligibleTaskIDs: Set<string>,
 ) {
-  // Step 1: Collate predictions per task
+  // Collate predictions per task
   const evaluationsPerTask = new Map<string, TaskEvaluation[]>();
   evaluations.forEach((evaluation) => {
     if (eligibleTaskIDs.has(evaluation.taskId)) {
@@ -77,11 +77,9 @@ function populateTableRows(
     }
   });
 
-  // Step 2: Formulate rows
   const rows: { [key: string]: string }[] = [];
   tasks.forEach((task) => {
     if (eligibleTaskIDs.has(task.taskId)) {
-      // Step 2.a: Add query string
       const row = { id: task.taskId, task: task.taskId };
       if (typeof task.input === 'string') {
         row['task'] = truncate(task.input, 80);
@@ -107,13 +105,13 @@ function populateTableRows(
         );
       }
 
-      // Step 2.b: Add first target, if present
+      // Add first target, if present
       if (task.targets && !isEmpty(task.targets)) {
         row['targets'] = task.targets
           .map((target) => [target.text])
           .filter((entry) => entry !== undefined);
       }
-      // Step 3.b: Add model responses
+      // Add model responses
       const taskEvaluations = evaluationsPerTask.get(task.taskId);
       if (taskEvaluations) {
         taskEvaluations.forEach((evaluation) => {
@@ -121,12 +119,10 @@ function populateTableRows(
         });
       }
 
-      // Step 2.c: Add formulated row
       rows.push(row);
     }
   });
 
-  // Step 3: Return
   return rows;
 }
 
@@ -144,7 +140,6 @@ export default function PredictionsTable({
   evaluations: TaskEvaluation[];
   filters: { [key: string]: string[] };
 }) {
-  // Step 1: Initialize state and necessary variables
   const [selectedModels, setSelectedModels] = useState<Model[]>(models);
   const [showTargets, setShowTargets] = useState<boolean>(true);
   const [showWarning, setShowWarning] = useState<boolean>(false);
@@ -157,8 +152,7 @@ export default function PredictionsTable({
     [],
   );
 
-  // Step 2: Run effects
-  // Step 2.a: Identify eligible task IDs based on selected filters
+  // Identify eligible task IDs based on selected filters
   const eligibleTaskIDs = useMemo(() => {
     if (!isEmpty(selectedFilters)) {
       const taskIds: Set<string> = new Set<string>();
@@ -174,7 +168,7 @@ export default function PredictionsTable({
     }
   }, [tasks, selectedFilters]);
 
-  // Step 2.b: Populate table rows
+  // Populate table rows, sampling if the total exceeds MAX_NUM_ROWS
   const rows = useMemo(() => {
     const tableRows = populateTableRows(tasks, evaluations, eligibleTaskIDs);
     if (tableRows.length > MAX_NUM_ROWS) {
@@ -195,7 +189,7 @@ export default function PredictionsTable({
     }
   }, [tasks, evaluations, showWarning, eligibleTaskIDs]);
 
-  // Step 2.c: Adjust headers based on selectedModels and show target flat
+  // Adjust headers based on selected models and show-targets toggle
   const headers = useMemo(() => {
     return [
       {
@@ -214,15 +208,12 @@ export default function PredictionsTable({
     ].filter(Boolean);
   }, [showTargets, selectedModels]);
 
-  // Step 2.d: Set visble rows
   useEffect(() => {
-    // Set visible rows
     setVisibleRows(
       rows.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize),
     );
   }, [rows, page, pageSize]);
 
-  // Step 3: Render
   return (
     <>
       {headers && rows && (
@@ -353,9 +344,7 @@ export default function PredictionsTable({
                 pageSizes={[10, 25, 50, 100, 200]}
                 totalItems={rows.length}
                 onChange={(event: any) => {
-                  // Step 1: Update page size
                   setPageSize(event.pageSize);
-                  // Step 2: Update page
                   setPage(event.page);
                 }}
               ></Pagination>

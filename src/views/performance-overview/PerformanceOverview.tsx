@@ -66,9 +66,7 @@ import HidePanel from '@/src/views/performance-overview/Hide';
 import '@carbon/charts-react/styles.css';
 import classes from './PerformanceOverview.module.scss';
 
-// ===================================================================================
-//                                TYPES
-// ===================================================================================
+// --- Types ---
 interface Props {
   evaluationsPerMetric: { [key: string]: TaskEvaluation[] };
   models: Model[];
@@ -77,9 +75,7 @@ interface Props {
   numTasks: number;
 }
 
-// ===================================================================================
-//                               COMPUTE FUNCTIONS
-// ===================================================================================
+// --- Compute functions ---
 function calculateRanks(
   data: {
     model: string;
@@ -131,9 +127,7 @@ function calculateRanks(
   }
 }
 
-// ===================================================================================
-//                               RENDER FUNCTIONS
-// ===================================================================================
+// --- Render functions ---
 function sparkline(
   distribution: { [key: string]: number } | undefined,
   theme?: string,
@@ -198,7 +192,6 @@ function drawTable(
   plot: boolean = false,
   theme?: string,
 ) {
-  // Step 1: Define headers
   const headers = [
     { key: 'model', header: 'Model' },
     ...metrics.map((metric) => {
@@ -207,7 +200,6 @@ function drawTable(
     { key: 'rank', header: 'Rank' },
   ];
 
-  // Step 2: Group data per model
   const dataPerModel: {
     [key: string]: {
       model: string;
@@ -218,24 +210,20 @@ function drawTable(
     }[];
   } = groupBy(data, (entry) => entry.model);
 
-  // Step 3: Compute overall rank
   const overallRank: [string, number][] = Object.entries(dataPerModel).map(
     ([model, entry]) => [model, entry.reduce((n, { rank }) => n + rank, 0)],
   );
 
-  // Step 4: Sort based on overall rank, if necessary
   if (overallRank.length > 1) {
     overallRank.sort((a, b) => {
       return a[1] - b[1];
     });
   }
 
-  // Step 5: Define distribution map
   const distributions = new Map(
     data.map((entry) => [`${entry.model}:${entry.metric}`, entry.levels]),
   );
 
-  // Step 5: Define rows
   const rows: { [key: string]: string }[] = [];
   overallRank.forEach(([model, sum], index) => {
     rows.push({
@@ -253,7 +241,6 @@ function drawTable(
     });
   });
 
-  // Step 6: Draw table
   return (
     <DataTable rows={rows} headers={headers} isSortable>
       {({ rows, headers, getTableProps, getHeaderProps, getRowProps }) => (
@@ -356,9 +343,7 @@ function disclaimers({
   );
 }
 
-// ===================================================================================
-//                               MAIN FUNCTION
-// ===================================================================================
+// --- Main component ---
 export default function PerformanceOverview({
   evaluationsPerMetric,
   models,
@@ -366,7 +351,6 @@ export default function PerformanceOverview({
   filters,
   numTasks,
 }: Props) {
-  // Step 1: Initialize state and necessary variables
   const [WindowWidth, setWindowWidth] = useState<number>(
     global?.window && window.innerWidth,
   );
@@ -401,27 +385,21 @@ export default function PerformanceOverview({
   const [hiddenModels, setHiddenModels] = useState<Model[]>([]);
   const [hiddenMetrics, setHiddenMetrics] = useState<Metric[]>([]);
 
-  // Step 2: Run effects
-  // Step 2.a: Adjust graph width & heigh based on window size
   useEffect(() => {
     const handleWindowResize = () => {
       setWindowWidth(window.innerWidth);
       setWindowHeight(window.innerHeight);
     };
 
-    // Step: Add event listener
     window.addEventListener('resize', handleWindowResize);
 
-    // Step: Cleanup to remove event listener
     return () => {
       window.removeEventListener('resize', handleWindowResize);
     };
   }, []);
 
-  // Step 2.a: Fetch theme
   const { theme } = useTheme();
 
-  // Step 2.c: Generate performance data for human and algorithmic metrics
   const [humanMetricsData, algorithmicMetricsData, numSelectedTasks] =
     useMemo(() => {
       // Eligible metrics
@@ -463,7 +441,6 @@ export default function PerformanceOverview({
         [key: string]: { [key: string]: number };
       } = {};
 
-      // Step 1: Calculate model performance across entire dataset
       let selectedTasksCount;
       for (const [metric, evaluations] of Object.entries(
         evaluationsPerMetric,
@@ -481,7 +458,6 @@ export default function PerformanceOverview({
         selectedTasksCount = selectedEvaluations.length / models.length;
 
         selectedEvaluations.forEach((evaluation) => {
-          // Step 1.a: Calcuate aggregated value
           const aggregateStatistics: AggregationStatistics = aggregator.apply(
             Object.values(evaluation.annotations[`${metric}`]).map(
               (entry) => entry.value,
@@ -489,7 +465,7 @@ export default function PerformanceOverview({
             eligibleMetrics[metric].values,
           );
 
-          // Step 1.b: Skip evaluations, if no majority aggrement exist
+          // Skip indeterminate majority results — no consensus exists
           if (
             aggregator.name === 'majority' &&
             aggregateStatistics.value === 'Indeterminate'
@@ -497,18 +473,16 @@ export default function PerformanceOverview({
             return;
           }
 
-          // Step 1.c: Cast to numeric value for further processing
+          // Cast to numeric for accumulation below
           const aggregateValue = castToNumber(
             aggregateStatistics.value,
             eligibleMetrics[metric].values,
           );
 
-          // Step 1.d: Translate model id to model name
           const modelName =
             models.find((model) => model.modelId === evaluation.modelId)
               ?.name || evaluation.modelId;
 
-          // Step 1.d: Update performance per model object
           if (performancePerModel.hasOwnProperty(modelName)) {
             if (performancePerModel[modelName].hasOwnProperty(metric)) {
               performancePerModel[modelName][metric].value += aggregateValue;
@@ -582,7 +556,6 @@ export default function PerformanceOverview({
             };
           }
 
-          // Step 1.e: Update eligible evaluations per model object
           if (eligibleEvaluationsPerModel.hasOwnProperty(modelName)) {
             if (eligibleEvaluationsPerModel[modelName].hasOwnProperty(metric)) {
               eligibleEvaluationsPerModel[modelName][metric] += 1;
@@ -597,7 +570,6 @@ export default function PerformanceOverview({
         });
       }
 
-      // Step 2: Add raw performance data
       for (const [model, performance] of Object.entries(performancePerModel)) {
         for (const [metric, statistics] of Object.entries(performance)) {
           if (eligibleMetrics.hasOwnProperty(metric)) {
@@ -640,47 +612,38 @@ export default function PerformanceOverview({
         }
       }
 
-      // Step 3: Filter hidden metrics data
       const hiddenMetricNames = hiddenMetrics.map((metric) =>
         extractMetricDisplayName(metric),
       );
-      // Step 3.a: Human metrics
       if (Array.isArray(hData)) {
         hData = hData.filter(
           (entry) => !hiddenMetricNames.includes(entry.metric),
         );
       }
-      // Step 3.b: Algorithmic metrics
       if (Array.isArray(aData)) {
         aData = aData.filter(
           (entry) => !hiddenMetricNames.includes(entry.metric),
         );
       }
 
-      // Step 4: Filter hidden models data
       const hiddenModelNames = hiddenModels.map((model) =>
         model.name ? model.name : model.modelId,
       );
-      // Step 4.a: Human metrics
       if (Array.isArray(hData)) {
         hData = hData.filter(
           (entry) => !hiddenModelNames.includes(entry.model),
         );
       }
-      // Step 4.b: Algorithmic metrics
       if (Array.isArray(aData)) {
         aData = aData.filter(
           (entry) => !hiddenModelNames.includes(entry.model),
         );
       }
 
-      // Step 5: Generate add rank information
-      // Step 5.a: Human metrics
       if (Array.isArray(hData)) {
         calculateRanks(hData);
       }
 
-      // Step 5.b: Algorithmic metrics
       if (Array.isArray(aData)) {
         calculateRanks(aData);
       }
@@ -703,7 +666,6 @@ export default function PerformanceOverview({
     algorithmicMetricsData.map((entry) => entry.metric),
   );
 
-  // Step 3: Render
   return (
     <div className={classes.page}>
       <div className={classes.selectors}>
@@ -830,18 +792,16 @@ export default function PerformanceOverview({
                 <>
                   <RadarChart
                     data={humanMetricsData.map((entry) => {
-                      // Step 1: Find metric under consideration
                       const metric = metrics.find(
                         (m) => m.displayName === entry.metric,
                       );
 
-                      // Step 2: Calculate normalized score
+                      // Min-max normalize so radar axes share a 0–1 scale
                       let normalizedScore = entry.score;
                       if (
                         metric?.minValue !== undefined &&
                         metric.maxValue !== undefined
                       ) {
-                        // Step 2.a: Fetch minimum value
                         const minValue =
                           typeof metric.minValue === 'number'
                             ? metric.minValue
@@ -850,7 +810,6 @@ export default function PerformanceOverview({
                                 metric.values,
                               );
 
-                        // Step 2.b: Fetch maximum value
                         const maxValue =
                           typeof metric.maxValue === 'number'
                             ? metric.maxValue
@@ -859,7 +818,6 @@ export default function PerformanceOverview({
                                 metric.values,
                               );
 
-                        // Step 2.c: Calculate min-max normalized score
                         normalizedScore =
                           Math.round(
                             ((entry.score - minValue) / (maxValue - minValue)) *
@@ -867,7 +825,6 @@ export default function PerformanceOverview({
                           ) / 100;
                       }
 
-                      // Step 3: Return
                       return {
                         model: entry.model,
                         metric: entry.metric,
@@ -932,19 +889,17 @@ export default function PerformanceOverview({
                     data={algorithmicMetricsData
                       .sort((a, b) => (a.model > b.model ? -1 : 1))
                       .map((entry) => {
-                        // Step 1: Find metric under consideration
                         const metric = metrics.find(
                           (m) => m.displayName === entry.metric,
                         );
 
-                        // Step 2: Calculate normalized score
+                        // Min-max normalize so bar axes share a 0–1 scale
                         let normalizedScore = entry.score;
 
                         if (
                           metric?.minValue !== undefined &&
                           metric.maxValue !== undefined
                         ) {
-                          // Step 2.a: Fetch minimum value
                           const minValue =
                             typeof metric.minValue === 'number'
                               ? metric.minValue
@@ -953,7 +908,6 @@ export default function PerformanceOverview({
                                   metric.values,
                                 );
 
-                          // Step 2.b: Fetch maximum value
                           const maxValue =
                             typeof metric.maxValue === 'number'
                               ? metric.maxValue
@@ -962,7 +916,6 @@ export default function PerformanceOverview({
                                   metric.values,
                                 );
 
-                          // Step 2.c: Calculate min-max normalized score
                           normalizedScore =
                             Math.round(
                               ((entry.score - minValue) /
@@ -971,7 +924,6 @@ export default function PerformanceOverview({
                             ) / 100;
                         }
 
-                        // Step 3: Return
                         return {
                           group: entry.model,
                           key: entry.metric,

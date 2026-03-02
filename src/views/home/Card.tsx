@@ -59,20 +59,17 @@ function Card({
   return (
     <section className={cx(classes.root, disabled && classes.disabled)}>
       {href && actionText && (
-        <Link
-          href={disabled ? 'javascript:void(0)' : href}
-          legacyBehavior
-          passHref
+        // Carbon's Link strips `href` when disabled, which breaks Next.js Link
+        // (it requires `href`). Use a plain Carbon Link for disabled cards.
+        <CarbonLink
+          {...(!disabled && { as: Link, href })}
+          className={classes.link}
+          renderIcon={openInNewTab ? Launch : ArrowRight}
+          target={openInNewTab ? '_blank' : undefined}
+          disabled={disabled}
         >
-          <CarbonLink
-            className={classes.link}
-            renderIcon={openInNewTab ? Launch : ArrowRight}
-            target={openInNewTab ? '_blank' : undefined}
-            disabled={disabled}
-          >
-            {actionText}
-          </CarbonLink>
-        </Link>
+          {actionText}
+        </CarbonLink>
       )}
       <div className={classes.body}>
         <Icon className={classes.icon} size={24} />

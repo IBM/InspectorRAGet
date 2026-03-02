@@ -50,7 +50,7 @@ function prepareHeatMapData(agreementMap: {
  * @returns
  */
 function populateTable(evaluations: TaskEvaluation[], metric: string) {
-  // Step 1: Identify workers and metric values
+  // Collect unique annotators and metric values from all evaluations
   const workers: Set<string> = new Set<string>();
   const values: Set<string | number> = new Set<string>();
 
@@ -61,7 +61,7 @@ function populateTable(evaluations: TaskEvaluation[], metric: string) {
     }
   });
 
-  // step 2: Prepare confusion matrix for annotators pair
+  // Build a confusion matrix for each annotator pair
   let confusionMatrices: {
     [key: string]: { [key: string]: ConfusionMatrix };
   } = {};
@@ -75,7 +75,7 @@ function populateTable(evaluations: TaskEvaluation[], metric: string) {
     );
   });
 
-  // step3: Populate confusion matrices
+  // Populate confusion matrices with pairwise annotation comparisons
   evaluations.forEach((evaluation) => {
     for (const annotator1 of Object.keys(evaluation[metric])) {
       for (const annotator2 of Object.keys(evaluation[metric])) {
@@ -101,7 +101,6 @@ export default function InterAnnotatorAgreementTable({
   metric: string;
   theme?: string;
 }) {
-  // Step 1: Populate table header and rows
   const agreementData = useMemo(
     () => populateTable(evaluations, metric),
     [evaluations, metric],

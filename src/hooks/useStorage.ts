@@ -34,7 +34,7 @@ export default function useLocalStorage(): {
   const setItem = (key: string, value: any): boolean => {
     if (isBrowser) {
       try {
-        // Step 2: Check if item already exists
+        // Remove existing item first to avoid quota issues on overwrite
         if (window.localStorage.getItem(key)) {
           window.localStorage.removeItem(key);
         }

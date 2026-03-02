@@ -44,10 +44,8 @@ export function validate(
   values?: (string | number)[],
   parent?: string,
 ): string | null {
-  // Step 1: Identify all the keys
   const keys = Object.keys(expression);
 
-  // Step 2: In case of operator presence
   const operators = keys.filter((key) => key.startsWith('$'));
   if (operators.length > 1) {
     return `More than one operator [${operators.join(', ')}] on the same level in the expression`;
@@ -113,9 +111,7 @@ export function validate(
       }
     }
   } else {
-    // Step 3: In case of operator less expression
     for (let idx = 0; idx < keys.length; idx++) {
-      // Step 3.a: If model IDs are provided, make sure key is one of those model IDs
       if (modelIds && !modelIds.includes(keys[idx])) {
         return `Model ("${keys[idx]}") does not exists. Please use one for the following models: ${modelIds.join(', ')}`;
       }
@@ -158,33 +154,25 @@ export function evaluate(
   metric: Metric,
   annotator?: string,
 ): TaskEvaluation[] {
-  // Step 1: Initialize necessary variables
   const eligibleEvaluations: TaskEvaluation[] = [];
-
-  // Step 2: Identify all the keys
   const keys = Object.keys(expression);
 
-  // Step 3: In case of operator presence
   const operators = keys.filter((key) => key.startsWith('$'));
   if (operators.length === 1) {
     const operator = operators[0];
 
-    // Step 3.a: In case of a logical operator
     if (
       operator === EXPRESSION_OPERATORS.AND ||
       operator === EXPRESSION_OPERATORS.OR
     ) {
-      // Step 3.a.i: Initialize necessary variables
       const results: TaskEvaluation[][] = [];
 
-      // Step 3.a.ii: Identify evaluations meeting nested expression
       expression[operator].forEach((condition) => {
         results.push(
           evaluate(evaluationsPerTaskPerModel, condition, metric, annotator),
         );
       });
 
-      // Step 3.a.iii: Apply intersection ('$and') or union ('$or') logic based on the logical operator
       if (operator === EXPRESSION_OPERATORS.AND) {
         return intersectionWith(...results, isEqual);
       } else {
@@ -192,29 +180,19 @@ export function evaluate(
       }
     }
   } else {
-    // Step 3: In case of expression without logical operators
-    // Step 3.a: Iterate over evaluations for each task
+    // No logical operator: check each task's evaluations against per-model conditions
     Object.values(evaluationsPerTaskPerModel).forEach((evaluationPerModel) => {
-      // Step 3.a.i: Initialize necessary variables
       let satisfy: boolean = true;
 
-      // Step 3.a.ii: Iterate over conditions for each model in the expression
       for (let idx = 0; idx < keys.length; idx++) {
-        // Step 3.a.ii.*: Check if evaluation exists
         if (!evaluationPerModel.hasOwnProperty(keys[idx])) {
           satisfy = false;
           break;
         }
 
-        // Step 3.a.ii.**: Fetch evaluation, value and expected value condition
         const evaluation = evaluationPerModel[keys[idx]];
 
-        // Step 3.a.ii.***: Calculate value
-        /**
-         * annotator specific value if annotator is specified
-         * OR
-         * aggregate value
-         */
+        // Use annotator-specific value when available, otherwise aggregate
         let value: string | number;
         if (annotator) {
           if (!evaluation[metric.name].hasOwnProperty(annotator)) {
@@ -232,10 +210,8 @@ export function evaluate(
           );
         }
 
-        // Step 3.a.ii.*****: Extract expection from expression
         const expectation = expression[keys[idx]];
 
-        // Step 3.a.ii.******: In case of expectation is an expression
         if (typeof expectation === 'object') {
           // Extract comparison operator from expectation expression
           const operator = Object.keys(expectation).filter((key) =>
@@ -312,7 +288,7 @@ export function evaluate(
             break;
           }
         } else {
-          // 3.a.ii.******: In case of expectation is a primitive type ("string"/"number") value
+          // Primitive expectation: direct equality check
           if (
             isNaN(value) ||
             value !==
@@ -328,13 +304,11 @@ export function evaluate(
         }
       }
 
-      // Step 3.a.iii: If satisfy expression requirments, add all evaluations for the current task to eligible evaluations list
       if (satisfy) {
         eligibleEvaluations.push(...Object.values(evaluationPerModel));
       }
     });
   }
 
-  // Step 4: Return
   return eligibleEvaluations;
 }

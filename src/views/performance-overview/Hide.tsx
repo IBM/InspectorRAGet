@@ -29,9 +29,7 @@ import { extractMetricDisplayName } from '@/src/utilities/metrics';
 
 import classes from './Hide.module.scss';
 
-// ===================================================================================
-//                                TYPES
-// ===================================================================================
+// --- Types ---
 interface Props {
   models: Model[];
   metrics: Metric[];
@@ -49,10 +47,8 @@ export default function HidePanel({
   setHiddenModels: setIgnoredModels,
   setHiddenMetrics: setIgnoredMetrics,
 }: Props) {
-  // Step 1: Initialize state and necessary variables
   const [show, setShow] = useState<boolean>(true);
 
-  // Step 2: Render
   return (
     <>
       <Tooltip

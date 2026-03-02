@@ -50,12 +50,10 @@ function prepareText(
   const separator = '=======================================================\n';
   let input, context, responses;
 
-  // Step 1: Prepare input
   if (typeof task.input === 'string') {
     input = `${separator}Input\n${separator}${task.input.trim()}`;
   }
 
-  // Step 2: Prepare responses
   if (evaluations && evaluations.length) {
     responses = `${separator}Responses\n${separator}`;
     const responseSeparator =
@@ -79,12 +77,10 @@ function prepareLaTEXT(
 ): string {
   let input, context, responses;
 
-  // Step 1: Prepare input
   if (typeof task.input === 'string') {
     input = `\\multicolumn{1}{|c|}{\\textbf{Input}} \\\\ \n\t\\toprule \n\t${task.input.trim()}  \\\\ \n\t`;
   }
 
-  // Step 2: Prepare responses
   if (evaluations && evaluations.length) {
     responses =
       '\\toprule \n\t\\multicolumn{1}{|c|}{\\textbf{Responses}} \\\\ \n\t';
@@ -154,10 +150,7 @@ export default function TextGenerationTaskCopierModal({
       primaryButtonText="Copy"
       secondaryButtonText="Cancel"
       onRequestSubmit={() => {
-        //Step 1: Copy to clipboard
         navigator.clipboard.writeText(textToCopy);
-
-        // Step 2: Close model
         onClose();
       }}
       onRequestClose={() => {

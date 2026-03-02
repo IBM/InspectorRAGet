@@ -54,7 +54,6 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
         iconDescription="Delete file"
         name=""
         onChange={async (event) => {
-          // Step 1: Define a filereader and configure parsing
           const fileReader = new FileReader();
           fileReader.onload = (e) => {
             if (
@@ -62,13 +61,10 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
               e.target.result &&
               typeof e.target.result === 'string'
             ) {
-              // Step 1.a: Parse JSON and convert certain keys to camel case
               try {
                 const fileData = camelCaseKeys(JSON.parse(e.target.result));
-                // Step 1.b: Validate input data
                 const status = validateInputData(fileData);
 
-                // Step 1.c: Store data, if valid
                 if (status.valid) {
                   createNotification(
                     {
@@ -81,7 +77,6 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
 
                   setData(fileData);
                 } else {
-                  // Step 1.c: Generate notifications
                   status.reasons.forEach((reason) => {
                     createNotification({
                       kind: 'error',
@@ -90,7 +85,6 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
                     });
                   }, 10000);
 
-                  // Step 1.d: Remove previously uploaded data
                   setData(undefined);
                 }
               } catch (error) {
@@ -110,7 +104,6 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
             return undefined;
           };
 
-          // Step 2: Read uploaded file
           fileReader.readAsText(event.target.files[0]);
         }}
       />

@@ -50,18 +50,14 @@ import {
 import '@carbon/charts-react/styles.css';
 import classes from './DataCharacteristics.module.scss';
 
-// ===================================================================================
-//                                TYPES
-// ===================================================================================
+// --- Types ---
 
 interface Props {
   tasks: Task[];
   filters: { [key: string]: string[] };
 }
 
-// ===================================================================================
-//                               HELPER FUNCTIONS
-// ===================================================================================
+// --- Helper functions ---
 function normalize(data: { [key: string]: number }) {
   const total = Object.values(data).reduce((a, b) => a + b, 0);
   return Object.fromEntries(
@@ -71,16 +67,11 @@ function normalize(data: { [key: string]: number }) {
   );
 }
 
-// ===================================================================================
-//                               COMPUTE FUNCTIONS
-// ===================================================================================
+// --- Compute functions ---
 function computeWordCount(tasks: Task[], filters: string[]) {
-  // Step 1: Initialize necessary variable
   const wordCountInInputPerTask: { [key: string]: string | number }[] = [];
 
-  // Step 2: Iterate over each task
   tasks.forEach((task) => {
-    // Step 2.a: Identify text
     let text = '';
     if (typeof task.input === 'string') {
       text = task.input;
@@ -97,7 +88,6 @@ function computeWordCount(tasks: Task[], filters: string[]) {
       });
     }
 
-    // Step 2.b: Build record
     const record = {
       count: text.trim().split(/\s+/).length,
     };
@@ -107,23 +97,17 @@ function computeWordCount(tasks: Task[], filters: string[]) {
       }
     });
 
-    // Step 2.c: Add record
     wordCountInInputPerTask.push(record);
   });
 
-  // Step 3: Return
   return wordCountInInputPerTask;
 }
 
 function computeUtterances(tasks: Task[], filters: string[]) {
-  // Step 1: Initialize necessary variable
   const utterancesInInputPerTask: { [key: string]: string | number }[] = [];
 
-  // Step 2: Iterate over each task
   tasks.forEach((task) => {
-    // Step 2.a: Identify input is array
     if (Array.isArray(task.input)) {
-      // Step 2.b: Build record
       const record = {
         count: task.input.length,
       };
@@ -134,12 +118,10 @@ function computeUtterances(tasks: Task[], filters: string[]) {
         }
       });
 
-      // Step 2.c: Add record
       utterancesInInputPerTask.push(record);
     }
   });
 
-  // Step 3: Return
   return utterancesInInputPerTask;
 }
 
@@ -148,7 +130,6 @@ function computeContextRelevance(
   filters: string[],
   aggregator: Aggregator,
 ) {
-  // Step 0: Helper functions
   function add(
     records: {
       key: string;
@@ -160,10 +141,8 @@ function computeContextRelevance(
       [key: string]: string | number;
     },
   ) {
-    // Step 1: Find existing records
     const existingRecord = find(records, recordToAdd);
 
-    // Step 2: Add record
     if (existingRecord) {
       existingRecord.value += 1;
     } else {
@@ -171,16 +150,13 @@ function computeContextRelevance(
     }
   }
 
-  // Step 1: Initialize necessary variable
   const relevantContextIndexes: {
     key: string;
     value: number;
     [key: string]: string | number;
   }[] = [];
 
-  // Step 2: Iterate over each task
   tasks.forEach((task) => {
-    // Step 2.a: Fetch context relevance annotations, if applicable
     if (
       task.annotations &&
       !isEmpty(task.annotations) &&
@@ -191,7 +167,6 @@ function computeContextRelevance(
         task.annotations.context_relevance,
       );
 
-      // Step 2.b: For each relevant context post aggregation
       for (const relevantContextIdx of aggregator.apply(context_relevances)) {
         if (!isEmpty(filters)) {
           filters.forEach((filter) => {
@@ -220,7 +195,6 @@ function computeContextRelevance(
     }
   });
 
-  // Step 3: Return
   return relevantContextIndexes;
 }
 
@@ -237,21 +211,17 @@ async function computeStatistics(
     contexts: {},
   };
 
-  // Step 1: Calculate length of input in words
   statistics['input']['word_count'] = computeWordCount(
     tasks,
     Object.keys(filters),
   );
 
-  // Step 2: Calculate number of utterance in input, if applicable
   statistics['input']['utterance_count'] = computeUtterances(
     tasks,
     filters ? Object.keys(filters) : [],
   );
 
-  // Step 3: Calculate tasks per filter
   if (!isEmpty(filters)) {
-    // Step 2.a: Initialize counter
     const taskDistributionPerFilter: {
       [key: string]: { [key: string]: number };
     } = Object.fromEntries(
@@ -261,7 +231,6 @@ async function computeStatistics(
       ]),
     );
 
-    // Step 2.b: Iterate over tasks
     tasks.forEach((task) => {
       for (const filter of Object.keys(taskDistributionPerFilter)) {
         if (task.hasOwnProperty(filter)) {
@@ -276,7 +245,6 @@ async function computeStatistics(
       }
     });
 
-    // Step 2.c: Normalize and add to statistics
     Object.keys(taskDistributionPerFilter).forEach((filter) => {
       statistics['tasks_distribution'][filter] = normalize(
         taskDistributionPerFilter[filter],
@@ -284,7 +252,6 @@ async function computeStatistics(
     });
   }
 
-  // Step 4: Calculate context relevance
   const contextRelevance = computeContextRelevance(
     tasks,
     Object.keys(filters),
@@ -294,14 +261,11 @@ async function computeStatistics(
     statistics['contexts']['relevance'] = contextRelevance;
   }
 
-  // Step 4: Set statistics and set loading to "false"
   setStatistics(statistics);
   setLoading(false);
 }
 
-// ===================================================================================
-//                               RENDER FUNCTIONS
-// ===================================================================================
+// --- Render functions ---
 function SkeletonGraphs({ keyValue }: { keyValue: string }) {
   return (
     <div key={keyValue} className={classes.row}>
@@ -394,7 +358,6 @@ function Histogram({
   width?: string;
   height?: string;
 }) {
-  // Step 1: Build data for histogram
   const data: { [key: string]: number | string }[] = [];
   records.forEach((record) => {
     if (groupBy) {
@@ -410,7 +373,6 @@ function Histogram({
     }
   });
 
-  // Step 2: Render
   return (
     <div key={'statistics-word-count'} className={classes.graph}>
       <h5 className={classes.graphTitle}>
@@ -539,7 +501,6 @@ function ContextRelevanceChart({
   width?: string;
   height?: string;
 }) {
-  // Step 1: Build data for histogram
   const data: { key: string; value: number; group?: string }[] = [];
   records.forEach((record) => {
     if (groupBy) {
@@ -555,10 +516,8 @@ function ContextRelevanceChart({
     }
   });
 
-  // Step 2: Sort data
   data.sort((a, b) => parseInt(a.key) - parseInt(b.key));
 
-  // Step 2: Render
   return (
     <div key={'statistics-context-relevance'} className={classes.graph}>
       <h5 className={classes.graphTitle}>
@@ -639,11 +598,8 @@ function ContextRelevanceChart({
     </div>
   );
 }
-// ===================================================================================
-//                               MAIN FUNCTION
-// ===================================================================================
+// --- Main component ---
 export default function DataCharacteristics({ tasks, filters }: Props) {
-  // Step 1: Initialize state and necessary variables
   const [WindowWidth, setWindowWidth] = useState<number>(
     global?.window && window.innerWidth,
   );
@@ -670,28 +626,21 @@ export default function DataCharacteristics({ tasks, filters }: Props) {
     majorityUnionAggregator,
   );
 
-  // Step 2: Run effects
-  // Step 2.a: Adjust graph width & heigh based on window size
   useEffect(() => {
-    // Step 1: Define window resize function
     const handleWindowResize = () => {
       setWindowWidth(window.innerWidth);
       setWindowHeight(window.innerHeight);
     };
 
-    // Step 2: Add event listener
     window.addEventListener('resize', handleWindowResize);
 
-    // Step 3: Cleanup to remove event listener
     return () => {
       window.removeEventListener('resize', handleWindowResize);
     };
   }, []);
 
-  // Step 2.b: Fetch theme
   const { theme } = useTheme();
 
-  // Step 2.b: Compute statistics
   useEffect(() => {
     computeStatistics(
       tasks,
@@ -702,7 +651,6 @@ export default function DataCharacteristics({ tasks, filters }: Props) {
     );
   }, [tasks, filters, selectedAggregator]);
 
-  // Step 3: Configure depedent state variables
   const [wordCountGroupBy, setWordCountGroupBy] = useState<string | undefined>(
     filters ? Object.keys(filters)[0] : undefined,
   );
@@ -713,7 +661,6 @@ export default function DataCharacteristics({ tasks, filters }: Props) {
     string | undefined
   >(Object.keys(filters)[0]);
 
-  // Step 3: Render
   return (
     <div className={classes.page}>
       {loading ? (

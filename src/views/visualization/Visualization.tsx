@@ -33,10 +33,7 @@ export default function VisualizationView() {
       {onboarding ? (
         <Onboard
           onVisualize={(data: Data) => {
-            // Step 1: Set data
             setData(data);
-
-            // Step 2: Disable on-boarding flow
             setOnboarding(false);
           }}
         />

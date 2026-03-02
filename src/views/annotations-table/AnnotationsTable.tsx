@@ -52,10 +52,7 @@ function populateTable(
   },
   metrics: Metric[],
 ) {
-  // Step 0: Metric names
   const metricNames = metrics.map((metric) => metric.name);
-
-  // Step 1: Identify headers
   const headers: { key: string; header: string }[] = [
     {
       key: 'annotator',
@@ -70,8 +67,7 @@ function populateTable(
     });
   });
 
-  // Step 2: Build rows
-  // Step 2.a: Collect metrics per annotator
+  // Collect metrics per annotator
   const MetricsPerAnnotator: {
     [key: string]: { [key: string]: string | number };
   } = {};
@@ -87,7 +83,7 @@ function populateTable(
     }
   }
 
-  // Step 2.a: Formulate rows
+  // Formulate rows
   const rows: { [key: string]: any }[] = [];
   for (const [annotator, metricNames] of Object.entries(MetricsPerAnnotator)) {
     const row = { id: annotator, annotator: annotator };
@@ -115,8 +111,6 @@ export default function AnnotationsTable({
   };
   metrics: Metric[];
 }) {
-  // Step 1: Run effects
-  // Step 1.a: Populate table header and rows
   const [headers, rows] = useMemo(
     () => populateTable(annotations, metrics),
     [annotations, metrics],

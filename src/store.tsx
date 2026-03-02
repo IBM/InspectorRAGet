@@ -36,7 +36,7 @@ export const DataStore = createContext<DataStoreContext>({
   updateTask(taskId, update) {},
 });
 
-export function DataStoreProvider({ children }: { children: any }) {
+export function DataStoreProvider({ children }: { children: React.ReactNode }) {
   const [item, setItem] = useState<Data>();
   const [taskMap, setTaskMap] = useState<Map<string, Task>>();
 

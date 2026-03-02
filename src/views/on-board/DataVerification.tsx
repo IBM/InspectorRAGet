@@ -201,9 +201,7 @@ export default memo(function DataVerificationView({
                     pageSizes={[10]}
                     totalItems={rows.length}
                     onChange={(event: any) => {
-                      // Step 1: Update page size
                       setPageSize(event.pageSize);
-                      // Step 2: Update page
                       setPage(event.page);
                     }}
                   ></Pagination>

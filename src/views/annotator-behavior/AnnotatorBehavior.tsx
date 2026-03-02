@@ -137,7 +137,6 @@ function renderAgreementDistribution(
   models: Model[],
   theme?: string,
 ) {
-  // Step 1: Compute overall agreement level distribution
   const overall: { [key: string]: number } = {
     No: 0,
     Low: 0,
@@ -150,7 +149,6 @@ function renderAgreementDistribution(
     }
   }
 
-  // Step 2: Build chart data
   const chartData: { [key: string]: string | number }[] = [];
   for (const [agreementLevel, count] of Object.entries(normalize(overall))) {
     chartData.push({ group: agreementLevel, key: 'All', value: count });
@@ -168,7 +166,6 @@ function renderAgreementDistribution(
     }
   }
 
-  // Step 3: Render
   return (
     <div key={key} className={classes.graph}>
       <h5>
@@ -211,7 +208,6 @@ function renderAnnotatorVotingPattern(
   caption: string,
   theme?: string,
 ) {
-  // Step 1: Compute overall agreement level distribution
   const overall: { [key: string]: number } = Object.fromEntries(
     VOTING_PATTERNS.map((pattern) => [pattern, 0]),
   );
@@ -221,7 +217,6 @@ function renderAnnotatorVotingPattern(
     }
   }
 
-  // Step 2: Build chart data
   const chartData: { [key: string]: string | number }[] = [];
   for (const [affliation, count] of Object.entries(normalize(overall))) {
     chartData.push({ group: affliation, key: 'All', value: count });
@@ -236,7 +231,6 @@ function renderAnnotatorVotingPattern(
     }
   }
 
-  // Step 3: Render
   return (
     <div key={key} className={classes.graph}>
       <h5>
@@ -281,7 +275,6 @@ export default function AnnotatorBehavior({
   metrics,
   filters,
 }: Props) {
-  // Step 1: Initialize state and necessary variables
   const eligibleMetricNames = useMemo(() => {
     return new Set(metrics.map((metric) => metric.name));
   }, [metrics]);
@@ -290,11 +283,7 @@ export default function AnnotatorBehavior({
     [key: string]: string[];
   }>({});
 
-  // Step 2: Run effects
-  // Step 2.a: Fetch theme
   const { theme } = useTheme();
-
-  // Step 2.b: Adjust visible evaluations based on selected models
   const visibleEvaluationsPerMetric = useMemo(() => {
     const filteredEvaluationsPerMetric: { [key: string]: TaskEvaluation[] } =
       {};
@@ -319,12 +308,10 @@ export default function AnnotatorBehavior({
     selectedFilters,
   ]);
 
-  // Step 2.c: Build agreement distribution chart data per model for visible evaluations
   const [
     agreementDistributionPerMetricPerModel,
     annotatorVotingPatternPerMetric,
   ] = useMemo(() => {
-    // Step 2.c.i: Initialize necessary variables
     const agreementStatisticPerMetricPerModel: {
       [key: string]: { [key: string]: { [key: string]: number } };
     } = {};
@@ -341,7 +328,6 @@ export default function AnnotatorBehavior({
       );
     }
 
-    // Step 2.c.ii: Iterate over evaluations for each metric
     for (const [metric, evaluations] of Object.entries(
       visibleEvaluationsPerMetric,
     )) {
@@ -431,7 +417,7 @@ export default function AnnotatorBehavior({
     ];
   }, [visibleEvaluationsPerMetric, selectedModels]);
 
-  // Step 2.d: Build time duration distribution per annotator for all evaluations
+  // Build time duration distribution per annotator across all evaluations
   const timeDistributionPerAnnotator: {
     [key: string]: number[];
   } = useMemo(() => {
@@ -459,7 +445,6 @@ export default function AnnotatorBehavior({
     return temp;
   }, [evaluationsPerMetric]);
 
-  // Step 3: Render
   return (
     <div className={classes.page}>
       {Array.isArray(metrics) && !metrics.length ? (

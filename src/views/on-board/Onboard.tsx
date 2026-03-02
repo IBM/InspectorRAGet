@@ -48,15 +48,10 @@ export default memo(function OnboardingView({ onVisualize }: Props) {
         secondaryButtonText="Cancel"
         size={'xs'}
         onRequestSubmit={() => {
-          // Step 1: Clear loaded data
           setRawData(undefined);
-
-          // Step 2: Move progress indicator to upload data step
           setCurrentStepIndex(
             currentStepIndex !== 0 ? currentStepIndex - 1 : currentStepIndex,
           );
-
-          // Step 3: Close modal
           setIsWarningModalOpen(false);
         }}
         onRequestClose={() => {

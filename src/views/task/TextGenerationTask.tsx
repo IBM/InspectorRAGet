@@ -67,24 +67,19 @@ export default function TextGenerationTask({
   setTaskCopierModalOpen,
   updateCommentProvenance,
 }: Props) {
-  // Step 1: Initialize state and necessary variables
   const [selectedModelIndex, setSelectedModelIndex] = useState<number>(0);
   const [showOverlap, setShowOverlap] = useState<boolean>(false);
 
-  // Step 2: Run effects
-  // Step 2.a: Fetch data from data store
   const { item: data } = useDataStore();
 
-  // Step 2.b: Fetch evaluations for the current task
   const evaluations = useMemo(() => {
-    // Step 2.b.i: Fetch evaluations
     let taskEvaluations: TaskEvaluation[] | undefined = undefined;
     if (data) {
       taskEvaluations = data.evaluations.filter(
         (evaluation) => evaluation.taskId === task.taskId,
       );
 
-      // Step 2.b.ii: Compute input-response overlap and add to evaluation object
+      // Compute input-response overlap for highlight support
       taskEvaluations.forEach((evaluation) => {
         if (typeof task.input === 'string') {
           evaluation.overlaps = overlaps(evaluation.modelResponse, task.input);
@@ -97,7 +92,6 @@ export default function TextGenerationTask({
     return taskEvaluations;
   }, [task.taskId, task.input, data]);
 
-  // Step 2.c: Build human & algorithmic metric maps
   const [hMetrics, aMetrics] = useMemo(() => {
     const humanMetrics = new Map(
       metrics
@@ -113,7 +107,6 @@ export default function TextGenerationTask({
     return [humanMetrics, algorithmicMetrics];
   }, [metrics]);
 
-  // Step 3: Render
   return (
     <>
       {models && metrics && task && evaluations && (

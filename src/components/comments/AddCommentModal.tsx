@@ -71,17 +71,11 @@ export default function AddCommentModal({
       primaryButtonText="Add"
       secondaryButtonText="Cancel"
       onRequestSubmit={() => {
-        //Step 1: Clear comment & update default value for author
         setComment('');
-
-        // Step 2: Register comment and close modal
         onSubmit(comment, author);
       }}
       onRequestClose={() => {
-        //Step 1: Clear comment
         setComment('');
-
-        // Step 2: Close modal
         onClose();
       }}
       primaryButtonDisabled={comment === '' || author === ''}
