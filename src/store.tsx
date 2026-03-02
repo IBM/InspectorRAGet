@@ -26,7 +26,7 @@ interface DataStoreContext {
   item: Data | undefined;
   set: (data: Data) => void;
   taskMap: Map<string, Task> | undefined;
-  updateTask: (taskId: string, update: {}) => void;
+  updateTask: (taskId: string, update: Partial<Task>) => void;
 }
 
 export const DataStore = createContext<DataStoreContext>({
@@ -41,18 +41,21 @@ export function DataStoreProvider({ children }: { children: any }) {
   const [taskMap, setTaskMap] = useState<Map<string, Task>>();
 
   const set = (data: Data) => {
-    // Step 1: Set data
     setItem(data);
-
-    // Step 2: Set task's map based on tasks in data
     setTaskMap(new Map(data.tasks.map((task) => [task.taskId, task])));
   };
 
-  const updateTask = (taskId: string, update: {}) => {
-    const task = taskMap?.get(taskId);
-    if (task) {
-      setTaskMap(new Map(taskMap?.set(taskId, { ...task, ...update })));
-    }
+  const updateTask = (taskId: string, update: Partial<Task>) => {
+    setTaskMap((prev) => {
+      if (!prev) return prev;
+      const task = prev.get(taskId);
+      if (!task) return prev;
+
+      // Build a new Map from the previous one, then set the updated entry
+      const next = new Map(prev);
+      next.set(taskId, { ...task, ...update });
+      return next;
+    });
   };
 
   return (

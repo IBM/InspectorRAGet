@@ -1,9 +1,36 @@
-# Deployment
-yaml
+# Dependencies (reinstalled via npm ci in the build)
+node_modules
 
-# Development
+# Build output (rebuilt in the build)
+.next
+dist
+
+# Version control
+.git
+.gitignore
+
+# Environment files (should not be baked into images)
+.env
+.env.*
+
+# IDE / editor
+.vscode
+.idea
+
+# Development tooling
+.husky
 .prettierignore
 .prettierrc
+.npm-install-hash
+
+# Deployment configs (not needed inside the container)
+deployments
 
 # Documentation
 README.md
+CHANGELOG.md
+docs
+notebooks
+
+# macOS
+.DS_Store

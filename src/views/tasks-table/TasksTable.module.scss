@@ -16,8 +16,8 @@
  *
  **/
 
-@import '@carbon/react/scss/spacing';
-@import '@carbon/react/scss/colors';
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/react/scss/colors' as *;
 
 .table {
   overflow-y: auto;

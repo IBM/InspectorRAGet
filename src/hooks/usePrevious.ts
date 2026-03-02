@@ -26,7 +26,7 @@ import { useEffect, useRef } from 'react';
  * @param value Value to yield on next render
  */
 export default function usePrevious<T>(value?: T): T | undefined {
-  const prev = useRef<T>();
+  const prev = useRef<T>(undefined);
 
   useEffect(() => {
     prev.current = value;

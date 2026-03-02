@@ -10,8 +10,12 @@
 # NPM
 node_modules
 
-# NPM lock files
-package-lock.json
+# Environment files
+.env
+.env.*
+
+# Deployment artifacts
+.npm-install-hash
 
 # Next files
 .next
@@ -21,3 +25,7 @@ package-lock.json
 
 # Dist files
 dist
+
+# Development tracking files (local only)
+CLAUDE.md
+PROJECT_TRACKER.md

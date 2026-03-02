@@ -54,7 +54,7 @@ export const NotificationProvider = ({ children }: { children: any }) => {
   const [notification, setNotification] = useState<
     NotificationType | undefined
   >();
-  const timeoutId = useRef<NodeJS.Timeout | undefined>();
+  const timeoutId = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const createNotification = (
     notification: NotificationType,

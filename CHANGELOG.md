@@ -2,13 +2,11 @@
 
 ## v1.0 (2024-04-26)
 
-
 ### 🚀 Release Highlight
 
 - InspectorRAGet has gone open source! https://github.com/IBM/InspectorRAGet
- 
-### 💅 Features
 
+### 💅 Features
 
 - Functionality - Supported Evaluations: InspectorRAGet supports any human and automatic evaluations in a unified interface, from numerical metrics such as F1 and Rouge-L, to LLM-as-a-judge metrics such as faithfulness or answer relevance, to any human evaluation metrics, whether numerical or categorical.
 - Integration - Experiment Runner: Python notebook demonstrating how to run experiments using Hugging Face assets (datasets, models, and metric evaluators) and output the results in the JSON format expected by InspectorRAGet

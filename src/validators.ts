@@ -166,8 +166,9 @@ export function validateInputData(data): { valid: boolean; reasons: string[] } {
     );
   }
 
-  // Step : Validate documents releated requirements
+  // Validate documents: required when any task is type 'rag'
   if (
+    data.hasOwnProperty('tasks') &&
     data.tasks.some((task) => task.taskType === 'rag') &&
     !data.hasOwnProperty('documents')
   ) {

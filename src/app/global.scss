@@ -16,6 +16,11 @@
  *
  **/
 
+/* Carbon's @font-face rules use the "~" prefix which Turbopack can't resolve */
+@use '@carbon/styles/scss/config' with (
+  $css--font-face: false
+);
+
 @use '@carbon/react' as *;
 
 body {
