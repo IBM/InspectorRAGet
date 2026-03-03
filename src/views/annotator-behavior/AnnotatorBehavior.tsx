@@ -620,29 +620,38 @@ export default function AnnotatorBehavior({
                       <Table {...getTableProps()}>
                         <TableHead>
                           <TableRow>
-                            {headers.map((header, idx) => (
-                              <TableHeader
-                                key={'toggletip-table-header-' + idx}
-                                {...getHeaderProps({ header })}
-                              >
-                                {header.header}
-                              </TableHeader>
-                            ))}
+                            {headers.map((header, idx) => {
+                              const { key: _key, ...headerProps } =
+                                getHeaderProps({ header });
+                              return (
+                                <TableHeader
+                                  key={'toggletip-table-header-' + idx}
+                                  {...headerProps}
+                                >
+                                  {header.header}
+                                </TableHeader>
+                              );
+                            })}
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {rows.map((row, idx) => (
-                            <TableRow
-                              key={'toggletip-table-row-' + idx}
-                              {...getRowProps({ row })}
-                            >
-                              {row.cells.map((cell) => (
-                                <TableCell key={cell.id}>
-                                  {cell.value}
-                                </TableCell>
-                              ))}
-                            </TableRow>
-                          ))}
+                          {rows.map((row, idx) => {
+                            const { key: _key, ...rowProps } = getRowProps({
+                              row,
+                            });
+                            return (
+                              <TableRow
+                                key={'toggletip-table-row-' + idx}
+                                {...rowProps}
+                              >
+                                {row.cells.map((cell) => (
+                                  <TableCell key={cell.id}>
+                                    {cell.value}
+                                  </TableCell>
+                                ))}
+                              </TableRow>
+                            );
+                          })}
                         </TableBody>
                       </Table>
                     )}

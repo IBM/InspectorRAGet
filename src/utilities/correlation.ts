@@ -19,15 +19,34 @@
 import { Statistics } from 'statistics.js';
 
 export function spearman(pairs: any[]): number {
-  //NaN means undetermined aggregate score
+  // NaN means undetermined aggregate score
   const filteredPairs = pairs.filter(
     (p) => !isNaN(p.valueA) && !isNaN(p.valueB),
   );
 
-  var stats = new Statistics(filteredPairs, {
+  // Fisher transformation (3rd arg = true) requires rho in [-1, 1], which is
+  // undefined when either column has zero variance. Guard here to avoid the
+  // statistics.js error rather than catching it after the fact.
+  if (filteredPairs.length < 2) return NaN;
+  const allSameA = filteredPairs.every(
+    (p) => p.valueA === filteredPairs[0].valueA,
+  );
+  const allSameB = filteredPairs.every(
+    (p) => p.valueB === filteredPairs[0].valueB,
+  );
+  if (allSameA || allSameB) return NaN;
+
+  const stats = new Statistics(filteredPairs, {
     valueA: 'metric',
     valueB: 'metric',
   });
-  var dependence = stats.spearmansRho('valueA', 'valueB', true);
-  return dependence ? dependence.rho : NaN;
+  // statistics.js always computes Fisher + beta-function significance regardless
+  // of arguments, and throws on edge-case rho values (e.g. exactly ±1, tiny n).
+  // Wrap in try/catch so a degenerate pair doesn't break the whole heatmap.
+  try {
+    const dependence = stats.spearmansRho('valueA', 'valueB');
+    return dependence ? dependence.rho : NaN;
+  } catch {
+    return NaN;
+  }
 }

@@ -23,7 +23,6 @@ import {
   ExpandableTile,
   TileAboveTheFoldContent,
   TileBelowTheFoldContent,
-  Tag,
   DefinitionTooltip,
   Toggletip,
   ToggletipButton,
@@ -39,7 +38,10 @@ import {
   MetricDefinitions,
   extractMetricDisplayName,
 } from '@/src/utilities/metrics';
+import { truncate } from '@/src/utilities/strings';
 import { calculateDuration } from '@/src/utilities/time';
+
+const TAG_MAX_LENGTH = 20;
 
 import styles from './ExampleTile.module.scss';
 
@@ -124,18 +126,44 @@ export default function ExampleTile({
               </div>
               <div className={styles.artifactValue}>
                 {[...data.metrics].map((metric) => {
+                  const displayName = extractMetricDisplayName(metric);
+                  const description =
+                    metric.description || MetricDefinitions[metric.name];
+                  const isTruncated = displayName.length > TAG_MAX_LENGTH;
+                  // Show tooltip when the name is clipped or there's a description.
+                  // Always lead with the full name so it's never hidden.
+                  const definition =
+                    isTruncated || description ? (
+                      <>
+                        <strong>{displayName}</strong>
+                        {description && (
+                          <>
+                            <br />
+                            {description}
+                          </>
+                        )}
+                      </>
+                    ) : undefined;
                   return (
-                    <Tag type={'cool-gray'} key={'metric-' + metric.name}>
-                      <DefinitionTooltip
-                        definition={
-                          metric.description || MetricDefinitions[metric.name]
-                        }
-                        align={'bottom'}
-                        openOnHover={true}
-                      >
-                        {extractMetricDisplayName(metric)}
-                      </DefinitionTooltip>
-                    </Tag>
+                    // Carbon Tag always emits an inner <button> for dismiss/filter
+                    // chrome, which would nest inside ExpandableTile's <button>.
+                    // Use a plain span with Carbon's tag class for the pill styling.
+                    <span
+                      key={'metric-' + metric.name}
+                      className="cds--tag cds--tag--cool-gray"
+                    >
+                      {definition ? (
+                        <DefinitionTooltip
+                          definition={definition}
+                          align={'bottom'}
+                          openOnHover={true}
+                        >
+                          {truncate(displayName, TAG_MAX_LENGTH)}
+                        </DefinitionTooltip>
+                      ) : (
+                        displayName
+                      )}
+                    </span>
                   );
                 })}
               </div>
@@ -147,9 +175,22 @@ export default function ExampleTile({
               <div className={styles.artifactValue}>
                 {[...data.models].map((model) => {
                   return (
-                    <Tag type={'cool-gray'} key={'model-' + model.modelId}>
-                      {model.name}
-                    </Tag>
+                    <span
+                      key={'model-' + model.modelId}
+                      className="cds--tag cds--tag--cool-gray"
+                    >
+                      {model.name.length > TAG_MAX_LENGTH ? (
+                        <DefinitionTooltip
+                          definition={model.name}
+                          align={'bottom'}
+                          openOnHover={true}
+                        >
+                          {truncate(model.name, TAG_MAX_LENGTH)}
+                        </DefinitionTooltip>
+                      ) : (
+                        model.name
+                      )}
+                    </span>
                   );
                 })}
               </div>

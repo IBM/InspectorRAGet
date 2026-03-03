@@ -106,6 +106,9 @@
 }
 
 .artifactValue {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-02;
   font-size: 14px;
   line-height: 16px;
   margin-top: $spacing-02;

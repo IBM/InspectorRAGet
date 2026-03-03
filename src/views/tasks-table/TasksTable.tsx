@@ -18,7 +18,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import { isEmpty } from 'lodash';
 import {
   DataTable,
@@ -471,174 +471,183 @@ export default function TasksTable({
                     <TableHead>
                       <TableRow>
                         <TableSelectAll {...getSelectionProps()} />
-                        {headers.map((header, index) => (
-                          <TableHeader
-                            key={'header--' + index}
-                            {...getHeaderProps({ header })}
-                          >
-                            {header.header}
-                          </TableHeader>
-                        ))}
+                        {headers.map((header, index) => {
+                          const { key: _key, ...headerProps } = getHeaderProps({
+                            header,
+                          });
+                          return (
+                            <TableHeader
+                              key={'header--' + index}
+                              {...headerProps}
+                            >
+                              {header.header}
+                            </TableHeader>
+                          );
+                        })}
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {rows.map((row, index) => (
-                        <TableRow
-                          key={'row--' + index}
-                          {...getRowProps({ row })}
-                        >
-                          <TableSelectRow
-                            {...getSelectionProps({
-                              row,
-                            })}
-                          />
-                          {row.cells.map((cell) =>
-                            cell.info.header === 'task' ? (
-                              <TableCell key={cell.id}>
-                                <div className={classes.taskCell}>
-                                  <span
-                                    className={classes.link}
-                                    onClick={() => {
-                                      onClick(row.id);
-                                    }}
-                                  >
-                                    {truncate(cell.value, 80)}
-                                  </span>
-                                  <div className={classes.taskCellDetails}>
-                                    {taskMap?.get(cell.id.split(':task')[0])
-                                      ?.comments && (
+                      {rows.map((row, index) => {
+                        const { key: _key, ...rowProps } = getRowProps({ row });
+                        return (
+                          <TableRow key={'row--' + index} {...rowProps}>
+                            <TableSelectRow
+                              {...getSelectionProps({
+                                row,
+                              })}
+                            />
+                            {row.cells.map((cell) =>
+                              cell.info.header === 'task' ? (
+                                <TableCell key={cell.id}>
+                                  <div className={classes.taskCell}>
+                                    <span
+                                      className={classes.link}
+                                      onClick={() => {
+                                        onClick(row.id);
+                                      }}
+                                    >
+                                      {truncate(cell.value, 80)}
+                                    </span>
+                                    <div className={classes.taskCellDetails}>
+                                      {taskMap?.get(cell.id.split(':task')[0])
+                                        ?.comments && (
+                                        <Tooltip
+                                          align={'bottom'}
+                                          label={
+                                            'Click to view task with comments'
+                                          }
+                                        >
+                                          <Button
+                                            id="comments-btn"
+                                            className={classes.ViewCommentsBtn}
+                                            kind={'ghost'}
+                                            onClick={() => {
+                                              onClick(row.id);
+                                            }}
+                                          >
+                                            <Chat />
+                                            {
+                                              taskMap?.get(
+                                                cell.id.split(':task')[0],
+                                              )?.comments?.length
+                                            }
+                                          </Button>
+                                        </Tooltip>
+                                      )}
                                       <Tooltip
-                                        align={'bottom'}
-                                        label={
-                                          'Click to view task with comments'
-                                        }
+                                        align={'bottom-right'}
+                                        label={'Click to flag task'}
                                       >
                                         <Button
-                                          id="comments-btn"
-                                          className={classes.ViewCommentsBtn}
+                                          key={`${cell.value}__flag-btn`}
+                                          className={classes.flagTaskBtn}
                                           kind={'ghost'}
                                           onClick={() => {
-                                            onClick(row.id);
+                                            const taskId =
+                                              cell.id.split(':task')[0];
+
+                                            const task: Task | undefined =
+                                              taskMap?.get(taskId);
+
+                                            if (task) {
+                                              updateTask(taskId, {
+                                                flagged: !task?.flagged,
+                                              });
+                                            }
                                           }}
                                         >
-                                          <Chat />
-                                          {
-                                            taskMap?.get(
-                                              cell.id.split(':task')[0],
-                                            )?.comments?.length
-                                          }
+                                          {taskMap?.get(
+                                            cell.id.split(':task')[0],
+                                          )?.flagged ? (
+                                            <FlagFilled />
+                                          ) : (
+                                            <Flag />
+                                          )}
                                         </Button>
                                       </Tooltip>
-                                    )}
-                                    <Tooltip
-                                      align={'bottom-right'}
-                                      label={'Click to flag task'}
-                                    >
-                                      <Button
-                                        key={`${cell.value}__flag-btn`}
-                                        className={classes.flagTaskBtn}
-                                        kind={'ghost'}
-                                        onClick={() => {
-                                          const taskId =
-                                            cell.id.split(':task')[0];
-
-                                          const task: Task | undefined =
-                                            taskMap?.get(taskId);
-
-                                          if (task) {
-                                            updateTask(taskId, {
-                                              flagged: !task?.flagged,
-                                            });
-                                          }
-                                        }}
-                                      >
-                                        {taskMap?.get(cell.id.split(':task')[0])
-                                          ?.flagged ? (
-                                          <FlagFilled />
-                                        ) : (
-                                          <Flag />
-                                        )}
-                                      </Button>
-                                    </Tooltip>
+                                    </div>
                                   </div>
-                                </div>
-                              </TableCell>
-                            ) : (
-                              <TableCell key={cell.id}>
-                                <div className={classes.tableCell}>
-                                  <>
-                                    {cell.value ? (
-                                      typeof cell.value === 'object' ? (
-                                        <>
-                                          {Array.isArray(cell.value)
-                                            ? !isEmpty(cell.value)
-                                              ? cell.value.join(', ')
-                                              : '-'
-                                            : metrics.map((metric) => {
-                                                return (
-                                                  <>
-                                                    <div
-                                                      className={
-                                                        classes.tableCellValue
-                                                      }
+                                </TableCell>
+                              ) : (
+                                <TableCell key={cell.id}>
+                                  <div className={classes.tableCell}>
+                                    <>
+                                      {cell.value ? (
+                                        typeof cell.value === 'object' ? (
+                                          <>
+                                            {Array.isArray(cell.value)
+                                              ? !isEmpty(cell.value)
+                                                ? cell.value.join(', ')
+                                                : '-'
+                                              : metrics.map((metric) => {
+                                                  return (
+                                                    <Fragment
                                                       key={`${cell.id}::${metric.name}`}
                                                     >
                                                       <div
                                                         className={
-                                                          classes.majorityValue
+                                                          classes.tableCellValue
                                                         }
                                                       >
-                                                        {
-                                                          cell.value[
-                                                            metric.name
-                                                          ]
-                                                        }
+                                                        <div
+                                                          className={
+                                                            classes.majorityValue
+                                                          }
+                                                        >
+                                                          {
+                                                            cell.value[
+                                                              metric.name
+                                                            ]
+                                                          }
+                                                        </div>
+                                                        {!annotator &&
+                                                        evaluationsMap[
+                                                          cell.id.split(
+                                                            '::value',
+                                                            1,
+                                                          )[0]
+                                                        ]
+                                                          ? sparkline(
+                                                              evaluationsMap[
+                                                                cell.id.split(
+                                                                  '::value',
+                                                                  1,
+                                                                )[0]
+                                                              ][metric.name],
+                                                              metric,
+                                                              cell.id,
+                                                              theme,
+                                                            )
+                                                          : null}
                                                       </div>
-                                                      {!annotator &&
-                                                      evaluationsMap[
-                                                        cell.id.split(
-                                                          '::value',
-                                                          1,
-                                                        )[0]
-                                                      ]
-                                                        ? sparkline(
-                                                            evaluationsMap[
-                                                              cell.id.split(
-                                                                '::value',
-                                                                1,
-                                                              )[0]
-                                                            ][metric.name],
-                                                            metric,
-                                                            cell.id,
-                                                            theme,
-                                                          )
-                                                        : null}
-                                                    </div>
-                                                  </>
-                                                );
-                                              })}
-                                        </>
+                                                    </Fragment>
+                                                  );
+                                                })}
+                                          </>
+                                        ) : (
+                                          <div
+                                            className={classes.majorityValue}
+                                          >
+                                            {Array.isArray(cell.value)
+                                              ? !isEmpty(cell.value)
+                                                ? cell.value.join(', ')
+                                                : '-'
+                                              : cell.value}
+                                          </div>
+                                        )
                                       ) : (
                                         <div className={classes.majorityValue}>
-                                          {Array.isArray(cell.value)
-                                            ? !isEmpty(cell.value)
-                                              ? cell.value.join(', ')
-                                              : '-'
-                                            : cell.value}
+                                          -
                                         </div>
-                                      )
-                                    ) : (
-                                      <div className={classes.majorityValue}>
-                                        -
-                                      </div>
-                                    )}
-                                  </>
-                                </div>
-                              </TableCell>
-                            ),
-                          )}
-                        </TableRow>
-                      ))}
+                                      )}
+                                    </>
+                                  </div>
+                                </TableCell>
+                              ),
+                            )}
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </TableContainer>

@@ -42,7 +42,6 @@ const NotificationComponent = ({
   <ToastNotification
     hideCloseButton={true}
     className={styles.notification}
-    closeOnEscape={false}
     title={title}
     kind={kind}
     subtitle={subtitle}

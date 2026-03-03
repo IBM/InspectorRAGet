@@ -132,14 +132,19 @@ export default function AnnotationsTable({
                 <Table {...getTableProps()}>
                   <TableHead>
                     <TableRow>
-                      {headers.map((header, index) => (
-                        <TableHeader
-                          key={'header--' + index}
-                          {...getHeaderProps({ header })}
-                        >
-                          {header.header}
-                        </TableHeader>
-                      ))}
+                      {headers.map((header, index) => {
+                        const { key: _key, ...headerProps } = getHeaderProps({
+                          header,
+                        });
+                        return (
+                          <TableHeader
+                            key={'header--' + index}
+                            {...headerProps}
+                          >
+                            {header.header}
+                          </TableHeader>
+                        );
+                      })}
                     </TableRow>
                   </TableHead>
                   <TableBody>
