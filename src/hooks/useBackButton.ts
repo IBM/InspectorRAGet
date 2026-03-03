@@ -45,6 +45,7 @@ export function useBackButton(warningMessage?: string) {
     return () => {
       window.removeEventListener('popstate', onBackButtonEvent);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- onBackButtonEvent is stable for the lifetime of the component; adding it would re-subscribe on every render
   }, []);
 
   return {};

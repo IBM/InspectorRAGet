@@ -1,0 +1,89 @@
+/**
+ *
+ * Copyright 2023-present InspectorRAGet Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ **/
+
+// Schema version release history.
+// Freeze a migration once its target version ships to production.
+// Until released, you may fold additional changes into the pending migration.
+// | Version | Released   | Notes                                                     |
+// |---------|------------|-----------------------------------------------------------|
+// | 1       | (implicit) | Initial schema — all files without schema_version field   |
+// | 2       | (pending)  | Task type rename: rag→qa/rag, text_generation/            |
+// |         |            | json_generation→generation, chat→rag                      |
+export const CURRENT_SCHEMA_VERSION = 2;
+
+// --- Migration functions ---
+
+function migrateV1toV2(raw: Record<string, any>): Record<string, any> {
+  const result = JSON.parse(JSON.stringify(raw));
+
+  // Rename task types to the v2 taxonomy.
+  // Old single-turn 'rag' (string input or speaker-utterance array) → 'qa'.
+  // Old multi-turn 'rag' (OpenAI message array with 'role' field) → 'rag'.
+  // 'text_generation' and 'json_generation' collapse into 'generation'.
+  // 'chat' (OpenAI message format) → 'rag'.
+  for (const task of result.tasks ?? []) {
+    if (task.task_type === 'rag') {
+      const input = task.input;
+      const isMultiTurn =
+        Array.isArray(input) &&
+        input.length > 0 &&
+        typeof input[0] === 'object' &&
+        'role' in input[0];
+      task.task_type = isMultiTurn ? 'rag' : 'qa';
+    } else if (
+      task.task_type === 'text_generation' ||
+      task.task_type === 'json_generation'
+    ) {
+      task.task_type = 'generation';
+    } else if (task.task_type === 'chat') {
+      task.task_type = 'rag';
+    }
+  }
+
+  result.schema_version = 2;
+  return result;
+}
+
+// [fromVersion, toVersion, transformFn] — append a new row for each future version.
+const MIGRATIONS: [
+  number,
+  number,
+  (raw: Record<string, any>) => Record<string, any>,
+][] = [[1, 2, migrateV1toV2]];
+
+// --- Exported function ---
+
+export function migrateData(raw: Record<string, any>): {
+  data: Record<string, any>;
+  migrated: boolean;
+} {
+  const version: number = raw.schema_version ?? 1;
+
+  if (version >= CURRENT_SCHEMA_VERSION) {
+    return { data: raw, migrated: false };
+  }
+
+  let data = raw;
+  for (const [from, , transform] of MIGRATIONS) {
+    if ((data.schema_version ?? 1) === from) {
+      data = transform(data);
+    }
+  }
+
+  return { data, migrated: true };
+}

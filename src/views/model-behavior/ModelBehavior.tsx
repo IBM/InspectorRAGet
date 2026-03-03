@@ -329,6 +329,7 @@ export default function ModelBehavior({
         annotator: selectedAnnotator,
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- filterationWorker is a stable Web Worker instance; including it would not change behavior
   }, [
     evaluationsPerMetric,
     selectedAgreementLevels,

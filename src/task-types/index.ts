@@ -16,8 +16,15 @@
  *
  **/
 
-import SkeletonExample from '@/src/views/example/SkeletonExample';
+import QATaskView from '@/src/task-types/qa/TaskView';
+import QACopier from '@/src/task-types/qa/Copier';
+import GenerationTaskView from '@/src/task-types/generation/TaskView';
+import GenerationCopier from '@/src/task-types/generation/Copier';
+import RAGTaskView from '@/src/task-types/rag/TaskView';
+import RAGCopier from '@/src/task-types/rag/Copier';
 
-export default async function Loading() {
-  return <SkeletonExample />;
-}
+export const taskTypeRegistry = {
+  qa: { TaskView: QATaskView, Copier: QACopier },
+  generation: { TaskView: GenerationTaskView, Copier: GenerationCopier },
+  rag: { TaskView: RAGTaskView, Copier: RAGCopier },
+} as const;

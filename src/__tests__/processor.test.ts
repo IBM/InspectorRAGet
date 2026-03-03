@@ -40,8 +40,8 @@ function minimalData(overrides?: Partial<RawData>): RawData {
     tasks: [
       {
         taskId: 't1',
-        taskType: 'text_generation',
-        input: [{ speaker: 'user', text: 'Hello' }],
+        taskType: 'generation',
+        input: 'Hello',
       },
     ],
     evaluations: [
@@ -291,8 +291,8 @@ describe('processData', () => {
     const raw = minimalData();
     raw.tasks.push({
       taskId: 't2',
-      taskType: 'text_generation',
-      input: [{ speaker: 'user', text: 'Bye' }],
+      taskType: 'generation',
+      input: 'Bye',
     } as any);
     // t2 only has evaluation for m1, not m2 — should be disqualified
     raw.evaluations.push({
@@ -329,5 +329,17 @@ describe('processData', () => {
       }),
     );
     expect(data.documents).toHaveLength(1);
+  });
+
+  // --- migrated flag ---
+
+  it('sets migrated=true on the returned Data when the flag is passed in', () => {
+    const [data] = processData(minimalData(), true);
+    expect(data.migrated).toBe(true);
+  });
+
+  it('omits migrated from Data when flag is false', () => {
+    const [data] = processData(minimalData(), false);
+    expect(data.migrated).toBeUndefined();
   });
 });

@@ -20,7 +20,7 @@
 
 import { isEmpty, omit } from 'lodash';
 import cx from 'classnames';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 import {
   FilterableMultiSelect,
@@ -68,14 +68,10 @@ export default function Filters({
   expression,
   setExpression,
 }: Props) {
-  const [showFilters, setShowFilters] = useState<boolean>(true);
-
   // Hide the filter panel when neither static filters nor expression builder is available
-  useEffect(() => {
-    if (filters === undefined && setExpression === undefined) {
-      setShowFilters(false);
-    }
-  }, [filters]);
+  const [showFilters, setShowFilters] = useState<boolean>(
+    filters !== undefined || setExpression !== undefined,
+  );
 
   return (
     <>

@@ -30,9 +30,7 @@ import { useNotification } from '@/src/components/notification/Notification';
 import TaskTile from '@/src/components/task-tile/TaskTile';
 import AddCommentModal from '@/src/components/comments/AddCommentModal';
 import ViewComments from '@/src/components/comments/CommentsViewer';
-import RAGTask from '@/src/views/task/RAGTask';
-import TextGenerationTask from '@/src/views/task/TextGenerationTask';
-import ChatTask from '@/src/views/task/ChatTask';
+import { taskTypeRegistry } from '@/src/task-types';
 
 import classes from './Task.module.scss';
 
@@ -107,6 +105,7 @@ export default function Task({ taskId, onClose }: Props) {
     return () => {
       window.removeEventListener('keydown', handleEsc);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally register once; onClose is stable for the lifetime of the overlay
   }, []);
 
   const { item: data, taskMap, updateTask } = useDataStore();
@@ -122,7 +121,7 @@ export default function Task({ taskId, onClose }: Props) {
 
     // Default return
     return [undefined, undefined];
-  }, [data?.models, data?.metrics]);
+  }, [data]);
 
   const task = useMemo(() => {
     if (taskMap && taskId) {
@@ -135,15 +134,19 @@ export default function Task({ taskId, onClose }: Props) {
   );
 
   const evaluations = useMemo(() => {
-    let taskEvaluations: TaskEvaluation[] | undefined = undefined;
     if (data) {
-      taskEvaluations = data.evaluations.filter(
+      return data.evaluations.filter(
         (evaluation) => evaluation.taskId === taskId,
       );
     }
+    return undefined;
+  }, [taskId, data]);
 
-    return taskEvaluations;
-  }, [taskId, task?.contexts, data?.documents, data?.evaluations]);
+  // Look up the task-type-specific view component from the registry.
+  // Falls back to null for unknown or future task types not yet in registry.
+  const TaskView = task?.taskType
+    ? taskTypeRegistry[task.taskType]?.TaskView
+    : null;
 
   return (
     <div className={classes.page}>
@@ -224,38 +227,8 @@ export default function Task({ taskId, onClose }: Props) {
               ></ViewComments>
             </div>
           )}
-          {task.taskType === 'rag' ? (
-            <RAGTask
-              task={task}
-              models={models}
-              metrics={metrics}
-              taskCopierModalOpen={taskCopierModalOpen}
-              setTaskCopierModalOpen={setTaskCopierModalOpen}
-              updateCommentProvenance={(provenance: string) => {
-                updateCommentProvenance(
-                  provenance,
-                  setCommentProvenance,
-                  createNotification,
-                );
-              }}
-            />
-          ) : task.taskType === 'text_generation' ? (
-            <TextGenerationTask
-              task={task}
-              models={models}
-              metrics={metrics}
-              taskCopierModalOpen={taskCopierModalOpen}
-              setTaskCopierModalOpen={setTaskCopierModalOpen}
-              updateCommentProvenance={(provenance: string) => {
-                updateCommentProvenance(
-                  provenance,
-                  setCommentProvenance,
-                  createNotification,
-                );
-              }}
-            />
-          ) : task.taskType === 'chat' ? (
-            <ChatTask
+          {TaskView ? (
+            <TaskView
               task={task}
               models={models}
               metrics={metrics}

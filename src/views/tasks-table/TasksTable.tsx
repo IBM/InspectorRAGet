@@ -50,7 +50,7 @@ import { extractMetricDisplayValue } from '@/src/utilities/metrics';
 import { truncate } from '@/src/utilities/strings';
 import { useDataStore } from '@/src/store';
 import { useNotification } from '@/src/components/notification/Notification';
-import { exportData } from '@/src/processor';
+import { exportData } from '@/src/exporter';
 
 import classes from './TasksTable.module.scss';
 

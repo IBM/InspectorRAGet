@@ -425,7 +425,7 @@ export default function ModelComparator({
     return [hMetrics, aMetrics];
   }, [metrics]);
 
-  // Reset selected metric range when metric changes (only applicable for numerical metrics)
+  // Reset metric range when metric changes — range is only valid for numerical metrics
   useEffect(() => {
     if (
       selectedMetric &&
@@ -495,6 +495,7 @@ export default function ModelComparator({
     selectedMetric,
     modelA,
     modelB,
+    selectedFilters,
     selectedMetricRange,
   ]);
 
@@ -539,6 +540,7 @@ export default function ModelComparator({
         ),
       );
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally reads stable refs (evaluationsPerMetric, models, filters) from closure; only re-runs when metric or range selection changes
   }, [selectedMetric, selectedMetricRange]);
 
   // Estimate computation complexity to warn users about long-running calculations
@@ -556,7 +558,7 @@ export default function ModelComparator({
       return 'high';
     }
     return 'low';
-  }, [evaluationsPerMetric, selectedMetric]);
+  }, [evaluationsPerMetric, selectedMetric, models]);
 
   // Attach click handler to scatter chart points for task selection
   useEffect(() => {
@@ -585,6 +587,7 @@ export default function ModelComparator({
         );
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- onTaskSelection is a stable prop callback; adding it would re-bind the chart event on every render
   }, [chartRef, selectedMetric, statisticalInformationPerMetric]);
 
   return (

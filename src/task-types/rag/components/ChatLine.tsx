@@ -22,9 +22,14 @@ import { useState, useEffect, useRef } from 'react';
 
 import { CodeSnippet } from '@carbon/react';
 
-import { Message, ToolCall, ToolMessage, AssistantMessage } from '@/src/types';
-import Avatar from '@/src/components/avatar/Avatar';
-import DocumentsViewer from '@/src/components/documents-viewer/DocumentsViewer';
+import {
+  Message,
+  ToolCall,
+  ToolMessage,
+  AssistantMessage,
+} from '@/src/task-types/rag/types';
+import Avatar from '@/src/task-types/rag/components/Avatar';
+import DocumentsViewer from '@/src/task-types/rag/components/DocumentsViewer';
 
 import classes from './ChatLine.module.scss';
 

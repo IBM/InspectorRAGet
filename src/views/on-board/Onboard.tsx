@@ -37,6 +37,7 @@ export default memo(function OnboardingView({ onVisualize }: Props) {
   const [isWarningModalOpen, setIsWarningModalOpen] = useState<boolean>(false);
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
   const [rawData, setRawData] = useState<RawData>();
+  const [migrated, setMigrated] = useState<boolean>(false);
 
   return (
     <div className={classes.root}>
@@ -87,8 +88,9 @@ export default memo(function OnboardingView({ onVisualize }: Props) {
         />
       ) : currentStepIndex === 1 ? (
         <DataUploaderView
-          onNext={(data) => {
+          onNext={(data, wasMigrated) => {
             setRawData(data);
+            setMigrated(wasMigrated ?? false);
             setCurrentStepIndex(2);
           }}
           onPrev={(data) => {
@@ -102,6 +104,7 @@ export default memo(function OnboardingView({ onVisualize }: Props) {
       ) : rawData && currentStepIndex === 2 ? (
         <DataValidation
           data={rawData}
+          migrated={migrated}
           onNext={onVisualize}
           onPrev={() => {
             if (rawData) {

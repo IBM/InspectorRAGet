@@ -40,7 +40,7 @@ import {
 import { useTheme } from '@/src/theme';
 import { useDataStore } from '@/src/store';
 import { useNotification } from '@/src/components/notification/Notification';
-import { exportData } from '@/src/processor';
+import { exportData } from '@/src/exporter';
 
 import classes from './Header.module.scss';
 

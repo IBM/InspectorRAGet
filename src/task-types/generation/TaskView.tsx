@@ -28,19 +28,21 @@ import {
   Tab,
   TabPanels,
   TabPanel,
+  Button,
   ContainedList,
   ContainedListItem,
 } from '@carbon/react';
+import { TextHighlight } from '@carbon/icons-react';
 
-import { Model, TaskEvaluation, Task, Metric, MessageStep } from '@/src/types';
+import { Model, TaskEvaluation, Task, Metric } from '@/src/types';
 import { useDataStore } from '@/src/store';
-import { truncate } from '@/src/utilities/strings';
+import { truncate, overlaps } from '@/src/utilities/strings';
+import { mark } from '@/src/utilities/highlighter';
 
 import AnnotationsTable from '@/src/views/annotations-table/AnnotationsTable';
-import ChatLine from '@/src/components/chatline/ChatLine';
-import ChatTaskCopierModal from '@/src/components/task-copier/ChatTaskCopier';
+import GenerationCopier from '@/src/task-types/generation/Copier';
 
-import classes from './ChatTask.module.scss';
+import classes from './TaskView.module.scss';
 
 // ===================================================================================
 //                                TYPES
@@ -55,58 +57,9 @@ interface Props {
 }
 
 // ===================================================================================
-//                               RENDER FUNCTIONS
-// ===================================================================================
-
-function Evaluation({
-  evaluation,
-  hMetrics,
-  aMetrics,
-}: {
-  evaluation: TaskEvaluation;
-  hMetrics: Map<string, Metric>;
-  aMetrics: Map<string, Metric>;
-}) {
-  return (
-    <div className={classes.evaluationContainer}>
-      {evaluation.annotations && hMetrics.size ? (
-        <>
-          <h5>Human Evaluations:</h5>
-          <AnnotationsTable
-            annotations={evaluation.annotations}
-            metrics={[...hMetrics.values()]}
-          ></AnnotationsTable>
-        </>
-      ) : null}
-      {evaluation.annotations && aMetrics.size ? (
-        <>
-          <h5>Algorithmic Evaluations:</h5>
-          <AnnotationsTable
-            annotations={evaluation.annotations}
-            metrics={[...aMetrics.values()]}
-          ></AnnotationsTable>
-        </>
-      ) : null}
-    </div>
-  );
-}
-
-function Steps({ steps }: { steps?: MessageStep[] }) {
-  return (
-    <div className={classes.stepsContainer}>
-      {steps && !isEmpty(steps) ? (
-        <></>
-      ) : (
-        <h4>No steps information is available.</h4>
-      )}
-    </div>
-  );
-}
-
-// ===================================================================================
 //                               MAIN FUNCTION
 // ===================================================================================
-export default function ChatTask({
+export default function GenerationTaskView({
   task,
   models,
   metrics,
@@ -114,8 +67,8 @@ export default function ChatTask({
   setTaskCopierModalOpen,
   updateCommentProvenance,
 }: Props) {
-  const [selectedEvaluationIndex, setSelectedEvaluationIndex] =
-    useState<number>(0);
+  const [selectedModelIndex, setSelectedModelIndex] = useState<number>(0);
+  const [showOverlap, setShowOverlap] = useState<boolean>(false);
 
   const { item: data } = useDataStore();
 
@@ -125,10 +78,19 @@ export default function ChatTask({
       taskEvaluations = data.evaluations.filter(
         (evaluation) => evaluation.taskId === task.taskId,
       );
+
+      // Compute input-response overlap for highlight support
+      taskEvaluations.forEach((evaluation) => {
+        if (typeof task.input === 'string') {
+          evaluation.overlaps = overlaps(evaluation.modelResponse, task.input);
+        } else {
+          evaluation.overlaps = [];
+        }
+      });
     }
 
     return taskEvaluations;
-  }, [task.taskId, data]);
+  }, [task.taskId, task.input, data]);
 
   const [hMetrics, aMetrics] = useMemo(() => {
     const humanMetrics = new Map(
@@ -148,7 +110,7 @@ export default function ChatTask({
   return (
     <>
       {models && metrics && task && evaluations && (
-        <ChatTaskCopierModal
+        <GenerationCopier
           open={taskCopierModalOpen}
           models={Array.from(models.values())}
           metrics={metrics}
@@ -157,44 +119,82 @@ export default function ChatTask({
           onClose={() => {
             setTaskCopierModalOpen(false);
           }}
-        ></ChatTaskCopierModal>
+        ></GenerationCopier>
       )}
+
       {task && models && evaluations && (
         <>
           <div className={classes.inputContainer}>
-            {Array.isArray(task.input)
-              ? task.input.map((message, messageIdx) => (
-                  <ChatLine
-                    key={`data_point__message--${messageIdx}`}
-                    messageId={`data_point__message--${messageIdx}`}
-                    message={message}
-                    onSelection={updateCommentProvenance}
-                    focused={
-                      Array.isArray(task.input) &&
-                      messageIdx === task.input.length - 1
-                        ? true
-                        : false
-                    }
-                    latestResponse={
-                      Array.isArray(task.input) &&
-                      messageIdx === task.input.length - 1
-                        ? true
-                        : false
-                    }
-                  ></ChatLine>
-                ))
-              : null}
+            {typeof task.input === 'string' ? (
+              <>
+                <div className={classes.header}>
+                  <h4>Input</h4>
+                  <div className={classes.headerActions}>
+                    <Button
+                      id="text-highlight"
+                      renderIcon={TextHighlight}
+                      kind={'ghost'}
+                      hasIconOnly={true}
+                      iconDescription={
+                        'Click to highlight text common in input and response'
+                      }
+                      tooltipAlignment={'end'}
+                      tooltipPosition={'bottom'}
+                      onClick={() => {
+                        setShowOverlap(!showOverlap);
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className={classes.disclaimers}>
+                  {showOverlap && (
+                    <div className={classes.overlapDisclaimer}>
+                      <div className={classes.legendCopiedText}>&#9632;</div>
+                      <span>
+                        &nbsp;marks text assumed to be copied from input into
+                        model response
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div
+                  className={classes.inputTextContainer}
+                  onMouseDown={() => {
+                    updateCommentProvenance('input');
+                  }}
+                  onMouseUp={() => updateCommentProvenance('input')}
+                >
+                  <p>
+                    {parse(
+                      DOMPurify.sanitize(
+                        showOverlap
+                          ? mark(
+                              task.input,
+                              evaluations[selectedModelIndex].overlaps,
+                              'target',
+                            )
+                          : task.input,
+                      ),
+                    )}
+                  </p>
+                </div>
+              </>
+            ) : null}
           </div>
 
           <div className={classes.separator} />
 
-          <div className={classes.modelsContainer}>
+          <div className={classes.evaluationsContainer}>
             <Tabs
               onChange={(e) => {
-                setSelectedEvaluationIndex(e.selectedIndex);
+                setSelectedModelIndex(e.selectedIndex);
               }}
             >
-              <TabList aria-label="Models tab" contained>
+              <TabList
+                className={classes.tabList}
+                aria-label="Models tab"
+                contained
+              >
                 {evaluations.map((evaluation) => (
                   <Tab key={'model-' + evaluation.modelId}>
                     {truncate(
@@ -236,72 +236,55 @@ export default function ChatTask({
                             }
                           >
                             {parse(
-                              DOMPurify.sanitize(evaluation.modelResponse),
+                              DOMPurify.sanitize(
+                                showOverlap
+                                  ? mark(
+                                      evaluation.modelResponse,
+                                      evaluation.overlaps,
+                                      'source',
+                                    )
+                                  : evaluation.modelResponse,
+                              ),
                             )}
                           </div>
                         </ContainedListItem>
                       </ContainedList>
-
                       {task.targets && !isEmpty(task.targets) ? (
                         <ContainedList
                           label="Targets"
                           kind="disclosed"
                           size="sm"
                         >
-                          {task.targets.length > 1 ? (
-                            task.targets.map((target, targetIdx) =>
-                              target.text ? (
-                                <ContainedListItem key={`target--${targetIdx}`}>
-                                  <span>
-                                    Target {targetIdx + 1}: {target.text}
-                                  </span>
-                                </ContainedListItem>
-                              ) : null,
-                            )
-                          ) : (
-                            <ContainedListItem key={`target--0`}>
-                              <span>{task.targets[0].text}</span>
-                            </ContainedListItem>
+                          {task.targets.map((target, targetIdx) =>
+                            target.text ? (
+                              <ContainedListItem key={`target--${targetIdx}`}>
+                                <span>
+                                  Target {targetIdx + 1}: {target.text}
+                                </span>
+                              </ContainedListItem>
+                            ) : null,
                           )}
                         </ContainedList>
                       ) : null}
 
-                      <Tabs>
-                        <TabList
-                          aria-label="Model performance tab"
-                          contained
-                          fullWidth
-                        >
-                          <Tab
-                            key={'model-' + evaluation.modelId + '-evaluations'}
-                          >
-                            Evaluations
-                          </Tab>
-                          <Tab key={'model-' + evaluation.modelId + '-steps'}>
-                            Steps
-                          </Tab>
-                        </TabList>
-                        <TabPanels>
-                          <TabPanel
-                            key={
-                              'model-' +
-                              evaluation.modelId +
-                              '-evaluations-panel'
-                            }
-                          >
-                            <Evaluation
-                              evaluation={evaluation}
-                              hMetrics={hMetrics}
-                              aMetrics={aMetrics}
-                            />
-                          </TabPanel>
-                          <TabPanel
-                            key={'model-' + evaluation.modelId + '-steps-panel'}
-                          >
-                            <Steps steps={evaluation.steps} />
-                          </TabPanel>
-                        </TabPanels>
-                      </Tabs>
+                      {evaluation.annotations && hMetrics.size ? (
+                        <>
+                          <h5>Human Evaluations:</h5>
+                          <AnnotationsTable
+                            annotations={evaluation.annotations}
+                            metrics={[...hMetrics.values()]}
+                          ></AnnotationsTable>
+                        </>
+                      ) : null}
+                      {evaluation.annotations && aMetrics.size ? (
+                        <>
+                          <h5>Algorithmic Evaluations:</h5>
+                          <AnnotationsTable
+                            annotations={evaluation.annotations}
+                            metrics={[...aMetrics.values()]}
+                          ></AnnotationsTable>
+                        </>
+                      ) : null}
                     </div>
                   </TabPanel>
                 ))}

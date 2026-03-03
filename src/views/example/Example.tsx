@@ -61,6 +61,7 @@ export default memo(function Example({ data }: { data: Data }) {
   const { set: setData } = useDataStore();
   useEffect(() => {
     setData(data);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- setData is a stable context setter; including it would not change behavior
   }, [data]);
 
   // Only numerical and categorical metrics are eligible for aggregate views
@@ -230,7 +231,13 @@ export default memo(function Example({ data }: { data: Data }) {
         ]),
       ),
     ];
-  }, [data.evaluations, data.tasks, data.models, eligibleMetricsMap]);
+  }, [
+    data.evaluations,
+    data.tasks,
+    data.models,
+    data.filters,
+    eligibleMetricsMap,
+  ]);
 
   const {} = useBackButton();
 

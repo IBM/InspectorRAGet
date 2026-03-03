@@ -35,8 +35,8 @@ function validData() {
     tasks: [
       {
         taskId: 't1',
-        taskType: 'text_generation',
-        input: [{ speaker: 'user', text: 'Hello' }],
+        taskType: 'generation',
+        input: 'Hello world',
       },
     ],
     evaluations: [
@@ -50,7 +50,7 @@ function validData() {
   };
 }
 
-function validRagData() {
+function validQAData() {
   return {
     models: [{ modelId: 'm1', name: 'Model 1', owner: 'owner1' }],
     metrics: [
@@ -65,8 +65,8 @@ function validRagData() {
     tasks: [
       {
         taskId: 't1',
-        taskType: 'rag',
-        input: [{ speaker: 'user', text: 'What is X?' }],
+        taskType: 'qa',
+        input: 'What is X?',
         contexts: [{ documentId: 'd1' }],
       },
     ],
@@ -84,14 +84,14 @@ function validRagData() {
 // --- Tests ---
 
 describe('validateInputData', () => {
-  it('accepts a valid text_generation dataset', () => {
+  it('accepts a valid generation dataset', () => {
     const result = validateInputData(validData());
     expect(result.valid).toBe(true);
     expect(result.reasons).toHaveLength(0);
   });
 
-  it('accepts a valid RAG dataset', () => {
-    const result = validateInputData(validRagData());
+  it('accepts a valid qa dataset', () => {
+    const result = validateInputData(validQAData());
     expect(result.valid).toBe(true);
     expect(result.reasons).toHaveLength(0);
   });
@@ -239,14 +239,27 @@ describe('validateInputData', () => {
     expect(result.valid).toBe(false);
   });
 
-  it('rejects a RAG task missing contexts', () => {
-    const data = validRagData();
+  it('rejects a qa task missing contexts', () => {
+    const data = validQAData();
     delete (data.tasks[0] as any).contexts;
     const result = validateInputData(data);
     expect(result.valid).toBe(false);
   });
 
-  it('accepts chat task type', () => {
+  it('accepts rag task type', () => {
+    const data = validData();
+    data.tasks[0] = {
+      taskId: 't1',
+      taskType: 'rag',
+      input: [{ role: 'user', content: 'Hello' }],
+    } as any;
+    const result = validateInputData(data);
+    expect(result.valid).toBe(true);
+  });
+
+  // --- Legacy task type names are still accepted (auto-migrated by processor) ---
+
+  it('accepts legacy chat task type', () => {
     const data = validData();
     data.tasks[0] = {
       taskId: 't1',
@@ -257,7 +270,18 @@ describe('validateInputData', () => {
     expect(result.valid).toBe(true);
   });
 
-  it('accepts json_generation task type', () => {
+  it('accepts legacy text_generation task type', () => {
+    const data = validData();
+    data.tasks[0] = {
+      taskId: 't1',
+      taskType: 'text_generation',
+      input: 'Hello',
+    } as any;
+    const result = validateInputData(data);
+    expect(result.valid).toBe(true);
+  });
+
+  it('accepts legacy json_generation task type', () => {
     const data = validData();
     data.tasks[0].taskType = 'json_generation' as any;
     const result = validateInputData(data);
@@ -266,8 +290,8 @@ describe('validateInputData', () => {
 
   // --- Documents validation ---
 
-  it('rejects RAG tasks without documents section', () => {
-    const data = validRagData();
+  it('rejects qa tasks without documents section', () => {
+    const data = validQAData();
     delete (data as any).documents;
     const result = validateInputData(data);
     expect(result.valid).toBe(false);
@@ -275,7 +299,7 @@ describe('validateInputData', () => {
   });
 
   it('rejects a document missing documentId', () => {
-    const data = validRagData();
+    const data = validQAData();
     delete (data.documents[0] as any).documentId;
     const result = validateInputData(data);
     expect(result.valid).toBe(false);

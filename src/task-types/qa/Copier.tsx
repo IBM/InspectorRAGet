@@ -21,16 +21,11 @@
 import { useState, useMemo } from 'react';
 import { Modal, RadioTile, CodeSnippet } from '@carbon/react';
 
-import {
-  Metric,
-  Model,
-  Task,
-  RetrievedDocument,
-  TaskEvaluation,
-} from '@/src/types';
+import { Metric, Model, Task, TaskEvaluation } from '@/src/types';
+import { RetrievedDocument } from '@/src/task-types/qa/types';
 import { WarningAlt } from '@carbon/icons-react';
 
-import classes from './TaskCopier.module.scss';
+import classes from './Copier.module.scss';
 
 interface Props {
   models: Model[];
@@ -39,6 +34,7 @@ interface Props {
   evaluations: TaskEvaluation[];
   onClose: Function;
   open: boolean;
+  documents?: RetrievedDocument[];
 }
 
 function prepareText(
@@ -46,12 +42,41 @@ function prepareText(
   metrics: Metric[],
   task: Task,
   evaluations: TaskEvaluation[],
+  documents?: RetrievedDocument[],
 ): string {
   const separator = '=======================================================\n';
   let input, context, responses;
 
-  if (typeof task.input === 'string') {
+  if (task.taskType === 'generation' && typeof task.input === 'string') {
     input = `${separator}Input\n${separator}${task.input.trim()}`;
+  } else if (task.taskType === 'qa') {
+    if (typeof task.input === 'string') {
+      input = `${separator}Question: ${task.input.trim()}`;
+    } else if (Array.isArray(task.input)) {
+      if (task.input.length == 1) {
+        input = `${separator}Question: ${task.input[0]['text'].trim()}`;
+      } else {
+        input = `${separator}Conversation\n${separator}`;
+        task.input.map(
+          (utterance) =>
+            (input += `${
+              utterance.speaker.charAt(0).toUpperCase() +
+              utterance.speaker.slice(1).toLowerCase()
+            }: ${utterance.text.trim()}\n`),
+        );
+      }
+    }
+  }
+
+  if (documents && documents.length) {
+    context = `${separator}Contexts\n${separator}`;
+    if (documents.length > 1) {
+      documents.forEach((document, documentIdx) => {
+        context += `Passage ${documentIdx + 1}: ${document.text.trim()}\n`;
+      });
+    } else {
+      context += `Passage: ${documents[0].text.trim()}\n`;
+    }
   }
 
   if (evaluations && evaluations.length) {
@@ -66,7 +91,7 @@ function prepareText(
     });
   }
 
-  return `${input.trim()}\n${responses ? responses : ''}`;
+  return `${input.trim()}\n${context ? context.trim() + '\n' : ''}${responses ? responses : ''}`;
 }
 
 function prepareLaTEXT(
@@ -74,11 +99,44 @@ function prepareLaTEXT(
   metrics: Metric[],
   task: Task,
   evaluations: TaskEvaluation[],
+  documents?: RetrievedDocument[],
 ): string {
   let input, context, responses;
 
-  if (typeof task.input === 'string') {
+  if (task.taskType === 'generation' && typeof task.input === 'string') {
     input = `\\multicolumn{1}{|c|}{\\textbf{Input}} \\\\ \n\t\\toprule \n\t${task.input.trim()}  \\\\ \n\t`;
+  } else if (task.taskType === 'qa') {
+    if (typeof task.input === 'string') {
+      input = `\\textbf{Question:} ${task.input.trim()} \\\\ \n\t`;
+    } else if (Array.isArray(task.input)) {
+      if (task.input.length == 1) {
+        input = `\\textbf{Question:} ${task.input[0]['text'].trim()} \\\\ \n\t`;
+      } else {
+        input =
+          '\\multicolumn{1}{|c|}{\\textbf{Conversation}} \\\\ \n\t\\toprule \n\t';
+        {
+          task.input.map(
+            (utterance) =>
+              (input += `\\textbf{${
+                utterance.speaker.charAt(0).toUpperCase() +
+                utterance.speaker.slice(1).toLowerCase()
+              }}: ${utterance.text.trim()} \\\\ \n\t`),
+          );
+        }
+      }
+    }
+  }
+
+  if (documents && documents.length) {
+    if (documents.length > 1) {
+      context =
+        '\\toprule \n\t\\multicolumn{1}{|c|}{\\textbf{Passages}} \\\\ \n\t';
+      documents.forEach((document, documentIdx) => {
+        context += `\\toprule \n\t\\textbf{Passage ${documentIdx + 1}} \\\\ \n\t\\midrule \n\t${document.text.trim()} \\\\ \n\t`;
+      });
+    } else {
+      context = `\\toprule \n\t\\multicolumn{1}{|c|}{\\textbf{Passage}} \\\\ \n\t\\toprule \\\\ \n\t${documents[0].text.trim()} \\\\ \n\t`;
+    }
   }
 
   if (evaluations && evaluations.length) {
@@ -93,7 +151,7 @@ function prepareLaTEXT(
     responses += '\\bottomrule \n\t';
   }
 
-  return `\\begin{table*}\n\\small\n\t\\begin{tabular}{p{15.5cm}}\n\t\\toprule\n\t${input}${responses ? responses : ''}\\end{tabular}\n\\end{table*}`;
+  return `\\begin{table*}\n\\small\n\t\\begin{tabular}{p{15.5cm}}\n\t\\toprule\n\t${input}${context ? context : ''}${responses ? responses : ''}\\end{tabular}\n\\end{table*}`;
 }
 
 function prepareJSON(
@@ -101,10 +159,12 @@ function prepareJSON(
   metrics: Metric[],
   task: Task,
   evaluations: TaskEvaluation[],
+  documents?: RetrievedDocument[],
 ): string {
   return JSON.stringify(
     {
       input: task.input,
+      ...(documents && { passages: documents }),
       responses: evaluations.map((evaluation) => {
         const model = models.find(
           (entry) => entry.modelId === evaluation.modelId,
@@ -120,28 +180,29 @@ function prepareJSON(
   );
 }
 
-export default function TextGenerationTaskCopierModal({
+export default function QACopierModal({
   models,
   metrics,
   task,
   evaluations,
   onClose,
   open = false,
+  documents,
 }: Props) {
   const [format, setFormat] = useState<'Text' | 'JSON' | 'LaTEX'>('Text');
 
   const textToCopy = useMemo(() => {
     let text;
     if (format === 'Text') {
-      text = prepareText(models, metrics, task, evaluations);
+      text = prepareText(models, metrics, task, evaluations, documents);
     } else if (format === 'LaTEX') {
-      text = prepareLaTEXT(models, metrics, task, evaluations);
+      text = prepareLaTEXT(models, metrics, task, evaluations, documents);
     } else {
-      text = prepareJSON(models, metrics, task, evaluations);
+      text = prepareJSON(models, metrics, task, evaluations, documents);
     }
 
     return text;
-  }, [models, metrics, task, evaluations, format]);
+  }, [models, metrics, task, evaluations, documents, format]);
 
   return (
     <Modal

@@ -60,10 +60,7 @@ export default function SkeletonTask() {
               >
                 <div className={styles.evaluationHeader}>
                   <h5>Response:</h5>
-                  <SkeletonText
-                    paragraph={true}
-                    lineCount={Math.floor(Math.random() * (3 - 1) + 1)}
-                  ></SkeletonText>
+                  <SkeletonText paragraph={true} lineCount={2}></SkeletonText>
                 </div>
                 <SkeletonAnnotationsTable />
               </AccordionItem>

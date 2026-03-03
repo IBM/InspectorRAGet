@@ -16,8 +16,19 @@
  *
  **/
 
-import SkeletonExample from '@/src/views/example/SkeletonExample';
+export interface RetrievedDocumentAnnotation {
+  text: string;
+  authors: string[];
+  color?: string;
+}
 
-export default async function Loading() {
-  return <SkeletonExample />;
+export interface RetrievedDocument {
+  documentId: string;
+  text: string;
+  formattedText?: string;
+  url?: string;
+  title?: string;
+  score?: number;
+  query?: {};
+  annotations?: RetrievedDocumentAnnotation[];
 }

@@ -16,6 +16,27 @@
  *
  **/
 
+// Task-type-specific types live in their respective task-types/ slices.
+// Re-exported here so existing consumers don't need to update import paths yet.
+export type {
+  RetrievedDocument,
+  RetrievedDocumentAnnotation,
+} from '@/src/task-types/qa/types';
+export type {
+  ToolCall,
+  MessageStep,
+  Message,
+  SystemMessage,
+  DeveloperMessage,
+  UserMessage,
+  ToolMessageDocument,
+  ToolMessage,
+  AssistantMessage,
+} from '@/src/task-types/rag/types';
+
+import type { RetrievedDocument } from '@/src/task-types/qa/types';
+import type { MessageStep } from '@/src/task-types/rag/types';
+
 export interface Notification {
   title: string;
   subtitle: string;
@@ -132,90 +153,6 @@ export interface Aggregator {
 }
 
 // ===================================================================================
-//                                RAG TASK REQUIREMENTS
-// ===================================================================================
-export interface RetrievedDocumentAnnotation {
-  text: string;
-  authors: string[];
-  color?: string;
-}
-
-export interface RetrievedDocument {
-  documentId: string;
-  text: string;
-  formattedText?: string;
-  url?: string;
-  title?: string;
-  score?: number;
-  query?: {};
-  annotations?: RetrievedDocumentAnnotation[];
-}
-
-// ===================================================================================
-//                                CHAT TASK REQUIREMENTS
-// ===================================================================================
-interface FunctionTool {
-  name: string;
-  arguments: object | any[];
-}
-
-export interface ToolCall {
-  id: string;
-  type: 'function';
-  function: FunctionTool;
-  parents?: string[];
-  children?: string[];
-}
-
-export interface MessageStep {
-  id: string;
-  input: any;
-  output: any;
-  parents?: string[];
-  children?: string[];
-}
-
-export interface Message {
-  role: 'system' | 'developer' | 'user' | 'tool' | 'assistant';
-  utterance_id?: string;
-  content?: any;
-  name?: string;
-  timestamp?: number;
-}
-
-interface SystemMessage extends Message {
-  role: 'system';
-}
-
-interface DeveloperMessage extends Message {
-  role: 'developer';
-}
-
-interface UserMessage extends Message {
-  role: 'user';
-}
-
-export interface ToolMessageDocument {
-  text: string;
-  url?: string;
-  title?: string;
-  score?: number;
-}
-export interface ToolMessage extends Message {
-  role: 'tool';
-  tool_call_id: string;
-  type?: 'text' | 'documents' | 'json';
-  content: string | object | ToolMessageDocument[];
-}
-
-export interface AssistantMessage extends Message {
-  role: 'assistant';
-  refusal?: string;
-  tool_calls?: ToolCall[];
-  steps?: MessageStep[];
-}
-
-// ===================================================================================
 //                                        TASK
 // ===================================================================================
 export interface TaskCommentProvenance {
@@ -233,18 +170,9 @@ export interface TaskComment {
 
 export interface Task {
   readonly taskId: string;
-  readonly taskType: 'rag' | 'text_generation' | 'json_generation' | 'chat';
+  readonly taskType: 'qa' | 'generation' | 'rag' | 'tool_calling' | 'agentic';
   readonly contexts?: { readonly documentId: string }[];
-  readonly input:
-    | { text: string; speaker: string }[]
-    | string
-    | (
-        | SystemMessage
-        | DeveloperMessage
-        | UserMessage
-        | ToolMessage
-        | AssistantMessage
-      )[];
+  readonly input: any;
   readonly targets?: {
     readonly text?: string;
   }[];
@@ -281,6 +209,7 @@ export interface TaskEvaluation {
 //                                  INPUT FILE
 // ===================================================================================
 export interface RawData {
+  readonly schema_version?: number;
   readonly name?: string;
   readonly models: Model[];
   readonly metrics: Metric[];
@@ -324,6 +253,9 @@ export interface Data extends TileData {
   readonly filters?: string[];
   tasks: Task[];
   readonly evaluations: TaskEvaluation[];
+  // True when the source file was silently upgraded to the current schema on load.
+  // exportData uses this to show a one-time toast informing the researcher.
+  readonly migrated?: boolean;
 }
 
 // ===================================================================================

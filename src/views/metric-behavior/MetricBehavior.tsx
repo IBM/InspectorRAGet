@@ -361,7 +361,9 @@ export default memo(function MetricBehavior({
     }
   }, [filteredEvaluationsPerMetric, selectedMetricA, selectedMetricB]);
 
+  // Reset range selections when metrics change — range is only meaningful for the current metric
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional reset; ranges are UI state tied to the selected metric, not derived from it
     setSelectedMetricARange(undefined);
     setSelectedMetricBRange(undefined);
   }, [selectedMetricA, selectedMetricB]);

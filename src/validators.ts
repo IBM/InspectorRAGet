@@ -91,6 +91,26 @@ function isValidDocument(document): boolean {
   return true;
 }
 
+// Current task types. Legacy types (rag, text_generation, json_generation, chat)
+// are auto-migrated by migrator.ts before validation of loaded data, but we
+// still accept them here so files can be validated before migration runs.
+const VALID_TASK_TYPES = new Set([
+  'qa',
+  'generation',
+  'rag',
+  'tool_calling',
+  'agentic',
+  // Legacy names — accepted during validation; processor.ts migrates them on load
+  'text_generation',
+  'json_generation',
+  'chat',
+]);
+
+// Task types that require a `contexts` field.
+// Only 'qa' (single-turn retrieval) requires contexts.
+// The new 'rag' type is multi-turn conversation and does not need contexts at the task level.
+const CONTEXTS_REQUIRED_TYPES = new Set(['qa']);
+
 function isValidTask(task): boolean {
   if (!task.hasOwnProperty('taskId')) {
     return false;
@@ -98,15 +118,15 @@ function isValidTask(task): boolean {
 
   if (
     !task.hasOwnProperty('taskType') ||
-    (task.taskType !== 'rag' &&
-      task.taskType !== 'text_generation' &&
-      task.taskType !== 'json_generation' &&
-      task.taskType !== 'chat')
+    !VALID_TASK_TYPES.has(task.taskType)
   ) {
     return false;
   }
 
-  if (task.taskType === 'rag' && !task.hasOwnProperty('contexts')) {
+  if (
+    CONTEXTS_REQUIRED_TYPES.has(task.taskType) &&
+    !task.hasOwnProperty('contexts')
+  ) {
     return false;
   }
 
@@ -166,15 +186,15 @@ export function validateInputData(data): { valid: boolean; reasons: string[] } {
     );
   }
 
-  // Validate documents: required when any task is type 'rag'
+  // Validate documents: required when any task is type 'qa' or legacy 'rag'
   if (
     data.hasOwnProperty('tasks') &&
-    data.tasks.some((task) => task.taskType === 'rag') &&
+    data.tasks.some((task) => CONTEXTS_REQUIRED_TYPES.has(task.taskType)) &&
     !data.hasOwnProperty('documents')
   ) {
     valid = false;
     reasons.push(
-      "Missing mandatory 'documents' information when `rag` type tasks are included.",
+      "Missing mandatory 'documents' information when `qa` or `rag` type tasks are included.",
     );
   }
   if (

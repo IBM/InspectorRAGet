@@ -23,6 +23,7 @@ import { Button, FileUploader, CodeSnippet } from '@carbon/react';
 import { ArrowLeft, ArrowRight } from '@carbon/icons-react';
 
 import { RawData } from '@/src/types';
+import { migrateData } from '@/src/migrator';
 import { camelCaseKeys } from '@/src/utilities/objects';
 import { validateInputData } from '@/src/validators';
 import { useNotification } from '@/src/components/notification/Notification';
@@ -36,6 +37,7 @@ interface Props {
 
 export default function DataUploaderView({ onNext, onPrev }: Props) {
   const [data, setData] = useState<RawData | undefined>(undefined);
+  const [migrated, setMigrated] = useState<boolean>(false);
 
   const { createNotification } = useNotification();
 
@@ -62,7 +64,9 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
               typeof e.target.result === 'string'
             ) {
               try {
-                const fileData = camelCaseKeys(JSON.parse(e.target.result));
+                const { data: migratedRaw, migrated: wasMigrated } =
+                  migrateData(JSON.parse(e.target.result));
+                const fileData = camelCaseKeys(migratedRaw);
                 const status = validateInputData(fileData);
 
                 if (status.valid) {
@@ -76,6 +80,7 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
                   );
 
                   setData(fileData);
+                  setMigrated(wasMigrated);
                 } else {
                   status.reasons.forEach((reason) => {
                     createNotification({
@@ -188,7 +193,7 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
               "tasks": [
                 {
                   "task_id": "task_1",
-                  "task_type": "rag",
+                  "task_type": "qa",
                   "category": "grounded",
                   "ncf_classes": ["answer"]
                   "contexts": [
@@ -203,7 +208,7 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
                 },
                 {
                   "task_id": "task_2",
-                  "task_type": "rag",
+                  "task_type": "qa",
                   "category": "random",
                   "ncf_classes": ["chit-chat"]
                   "contexts": [
@@ -305,7 +310,7 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
           renderIcon={ArrowRight}
           iconDescription="Verify data"
           onClick={() => {
-            onNext(data);
+            onNext(data, migrated);
           }}
         >
           Verify data

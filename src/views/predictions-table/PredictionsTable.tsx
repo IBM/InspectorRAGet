@@ -142,7 +142,6 @@ export default function PredictionsTable({
 }) {
   const [selectedModels, setSelectedModels] = useState<Model[]>(models);
   const [showTargets, setShowTargets] = useState<boolean>(true);
-  const [showWarning, setShowWarning] = useState<boolean>(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedFilters, setSelectedFilters] = useState<{
@@ -171,23 +170,12 @@ export default function PredictionsTable({
   // Populate table rows, sampling if the total exceeds MAX_NUM_ROWS
   const rows = useMemo(() => {
     const tableRows = populateTableRows(tasks, evaluations, eligibleTaskIDs);
-    if (tableRows.length > MAX_NUM_ROWS) {
-      // Add warning to indicate that only limited rows are shown, if not visible already
-      if (!showWarning) {
-        setShowWarning(true);
-      }
+    return tableRows.length > MAX_NUM_ROWS
+      ? sampleSize(tableRows, MAX_NUM_ROWS)
+      : tableRows;
+  }, [tasks, evaluations, eligibleTaskIDs]);
 
-      // Limit number of rows
-      return sampleSize(tableRows, MAX_NUM_ROWS);
-    } else {
-      // Remove previsouly set warning, if necessary
-      if (showWarning) {
-        setShowWarning(false);
-      }
-
-      return tableRows;
-    }
-  }, [tasks, evaluations, showWarning, eligibleTaskIDs]);
+  const showWarning = rows.length === MAX_NUM_ROWS;
 
   // Adjust headers based on selected models and show-targets toggle
   const headers = useMemo(() => {

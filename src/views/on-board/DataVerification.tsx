@@ -44,6 +44,7 @@ import classes from './DataVerification.module.scss';
 
 interface Props {
   data: RawData;
+  migrated?: boolean;
   onNext: Function;
   onPrev: Function;
 }
@@ -58,19 +59,19 @@ interface disqualifiedTaskRow {
 
 export default memo(function DataVerificationView({
   data,
+  migrated = false,
   onNext,
   onPrev,
 }: Props) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [visibleRows, setVisibleRows] = useState<disqualifiedTaskRow[]>([]);
 
   const { createNotification } = useNotification();
 
-  // Process and validate data
+  // Process and validate data; migrated flag carries through from the upload step
   const [exampleData, disqualifiedTasks, notifications] = useMemo(
-    () => processData(data),
-    [data],
+    () => processData(data, migrated),
+    [data, migrated],
   );
 
   useEffect(() => {
@@ -79,6 +80,7 @@ export default memo(function DataVerificationView({
         createNotification(notification);
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- createNotification is a stable context function; adding it would not change behavior
   }, [notifications]);
 
   // Create headers, rows and visible rows
@@ -127,11 +129,8 @@ export default memo(function DataVerificationView({
     });
   }, [disqualifiedTasks]);
 
-  useEffect(
-    () =>
-      setVisibleRows(
-        rows.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize),
-      ),
+  const visibleRows = useMemo(
+    () => rows.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize),
     [rows, page, pageSize],
   );
 

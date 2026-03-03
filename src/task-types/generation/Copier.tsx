@@ -21,10 +21,10 @@
 import { useState, useMemo } from 'react';
 import { Modal, RadioTile, CodeSnippet } from '@carbon/react';
 
-import { Metric, Model, Task, TaskEvaluation, Message } from '@/src/types';
+import { Metric, Model, Task, TaskEvaluation } from '@/src/types';
 import { WarningAlt } from '@carbon/icons-react';
 
-import classes from './TaskCopier.module.scss';
+import classes from './Copier.module.scss';
 
 interface Props {
   models: Model[];
@@ -33,29 +33,6 @@ interface Props {
   evaluations: TaskEvaluation[];
   onClose: Function;
   open: boolean;
-}
-
-function prepareTextForMessage(message: Message) {
-  let text = '';
-
-  if (message.role === 'tool') {
-    text += JSON.stringify({
-      tool_call_id: message['tool_call_id'],
-      content: message.content,
-    });
-  } else if (
-    message.role === 'assistant' &&
-    message.hasOwnProperty('tool_calls')
-  ) {
-    text += JSON.stringify(message['tool_calls']);
-  } else {
-    text +=
-      typeof message.content === 'string'
-        ? message.content
-        : JSON.stringify(message.content);
-  }
-
-  return text;
 }
 
 function prepareText(
@@ -67,12 +44,8 @@ function prepareText(
   const separator = '=======================================================\n';
   let input, responses;
 
-  input = `${separator}Input\n${separator}`;
-  if (Array.isArray(task.input)) {
-    task.input.map(
-      (message) =>
-        (input += `${message.role}: ${prepareTextForMessage(message)}\n`),
-    );
+  if (typeof task.input === 'string') {
+    input = `${separator}Input\n${separator}${task.input.trim()}`;
   }
 
   if (evaluations && evaluations.length) {
@@ -98,15 +71,8 @@ function prepareLaTEXT(
 ): string {
   let input, responses;
 
-  input =
-    '\\multicolumn{1}{|c|}{\\textbf{Conversation}} \\\\ \n\t\\toprule \n\t';
-  if (Array.isArray(task.input)) {
-    task.input.map(
-      (message) =>
-        (input += `\\textbf{${
-          message.role
-        }}: ${prepareTextForMessage(message)} \\\\ \n\t`),
-    );
+  if (typeof task.input === 'string') {
+    input = `\\multicolumn{1}{|c|}{\\textbf{Input}} \\\\ \n\t\\toprule \n\t${task.input.trim()}  \\\\ \n\t`;
   }
 
   if (evaluations && evaluations.length) {
@@ -148,7 +114,7 @@ function prepareJSON(
   );
 }
 
-export default function ChatTaskCopierModal({
+export default function GenerationCopierModal({
   models,
   metrics,
   task,

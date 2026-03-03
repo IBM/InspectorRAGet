@@ -19,7 +19,7 @@
 'use client';
 
 import { isEmpty } from 'lodash';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { TextArea, Button } from '@carbon/react';
 import { WarningAlt } from '@carbon/icons-react';
 
@@ -53,25 +53,18 @@ export default function ExpressionBuilder({
   const [updatedExpressionText, setUpdatedExpressionText] = useState<string>(
     expression ? JSON.stringify(expression) : PLACHOLDER_EXPRESSION_TEXT,
   );
-  const [errorMessage, setErrorMessage] = useState<string>();
 
-  useEffect(() => {
+  // Derive validation error directly during render — no need for separate state
+  const errorMessage = (() => {
     try {
-      const updatedExpression = JSON.parse(updatedExpressionText);
-
-      const errorMessage = validate(
-        updatedExpression,
+      return validate(
+        JSON.parse(updatedExpressionText),
         models?.map((model) => model.modelId),
       );
-      if (errorMessage) {
-        setErrorMessage(errorMessage);
-      } else {
-        setErrorMessage(undefined);
-      }
-    } catch (err) {
-      setErrorMessage('Invalid JSON');
+    } catch {
+      return 'Invalid JSON';
     }
-  }, [updatedExpressionText]);
+  })();
 
   return (
     <div className={classes.page}>

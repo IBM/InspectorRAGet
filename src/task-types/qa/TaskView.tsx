@@ -38,20 +38,22 @@ import {
   Model,
   StringMatchObject,
   TaskEvaluation,
-  RetrievedDocument,
   Task,
   Metric,
-  RetrievedDocumentAnnotation,
 } from '@/src/types';
+import {
+  RetrievedDocument,
+  RetrievedDocumentAnnotation,
+} from '@/src/task-types/qa/types';
 import { useDataStore } from '@/src/store';
 import { truncate, overlaps } from '@/src/utilities/strings';
 import { mark } from '@/src/utilities/highlighter';
 
 import DocumentPanel from '@/src/views/document/DocumentPanel';
 import AnnotationsTable from '@/src/views/annotations-table/AnnotationsTable';
-import RAGTaskCopierModal from '@/src/components/task-copier/RAGTaskCopier';
+import QACopier from '@/src/task-types/qa/Copier';
 
-import classes from './RAGTask.module.scss';
+import classes from './TaskView.module.scss';
 
 // ===================================================================================
 //                                TYPES
@@ -68,7 +70,7 @@ interface Props {
 // ===================================================================================
 //                               MAIN FUNCTION
 // ===================================================================================
-export default function RAGTask({
+export default function QATaskView({
   task,
   models,
   metrics,
@@ -164,7 +166,7 @@ export default function RAGTask({
     }
 
     return [contextsPerEvaluation, taskEvaluations];
-  }, [task.taskId, task.contexts, data]);
+  }, [task.taskId, task.contexts, task.annotations, data]);
 
   const [hMetrics, aMetrics] = useMemo(() => {
     const humanMetrics = new Map(
@@ -184,7 +186,7 @@ export default function RAGTask({
   return (
     <>
       {models && metrics && task && evaluations && (
-        <RAGTaskCopierModal
+        <QACopier
           open={taskCopierModalOpen}
           models={Array.from(models.values())}
           metrics={metrics}
@@ -194,7 +196,7 @@ export default function RAGTask({
           onClose={() => {
             setTaskCopierModalOpen(false);
           }}
-        ></RAGTaskCopierModal>
+        ></QACopier>
       )}
 
       {task && models && evaluations && (
