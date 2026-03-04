@@ -43,8 +43,8 @@ function validData() {
       {
         taskId: 't1',
         modelId: 'm1',
-        modelResponse: 'Hi',
-        annotations: { accuracy: { system: { value: 0.9 } } },
+        output: { type: 'text', value: 'Hi' },
+        scores: { accuracy: { system: { value: 0.9 } } },
       },
     ],
   };
@@ -74,8 +74,8 @@ function validQAData() {
       {
         taskId: 't1',
         modelId: 'm1',
-        modelResponse: 'X is...',
-        annotations: { faithfulness: { system: { value: 0.8 } } },
+        output: { type: 'text', value: 'X is...' },
+        scores: { faithfulness: { system: { value: 0.8 } } },
       },
     ],
   };

@@ -42,11 +42,16 @@ export function spearman(pairs: any[]): number {
   });
   // statistics.js always computes Fisher + beta-function significance regardless
   // of arguments, and throws on edge-case rho values (e.g. exactly ±1, tiny n).
-  // Wrap in try/catch so a degenerate pair doesn't break the whole heatmap.
+  // It also calls console.error internally before throwing, so we suppress it
+  // temporarily to avoid noise in the browser console.
+  const originalConsoleError = console.error;
+  console.error = () => {};
   try {
     const dependence = stats.spearmansRho('valueA', 'valueB');
     return dependence ? dependence.rho : NaN;
   } catch {
     return NaN;
+  } finally {
+    console.error = originalConsoleError;
   }
 }

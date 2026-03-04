@@ -45,7 +45,7 @@ export default function SkeletonTask() {
             </>
           </div>
         </div>
-        <div className={styles.evaluationsContainer}>
+        <div className={styles.resultsContainer}>
           <Accordion>
             {[
               { modelId: 'Model A' },
@@ -55,7 +55,7 @@ export default function SkeletonTask() {
               <AccordionItem
                 key={'model-' + evaluation.modelId}
                 title={'Model: ' + evaluation.modelId}
-                className={styles.evaluationContainer}
+                className={styles.resultContainer}
                 open={true}
               >
                 <div className={styles.evaluationHeader}>

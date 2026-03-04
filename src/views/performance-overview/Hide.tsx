@@ -96,7 +96,7 @@ export default function HidePanel({
               }
               items={models}
               initialSelectedItems={ignoredModels}
-              itemToString={(item) => (item.name ? item.name : item.modelId)}
+              itemToString={(item) => (item ? item.name || item.modelId : '')}
               onChange={(event) => {
                 setIgnoredModels(event.selectedItems);
               }}
@@ -135,7 +135,7 @@ export default function HidePanel({
               items={metrics}
               initialSelectedItems={ignoredMetrics}
               itemToString={(item) =>
-                item.displayName ? item.displayName : item.name
+                item ? item.displayName || item.name : ''
               }
               onChange={(event) => {
                 setIgnoredMetrics(event.selectedItems);

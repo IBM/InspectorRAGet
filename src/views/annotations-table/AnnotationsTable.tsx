@@ -38,14 +38,9 @@ import {
 
 import classes from './AnnotationsTable.module.scss';
 
-// ===================================================================================
-//                               COMPUTE FUNCTIONS
-// ===================================================================================
-/**
- * Helper function to compute annotations table headers and rows
- * @param annotations full set of annotations
- * @returns
- */
+// --- Compute functions ---
+
+/** Build table headers and rows from per-metric annotation bags, keyed by annotator. */
 function populateTable(
   annotations: {
     [key: string]: { [key: string]: Annotation };
@@ -67,25 +62,23 @@ function populateTable(
     });
   });
 
-  // Collect metrics per annotator
-  const MetricsPerAnnotator: {
+  const metricsPerAnnotator: {
     [key: string]: { [key: string]: string | number };
   } = {};
   for (const [metricName, annotators] of Object.entries(annotations)) {
     if (metricNames.includes(metricName)) {
       for (const [annotator, entry] of Object.entries(annotators)) {
-        if (MetricsPerAnnotator.hasOwnProperty(annotator)) {
-          MetricsPerAnnotator[annotator][metricName] = entry.value;
+        if (metricsPerAnnotator.hasOwnProperty(annotator)) {
+          metricsPerAnnotator[annotator][metricName] = entry.value;
         } else {
-          MetricsPerAnnotator[annotator] = { [metricName]: entry.value };
+          metricsPerAnnotator[annotator] = { [metricName]: entry.value };
         }
       }
     }
   }
 
-  // Formulate rows
   const rows: { [key: string]: any }[] = [];
-  for (const [annotator, metricNames] of Object.entries(MetricsPerAnnotator)) {
+  for (const [annotator, metricNames] of Object.entries(metricsPerAnnotator)) {
     const row = { id: annotator, annotator: annotator };
     for (const [metricName, value] of Object.entries(metricNames)) {
       row[metricName] = extractMetricDisplayValue(
@@ -99,9 +92,8 @@ function populateTable(
   return [headers, rows];
 }
 
-// ===================================================================================
-//                               MAIN FUNCTION
-// ===================================================================================
+// --- Main component ---
+
 export default function AnnotationsTable({
   annotations,
   metrics,
@@ -116,52 +108,44 @@ export default function AnnotationsTable({
     [annotations, metrics],
   );
 
+  if (!headers || !rows) {
+    return null;
+  }
+
   return (
-    <>
-      {headers && rows && (
-        <div>
-          <DataTable rows={rows} headers={headers}>
-            {({
-              rows,
-              headers,
-              getTableProps,
-              getHeaderProps,
-              getRowProps,
-            }) => (
-              <TableContainer className={classes.table}>
-                <Table {...getTableProps()}>
-                  <TableHead>
-                    <TableRow>
-                      {headers.map((header, index) => {
-                        const { key: _key, ...headerProps } = getHeaderProps({
-                          header,
-                        });
-                        return (
-                          <TableHeader
-                            key={'header--' + index}
-                            {...headerProps}
-                          >
-                            {header.header}
-                          </TableHeader>
-                        );
-                      })}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {rows.map((row, index) => (
-                      <TableRow key={'row--' + index} {...getRowProps({ row })}>
-                        {row.cells.map((cell) => (
-                          <TableCell key={cell.id}>{cell.value}</TableCell>
-                        ))}
-                      </TableRow>
+    <DataTable rows={rows} headers={headers}>
+      {({ rows, headers, getTableProps, getHeaderProps, getRowProps }) => (
+        <TableContainer className={classes.table}>
+          <Table {...getTableProps()}>
+            <TableHead>
+              <TableRow>
+                {headers.map((header, index) => {
+                  const { key: _key, ...headerProps } = getHeaderProps({
+                    header,
+                  });
+                  return (
+                    <TableHeader key={'header--' + index} {...headerProps}>
+                      {header.header}
+                    </TableHeader>
+                  );
+                })}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rows.map((row, index) => {
+                const { key: _key, ...rowProps } = getRowProps({ row });
+                return (
+                  <TableRow key={'row--' + index} {...rowProps}>
+                    {row.cells.map((cell) => (
+                      <TableCell key={cell.id}>{cell.value}</TableCell>
                     ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-          </DataTable>
-        </div>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
-    </>
+    </DataTable>
   );
 }

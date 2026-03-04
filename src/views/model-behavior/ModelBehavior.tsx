@@ -38,12 +38,7 @@ import { GroupedBarChart } from '@carbon/charts-react';
 import { ScaleTypes } from '@carbon/charts';
 
 import { useTheme } from '@/src/theme';
-import {
-  TaskEvaluation,
-  Model,
-  Metric,
-  FilterationResponse,
-} from '@/src/types';
+import { ModelResult, Model, Metric, FilterationResponse } from '@/src/types';
 import {
   AgreementLevels,
   AgreementLevelDefinitions,
@@ -60,25 +55,23 @@ import Filters from '@/src/components/filters/Filters';
 import '@carbon/charts-react/styles.css';
 import classes from './ModelBehavior.module.scss';
 
-// ===================================================================================
-//                                TYPES
-// ===================================================================================
+// --- Types ---
+
 type record = {
   taskId: string;
   modelName: string;
 };
 
 interface Props {
-  evaluationsPerMetric: { [key: string]: TaskEvaluation[] };
+  resultsPerMetric: { [key: string]: ModelResult[] };
   models: Model[];
   metrics: Metric[];
   filters: { [key: string]: string[] };
   onTaskSelection: Function;
 }
 
-// ===================================================================================
-//                               COMPUTE FUNCTIONS
-// ===================================================================================
+// --- Compute functions ---
+
 function compareChartData(
   a: { group: string; key: string | number; value: number },
   b: { group: string; key: string | number; value: number },
@@ -148,18 +141,17 @@ function prepareGroupBarChartData(
     });
 }
 
-// ===================================================================================
-//                               MAIN FUNCTION
-// ===================================================================================
+// --- Main component ---
+
 export default function ModelBehavior({
-  evaluationsPerMetric,
+  resultsPerMetric,
   models,
   metrics,
   filters,
   onTaskSelection,
 }: Props) {
   const [loading, setLoading] = useState<boolean>(false);
-  const [WindowWidth, setWindowWidth] = useState<number>(
+  const [windowWidth, setWindowWidth] = useState<number>(
     global?.window && window.innerWidth,
   );
   const agreementLevels: {
@@ -192,9 +184,7 @@ export default function ModelBehavior({
   const [graphRecords, setGraphRecords] = useState<
     (record & { [key: string]: string | number })[]
   >([]);
-  const [visibleEvaluations, setVisibleEvaluations] = useState<
-    TaskEvaluation[]
-  >([]);
+  const [visibleResults, setVisibleResults] = useState<ModelResult[]>([]);
   const [filterationWorker, setFilterationWorker] = useState<Worker>();
 
   useEffect(() => {
@@ -218,9 +208,9 @@ export default function ModelBehavior({
     );
 
     worker.onmessage = function (event: MessageEvent<FilterationResponse>) {
-      const { records, evaluations } = event.data;
+      const { records, results } = event.data;
       setGraphRecords(records);
-      setVisibleEvaluations(evaluations);
+      setVisibleResults(results);
       setLoading(false);
     };
 
@@ -236,8 +226,8 @@ export default function ModelBehavior({
     const humanMetricNames = metrics
       .filter((metric) => metric.author === 'human')
       .map((metric) => metric.name);
-    for (const [metric, evaluations] of Object.entries(evaluationsPerMetric)) {
-      evaluations.forEach((evaluation) => {
+    for (const [metric, results] of Object.entries(resultsPerMetric)) {
+      results.forEach((evaluation) => {
         if (humanMetricNames.includes(metric)) {
           Object.keys(evaluation[metric]).forEach((annotator) =>
             annotatorsSet.add(annotator),
@@ -247,7 +237,7 @@ export default function ModelBehavior({
     }
 
     return annotatorsSet;
-  }, [evaluationsPerMetric, metrics]);
+  }, [resultsPerMetric, metrics]);
 
   // Reset expression when selected metric changes
   useEffect(() => {
@@ -259,7 +249,7 @@ export default function ModelBehavior({
       if (selectedAnnotator) {
         return Array.from(
           new Set(
-            evaluationsPerMetric[selectedMetric.name]
+            resultsPerMetric[selectedMetric.name]
               .filter(
                 (evaluation) =>
                   evaluation[selectedMetric.name].hasOwnProperty(
@@ -278,7 +268,7 @@ export default function ModelBehavior({
 
       return Array.from(
         new Set(
-          evaluationsPerMetric[selectedMetric.name]
+          resultsPerMetric[selectedMetric.name]
             .filter(
               (evaluation) =>
                 evaluation.hasOwnProperty(`${selectedMetric.name}_agg`) &&
@@ -296,7 +286,7 @@ export default function ModelBehavior({
 
     return undefined;
   }, [
-    evaluationsPerMetric,
+    resultsPerMetric,
     selectedModels,
     selectedMetric,
     selectedAnnotator,
@@ -309,7 +299,7 @@ export default function ModelBehavior({
 
   /**
    * Adjust graph records based on selected agreement levels, models and annotator
-   * visibleEvaluations : [{taskId: <>, modelId: <>, [metric]_score: <>}]
+   * visibleResults : [{taskId: <>, modelId: <>, [metric]_score: <>}]
    * NOTE: * [metric]_score field avialable metrics (all OR single)
    *       * score field could be either majority score or individual annotator's score (based on selected annotator)
    */
@@ -319,7 +309,7 @@ export default function ModelBehavior({
     // Delegate filtering to Web Worker to keep the main thread responsive
     if (filterationWorker) {
       filterationWorker.postMessage({
-        evaluationsPerMetric: evaluationsPerMetric,
+        resultsPerMetric: resultsPerMetric,
         filters: selectedFilters,
         models: selectedModels,
         expression: expression,
@@ -331,7 +321,7 @@ export default function ModelBehavior({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- filterationWorker is a stable Web Worker instance; including it would not change behavior
   }, [
-    evaluationsPerMetric,
+    resultsPerMetric,
     selectedAgreementLevels,
     selectedModels,
     selectedMetric,
@@ -372,15 +362,15 @@ export default function ModelBehavior({
 
   return (
     <div className={classes.page}>
-      {loading ? <Loading /> : null}
+      {loading ? <Loading small withOverlay={false} /> : null}
       <div className={classes.selectors}>
         <div className={classes.modelSelector}>
           <FilterableMultiSelect
-            id={'model-selector'}
+            id={'model-behavior-model-selector'}
             titleText="Choose models"
             items={models}
-            initialSelectedItems={selectedModels}
-            itemToString={(item) => item.name}
+            selectedItems={selectedModels}
+            itemToString={(item) => (item ? item.name : '')}
             onChange={(event) => {
               setSelectedModels(event.selectedItems);
             }}
@@ -451,7 +441,7 @@ export default function ModelBehavior({
                           <Link
                             target="_blank"
                             rel="noopener noreferrer"
-                            href="custom-link"
+                            href="https://en.wikipedia.org/wiki/Inter-rater_reliability"
                           >
                             Reference
                           </Link>
@@ -508,16 +498,11 @@ export default function ModelBehavior({
               initialSelectedItems={selectedAllowedValues}
               items={availableAllowedValues}
               itemToString={(item) => {
-                if (Array.isArray(item)) {
-                  return item.map((entry) => {
-                    extractMetricDisplayValue(entry, selectedMetric.values);
-                  });
-                } else if (
-                  typeof item === 'string' ||
-                  typeof item === 'number'
-                ) {
+                if (item === null || item === undefined) return '';
+                if (typeof item === 'string' || typeof item === 'number') {
                   return extractMetricDisplayValue(item, selectedMetric.values);
                 }
+                return String(item);
               }}
               onChange={(event) => {
                 setSelectedAllowedValues(event.selectedItems);
@@ -581,7 +566,7 @@ export default function ModelBehavior({
                   <h5 className={classes.graphTitle}>
                     <strong>{extractMetricDisplayName(metric)}</strong>
                     <span>{`(${visibleTasksPerMetric[metric.name]}/${
-                      evaluationsPerMetric[metric.name].length / models.length
+                      resultsPerMetric[metric.name].length / models.length
                     })`}</span>
                   </h5>
                   <GroupedBarChart
@@ -606,8 +591,8 @@ export default function ModelBehavior({
                         },
                       },
                       width:
-                        humanMetrics.length == 1
-                          ? `${Math.round(WindowWidth * 0.5)}px`
+                        humanMetrics.length === 1
+                          ? `${Math.round(windowWidth * 0.5)}px`
                           : '500px',
                       height: '500px',
                       toolbar: {
@@ -645,7 +630,7 @@ export default function ModelBehavior({
                   <h5 className={classes.graphTitle}>
                     <strong>{extractMetricDisplayName(metric)}</strong>
                     <span>{`(${visibleTasksPerMetric[metric.name]}/${
-                      evaluationsPerMetric[metric.name].length / models.length
+                      resultsPerMetric[metric.name].length / models.length
                     })`}</span>
                   </h5>
                   <GroupedBarChart
@@ -695,7 +680,7 @@ export default function ModelBehavior({
           <h5 className={classes.graphTitle}>
             <strong>{extractMetricDisplayName(selectedMetric)}</strong>
             <span>{`(${visibleTasksPerMetric[selectedMetric.name]}/${
-              evaluationsPerMetric[selectedMetric.name].length / models.length
+              resultsPerMetric[selectedMetric.name].length / models.length
             })`}</span>
           </h5>
           <GroupedBarChart
@@ -719,7 +704,7 @@ export default function ModelBehavior({
                   mapsTo: 'key',
                 },
               },
-              width: `${Math.round(WindowWidth * 0.8)}px`,
+              width: `${Math.round(windowWidth * 0.8)}px`,
               height: '500px',
               toolbar: {
                 enabled: false,
@@ -736,12 +721,12 @@ export default function ModelBehavior({
         </div>
       ) : null}
 
-      {selectedMetric && !isEmpty(visibleEvaluations) ? (
+      {selectedMetric && !isEmpty(visibleResults) ? (
         <div className={classes.row}>
           <h4>Tasks</h4>
           <TasksTable
             metrics={[selectedMetric]}
-            evaluations={visibleEvaluations}
+            results={visibleResults}
             models={selectedModels}
             filters={filters}
             annotator={selectedAnnotator}

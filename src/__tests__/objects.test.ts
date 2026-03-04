@@ -76,7 +76,7 @@ describe('camelCaseKeys', () => {
     const input = {
       task_id: 'a',
       model_id: 'b',
-      model_response: 'c',
+      depends_on: 'c',
       display_value: 'd',
       numeric_value: 'e',
       min_value: 'f',
@@ -92,7 +92,7 @@ describe('camelCaseKeys', () => {
     expect(result).toEqual({
       taskId: 'a',
       modelId: 'b',
-      modelResponse: 'c',
+      dependsOn: 'c',
       displayValue: 'd',
       numericValue: 'e',
       minValue: 'f',

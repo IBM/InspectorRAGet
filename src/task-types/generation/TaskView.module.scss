@@ -34,7 +34,7 @@
   border-left: dashed 1px var(--cds-border-inverse);
 }
 
-.evaluationsContainer {
+.resultsContainer {
   width: 40%;
   height: 100%;
   margin-left: auto;
@@ -97,4 +97,9 @@
 
 .responseContainer {
   line-height: 1.4em;
+}
+
+.notProvided {
+  color: var(--cds-text-helper);
+  font-style: italic;
 }

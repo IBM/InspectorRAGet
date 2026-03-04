@@ -23,7 +23,6 @@ export function camelCaseKeys(
   keys: string[] = [
     'task_id',
     'model_id',
-    'model_response',
     'display_value',
     'numeric_value',
     'min_value',
@@ -34,6 +33,7 @@ export function camelCaseKeys(
     'end_timestamp',
     'document_id',
     'display_name',
+    'depends_on',
   ],
 ) {
   if (isArray(obj)) {
@@ -57,7 +57,6 @@ export function snakeCaseKeys(
   keys: string[] = [
     'taskId',
     'modelId',
-    'modelResponse',
     'displayValue',
     'numericValue',
     'minValue',
@@ -65,6 +64,7 @@ export function snakeCaseKeys(
     'taskType',
     'documentId',
     'displayName',
+    'dependsOn',
   ],
 ) {
   if (isArray(obj)) {
@@ -87,11 +87,11 @@ function areArraysIntersecting(
   a: string | string[],
   b: string | string[],
 ): boolean {
-  const arrayA: any[] = Array.isArray(a) ? a : [a];
-  const arrayB: any[] = Array.isArray(b) ? b : [b];
-
-  for (var i = 0; i < arrayA.length; i++) {
-    if (arrayB.includes(arrayA[i])) {
+  const arrayA = Array.isArray(a) ? a : [a];
+  // Convert to Set for O(1) per-element lookup instead of O(m) Array.includes
+  const setB = new Set(Array.isArray(b) ? b : [b]);
+  for (const item of arrayA) {
+    if (setB.has(item)) {
       return true;
     }
   }

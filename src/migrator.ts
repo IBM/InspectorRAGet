@@ -23,7 +23,11 @@
 // |---------|------------|-----------------------------------------------------------|
 // | 1       | (implicit) | Initial schema — all files without schema_version field   |
 // | 2       | (pending)  | Task type rename: rag→qa/rag, text_generation/            |
-// |         |            | json_generation→generation, chat→rag                      |
+// |         |            | json_generation→generation, chat→rag.                     |
+// |         |            | Evaluation renames: annotations→scores,                   |
+// |         |            | modelResponse→output:{type:'text',value}.                 |
+// |         |            | Task targets: {text}→{type:'text',value}.                 |
+// |         |            | Top-level key rename: evaluations→results.                |
 export const CURRENT_SCHEMA_VERSION = 2;
 
 // --- Migration functions ---
@@ -52,6 +56,42 @@ function migrateV1toV2(raw: Record<string, any>): Record<string, any> {
       task.task_type = 'generation';
     } else if (task.task_type === 'chat') {
       task.task_type = 'rag';
+    }
+
+    // Wrap legacy flat targets ({text}) into the TaskTarget discriminated union.
+    if (Array.isArray(task.targets)) {
+      task.targets = task.targets.map((t: Record<string, any>) => {
+        // Already migrated or authored in v2 format — leave as-is.
+        if (t.type !== undefined) return t;
+        return { type: 'text', value: t.text ?? '' };
+      });
+    }
+  }
+
+  // Rename evaluation fields.
+  // annotations → scores (the old name conflated metric scores with annotation activity).
+  // modelResponse → output:{type:'text', value} (typed union, extensible to tool_calls).
+  // Rename top-level evaluations array to results.
+  if (result.evaluations !== undefined && result.results === undefined) {
+    result.results = result.evaluations;
+    delete result.evaluations;
+  }
+
+  for (const evaluation of result.results ?? []) {
+    if (
+      evaluation.annotations !== undefined &&
+      evaluation.scores === undefined
+    ) {
+      evaluation.scores = evaluation.annotations;
+      delete evaluation.annotations;
+    }
+
+    if (
+      evaluation.model_response !== undefined &&
+      evaluation.output === undefined
+    ) {
+      evaluation.output = { type: 'text', value: evaluation.model_response };
+      delete evaluation.model_response;
     }
   }
 

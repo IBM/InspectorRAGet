@@ -18,13 +18,13 @@
 
 import { isEmpty } from 'lodash';
 
-import { FilterationRequest, TaskEvaluation } from '@/src/types';
+import { FilterationRequest, ModelResult } from '@/src/types';
 import { areObjectsIntersecting } from '@/src/utilities/objects';
 import { evaluate } from '@/src/utilities/expressions';
 
 onmessage = function (event: MessageEvent<FilterationRequest>) {
   const {
-    evaluationsPerMetric,
+    resultsPerMetric,
     filters,
     expression,
     agreementLevels,
@@ -41,51 +41,48 @@ onmessage = function (event: MessageEvent<FilterationRequest>) {
     modelName: string;
     [key: string]: string | number;
   }[] = [];
-  const visibleEvaluations: TaskEvaluation[] = [];
+  const visibleResults: ModelResult[] = [];
 
   // Apply task-level filters when specified
-  const filteredEvaluationsPerMetric: { [key: string]: TaskEvaluation[] } = {};
-  for (const [metric, evals] of Object.entries(evaluationsPerMetric)) {
-    filteredEvaluationsPerMetric[metric] = !isEmpty(filters)
+  const filteredResultsPerMetric: { [key: string]: ModelResult[] } = {};
+  for (const [metric, evals] of Object.entries(resultsPerMetric)) {
+    filteredResultsPerMetric[metric] = !isEmpty(filters)
       ? evals.filter((e) => areObjectsIntersecting(filters, e))
       : evals;
   }
 
   if (metric) {
     if (expression && !isEmpty(expression)) {
-      // Group evaluations by task and model so the expression can compare across models
-      const evaluationsPerTaskPerModel: {
-        [key: string]: { [key: string]: TaskEvaluation };
+      // Group results by task and model so the expression can compare across models
+      const resultsPerTaskPerModel: {
+        [key: string]: { [key: string]: ModelResult };
       } = {};
-      filteredEvaluationsPerMetric[metric.name].forEach((evaluation) => {
-        if (evaluationsPerTaskPerModel.hasOwnProperty(evaluation.taskId)) {
-          evaluationsPerTaskPerModel[evaluation.taskId][evaluation.modelId] =
+      filteredResultsPerMetric[metric.name].forEach((evaluation) => {
+        if (resultsPerTaskPerModel.hasOwnProperty(evaluation.taskId)) {
+          resultsPerTaskPerModel[evaluation.taskId][evaluation.modelId] =
             evaluation;
         } else {
-          evaluationsPerTaskPerModel[evaluation.taskId] = {
+          resultsPerTaskPerModel[evaluation.taskId] = {
             [evaluation.modelId]: evaluation,
           };
         }
       });
 
-      evaluate(
-        evaluationsPerTaskPerModel,
-        expression,
-        metric,
-        annotator,
-      ).forEach((evaluation) => {
-        records.push({
-          taskId: evaluation.taskId,
-          modelName: models[evaluation.modelId].name,
-          [`${metric.name}_value`]: evaluation[`${metric.name}_agg`].value,
-          [`${metric.name}_aggLevel`]: evaluation[`${metric.name}_agg`].level,
-        });
+      evaluate(resultsPerTaskPerModel, expression, metric, annotator).forEach(
+        (evaluation) => {
+          records.push({
+            taskId: evaluation.taskId,
+            modelName: models[evaluation.modelId].name,
+            [`${metric.name}_value`]: evaluation[`${metric.name}_agg`].value,
+            [`${metric.name}_aggLevel`]: evaluation[`${metric.name}_agg`].level,
+          });
 
-        visibleEvaluations.push(evaluation);
-      });
+          visibleResults.push(evaluation);
+        },
+      );
     } else {
-      // No expression: filter evaluations directly for the selected metric
-      filteredEvaluationsPerMetric[metric.name].forEach((evaluation) => {
+      // No expression: filter results directly for the selected metric
+      filteredResultsPerMetric[metric.name].forEach((evaluation) => {
         if (annotator) {
           /**
            * Evaluation's model id fall within selected models
@@ -105,7 +102,7 @@ onmessage = function (event: MessageEvent<FilterationRequest>) {
                 evaluation[metric.name][annotator].value,
             });
 
-            visibleEvaluations.push(evaluation);
+            visibleResults.push(evaluation);
           }
         } else {
           if (
@@ -125,17 +122,15 @@ onmessage = function (event: MessageEvent<FilterationRequest>) {
                 evaluation[`${metric.name}_agg`].level,
             });
 
-            visibleEvaluations.push(evaluation);
+            visibleResults.push(evaluation);
           }
         }
       });
     }
   } else {
     // No specific metric selected: iterate all metrics
-    for (const [metric, evaluations] of Object.entries(
-      filteredEvaluationsPerMetric,
-    )) {
-      evaluations.forEach((evaluation) => {
+    for (const [metric, results] of Object.entries(filteredResultsPerMetric)) {
+      results.forEach((evaluation) => {
         if (annotator) {
           /**
            * Evaluation's model id fall within selected models
@@ -176,5 +171,5 @@ onmessage = function (event: MessageEvent<FilterationRequest>) {
     }
   }
 
-  postMessage({ records: records, evaluations: visibleEvaluations });
+  postMessage({ records: records, results: visibleResults });
 };

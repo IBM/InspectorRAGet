@@ -26,7 +26,7 @@ import { WarningAlt } from '@carbon/icons-react';
 import { ScatterChart } from '@carbon/charts-react';
 
 import { useTheme } from '@/src/theme';
-import { Model, Metric, TaskEvaluation } from '@/src/types';
+import { Model, Metric, ModelResult } from '@/src/types';
 import {
   castToNumber,
   AgreementLevels,
@@ -45,9 +45,7 @@ import { getModelColorPalette } from '@/src/utilities/colors';
 import '@carbon/charts-react/styles.css';
 import classes from './ModelComparator.module.scss';
 
-// ===================================================================================
-//                                TYPES
-// ===================================================================================
+// --- Types ---
 
 type StatisticalInformation = {
   p: number;
@@ -59,45 +57,34 @@ type StatisticalInformation = {
 };
 
 interface Props {
-  evaluationsPerMetric: { [key: string]: TaskEvaluation[] };
+  resultsPerMetric: { [key: string]: ModelResult[] };
   models: Model[];
   metrics: Metric[];
   filters: { [key: string]: string[] };
   onTaskSelection: Function;
 }
 
-// ===================================================================================
-//                               COMPUTE FUNCTIONS
-// ===================================================================================
+// --- Compute functions ---
 
 /**
- * Build an array containing evaluations only for selected models for each task.
+ * Build per-task result pairs for the two selected models.
  *
- * Eligbility criteria:
- *
- * 1. Must have evaluations for both selected models
- *
- * 2. Each evaluation must have an agreement value for selected metric
- *
- *
- * @param evaluations evaluations for all task
- * @param modelA selected model
- * @param modelB selected model
- * @param metric selected metric
- * @returns
+ * Eligibility: both models must have a result for the task, each result must
+ * have a non-NO_AGREEMENT value for the selected metric, and any active filters
+ * must pass.
  */
-function extractEvaluationsPerTask(
-  evaluations: TaskEvaluation[],
+function extractResultsPerTask(
+  results: ModelResult[],
   modelA: Model,
   modelB: Model,
   metric: string,
   selectedFilters: { [key: string]: string[] },
   selectedMetricRange?: number[],
 ) {
-  const modelEvaluationsPerTask: { [key: string]: TaskEvaluation[] } = {};
+  const modelResultsPerTask: { [key: string]: ModelResult[] } = {};
 
-  // Retain evaluations that belong to selected models, have agreement, and pass filters
-  evaluations.forEach((evaluation) => {
+  // Retain results that belong to selected models, have agreement, and pass filters
+  results.forEach((evaluation) => {
     if (
       (evaluation.modelId === modelA.modelId ||
         evaluation.modelId === modelB.modelId) &&
@@ -106,21 +93,20 @@ function extractEvaluationsPerTask(
         ? areObjectsIntersecting(selectedFilters, evaluation)
         : true)
     ) {
-      const modelEvaluationsForTask =
-        modelEvaluationsPerTask[evaluation.taskId];
-      if (modelEvaluationsForTask) {
-        modelEvaluationsForTask.push(evaluation);
+      const modelResultsForTask = modelResultsPerTask[evaluation.taskId];
+      if (modelResultsForTask) {
+        modelResultsForTask.push(evaluation);
       } else {
-        modelEvaluationsPerTask[evaluation.taskId] = [evaluation];
+        modelResultsPerTask[evaluation.taskId] = [evaluation];
       }
     }
   });
 
-  // Only keep tasks that have evaluations for both models
+  // Only keep tasks that have results for both models
   // and where at least one model's aggregate value falls in the selected range
-  return Object.values(modelEvaluationsPerTask).filter(
+  return Object.values(modelResultsPerTask).filter(
     (entry) =>
-      entry.length == 2 &&
+      entry.length === 2 &&
       (selectedMetricRange
         ? (entry[0][`${metric}_agg`].value >= selectedMetricRange[0] &&
             entry[0][`${metric}_agg`].value <= selectedMetricRange[1]) ||
@@ -131,16 +117,11 @@ function extractEvaluationsPerTask(
 }
 
 /**
- * Run statistical significance test based on Fisher randomization method.
- * @param evaluationsPerMetric evaluations per metric
- * @param metrics metrics
- * @param modelA selected model
- * @param modelB selected model
- * @param selectedMetric If `undefined`, run for all metrics in `evaluationsPerMetric` object
- * @returns
+ * Run Fisher randomization significance test for modelA vs modelB.
+ * When selectedMetric is undefined, runs across all metrics in resultsPerMetric.
  */
 function runStatisticalSignificanceTest(
-  evaluationsPerMetric: { [key: string]: TaskEvaluation[] },
+  resultsPerMetric: { [key: string]: ModelResult[] },
   metrics: Metric[],
   modelA: Model,
   modelB: Model,
@@ -148,10 +129,10 @@ function runStatisticalSignificanceTest(
   selectedFilters: { [key: string]: string[] },
   selectedMetricRange?: number[],
 ) {
-  const evaluationsPerMetricPerTask: { [key: string]: TaskEvaluation[][] } = {};
+  const resultsPerMetricPerTask: { [key: string]: ModelResult[][] } = {};
   if (selectedMetric) {
-    const evaluationsPerTask = extractEvaluationsPerTask(
-      evaluationsPerMetric[selectedMetric.name],
+    const resultsPerTask = extractResultsPerTask(
+      resultsPerMetric[selectedMetric.name],
       modelA,
       modelB,
       selectedMetric.name,
@@ -159,21 +140,21 @@ function runStatisticalSignificanceTest(
       selectedMetricRange,
     );
 
-    if (evaluationsPerTask.length !== 0) {
-      evaluationsPerMetricPerTask[selectedMetric.name] = evaluationsPerTask;
+    if (resultsPerTask.length !== 0) {
+      resultsPerMetricPerTask[selectedMetric.name] = resultsPerTask;
     }
   } else {
-    Object.keys(evaluationsPerMetric).forEach((metric) => {
-      const evaluationsPerTask = extractEvaluationsPerTask(
-        evaluationsPerMetric[metric],
+    Object.keys(resultsPerMetric).forEach((metric) => {
+      const resultsPerTask = extractResultsPerTask(
+        resultsPerMetric[metric],
         modelA,
         modelB,
         metric,
         selectedFilters,
         selectedMetricRange,
       );
-      if (evaluationsPerTask.length !== 0) {
-        evaluationsPerMetricPerTask[metric] = evaluationsPerTask;
+      if (resultsPerTask.length !== 0) {
+        resultsPerMetricPerTask[metric] = resultsPerTask;
       }
     });
   }
@@ -182,13 +163,13 @@ function runStatisticalSignificanceTest(
   const distributionB: { [key: string]: number[] } = {};
   const taskIds: { [key: string]: string[] } = {};
 
-  Object.keys(evaluationsPerMetricPerTask).forEach((metric) => {
+  Object.keys(resultsPerMetricPerTask).forEach((metric) => {
     const metricValues = metrics.find((entry) => entry.name === metric)?.values;
-    taskIds[metric] = evaluationsPerMetricPerTask[metric].map(
+    taskIds[metric] = resultsPerMetricPerTask[metric].map(
       (entry) => entry[0].taskId,
     );
 
-    distributionA[metric] = evaluationsPerMetricPerTask[metric].map((entry) =>
+    distributionA[metric] = resultsPerMetricPerTask[metric].map((entry) =>
       castToNumber(
         entry[0].modelId === modelA.modelId
           ? entry[0][`${metric}_agg`].value
@@ -197,7 +178,7 @@ function runStatisticalSignificanceTest(
       ),
     );
 
-    distributionB[metric] = evaluationsPerMetricPerTask[metric].map((entry) =>
+    distributionB[metric] = resultsPerMetricPerTask[metric].map((entry) =>
       castToNumber(
         entry[1].modelId === modelB.modelId
           ? entry[1][`${metric}_agg`].value
@@ -209,7 +190,7 @@ function runStatisticalSignificanceTest(
 
   // Compute p-value and means via Fisher randomization for each metric
   const information: { [key: string]: StatisticalInformation } = {};
-  Object.keys(evaluationsPerMetricPerTask).forEach((metric) => {
+  Object.keys(resultsPerMetricPerTask).forEach((metric) => {
     const [p, meanA, meanB] = calculateFisherRandomization(
       distributionA[metric],
       distributionB[metric],
@@ -227,9 +208,8 @@ function runStatisticalSignificanceTest(
   return information;
 }
 
-// ===================================================================================
-//                               RENDER FUNCTIONS
-// ===================================================================================
+// --- Render functions ---
+
 function prepareScatterPlotData(
   modelA: string,
   distributionA: number[],
@@ -278,7 +258,7 @@ function renderResult(
   metric: Metric,
   modelA: Model,
   modelB: Model,
-  numEvaluations: number,
+  numResults: number,
   modelColors: { [key: string]: string },
   modelOrder: string[],
   theme?: string,
@@ -346,7 +326,7 @@ function renderResult(
                 title: `Tasks (${
                   statisticalInformationPerMetric[metric.name].distributionA
                     .length
-                }/${numEvaluations})`,
+                }/${numResults})`,
               },
             },
             width: '500px',
@@ -370,17 +350,16 @@ function renderResult(
   }
 }
 
-// ===================================================================================
-//                               MAIN FUNCTION
-// ===================================================================================
+// --- Main component ---
+
 export default function ModelComparator({
-  evaluationsPerMetric,
+  resultsPerMetric,
   models,
   metrics,
   filters,
   onTaskSelection,
 }: Props) {
-  const [WindowWidth, setWindowWidth] = useState<number>(
+  const [windowWidth, setWindowWidth] = useState<number>(
     global?.window && window.innerWidth,
   );
   const [modelA, setModelA] = useState<Model>(models[0]);
@@ -439,9 +418,9 @@ export default function ModelComparator({
     } else setSelectedMetricRange(undefined);
   }, [selectedMetric]);
 
-  const filteredEvaluations = useMemo(() => {
+  const filteredResults = useMemo(() => {
     if (selectedMetric) {
-      const evaluationsForSelectedModels = evaluationsPerMetric[
+      const resultsForSelectedModels = resultsPerMetric[
         selectedMetric.name
       ].filter(
         (evaluation) =>
@@ -452,15 +431,14 @@ export default function ModelComparator({
             : true),
       );
 
-      const evaluationsPerTask: { [key: string]: { [key: string]: number } } =
-        {};
-      evaluationsForSelectedModels.forEach((evaluation) => {
-        const entry = evaluationsPerTask[evaluation.taskId];
+      const resultsPerTask: { [key: string]: { [key: string]: number } } = {};
+      resultsForSelectedModels.forEach((evaluation) => {
+        const entry = resultsPerTask[evaluation.taskId];
         if (entry) {
           entry[evaluation.modelId] =
             evaluation[`${selectedMetric.name}_agg`].value;
         } else {
-          evaluationsPerTask[evaluation.taskId] = {
+          resultsPerTask[evaluation.taskId] = {
             [evaluation.modelId]:
               evaluation[`${selectedMetric.name}_agg`].value,
           };
@@ -469,29 +447,29 @@ export default function ModelComparator({
 
       // Only keep tasks where models have different aggregate scores
       // and at least one model's aggregate falls in the selected range
-      const visibleEvaluationTaskIds = Object.keys(evaluationsPerTask).filter(
+      const visibleResultTaskIds = Object.keys(resultsPerTask).filter(
         (taskId) =>
-          Object.keys(countBy(Object.values(evaluationsPerTask[taskId])))
-            .length > 1 &&
+          Object.keys(countBy(Object.values(resultsPerTask[taskId]))).length >
+            1 &&
           (selectedMetricRange
-            ? (Object.values(evaluationsPerTask[taskId])[0] >=
+            ? (Object.values(resultsPerTask[taskId])[0] >=
                 selectedMetricRange[0] &&
-                Object.values(evaluationsPerTask[taskId])[0] <=
+                Object.values(resultsPerTask[taskId])[0] <=
                   selectedMetricRange[1]) ||
-              (Object.values(evaluationsPerTask[taskId])[1] >=
+              (Object.values(resultsPerTask[taskId])[1] >=
                 selectedMetricRange[0] &&
-                Object.values(evaluationsPerTask[taskId])[1] <=
+                Object.values(resultsPerTask[taskId])[1] <=
                   selectedMetricRange[1])
             : true),
       );
 
-      return evaluationsForSelectedModels.filter((evaluation) =>
-        visibleEvaluationTaskIds.includes(evaluation.taskId),
+      return resultsForSelectedModels.filter((evaluation) =>
+        visibleResultTaskIds.includes(evaluation.taskId),
       );
     }
     return [];
   }, [
-    evaluationsPerMetric,
+    resultsPerMetric,
     selectedMetric,
     modelA,
     modelB,
@@ -509,11 +487,11 @@ export default function ModelComparator({
     if (
       !selectedMetric &&
       statisticalInformationPerMetric &&
-      Object.keys(statisticalInformationPerMetric).length == 1
+      Object.keys(statisticalInformationPerMetric).length === 1
     ) {
       setStatisticalInformationPerMetric(
         runStatisticalSignificanceTest(
-          evaluationsPerMetric,
+          resultsPerMetric,
           metrics,
           modelA,
           modelB,
@@ -530,7 +508,7 @@ export default function ModelComparator({
     ) {
       setStatisticalInformationPerMetric(
         runStatisticalSignificanceTest(
-          evaluationsPerMetric,
+          resultsPerMetric,
           metrics,
           modelA,
           modelB,
@@ -540,17 +518,17 @@ export default function ModelComparator({
         ),
       );
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally reads stable refs (evaluationsPerMetric, models, filters) from closure; only re-runs when metric or range selection changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally reads stable refs (resultsPerMetric, models, filters) from closure; only re-runs when metric or range selection changes
   }, [selectedMetric, selectedMetricRange]);
 
   // Estimate computation complexity to warn users about long-running calculations
   const complexity = useMemo(() => {
     let size = 0;
     if (selectedMetric) {
-      size = evaluationsPerMetric[selectedMetric.name].length / models.length;
+      size = resultsPerMetric[selectedMetric.name].length / models.length;
     } else {
-      size = Object.values(evaluationsPerMetric)
-        .map((evaluations) => evaluations.length / models.length)
+      size = Object.values(resultsPerMetric)
+        .map((results) => results.length / models.length)
         .reduce((a, b) => a + b, 0);
     }
 
@@ -558,21 +536,29 @@ export default function ModelComparator({
       return 'high';
     }
     return 'low';
-  }, [evaluationsPerMetric, selectedMetric, models]);
+  }, [resultsPerMetric, selectedMetric, models]);
 
-  // Attach click handler to scatter chart points for task selection
+  // Attach click handler to scatter chart points for task selection.
+  // The handler is stored in a variable so the same reference is passed to both
+  // addEventListener and removeEventListener — a new arrow function in cleanup
+  // would never match the registered listener.
   useEffect(() => {
     let ref = null;
 
+    function handleScatterClick({
+      detail,
+    }: {
+      detail: { datum: { taskId: string } };
+    }) {
+      onTaskSelection(detail.datum.taskId);
+    }
+
     if (chartRef && chartRef.current) {
       ref = chartRef.current;
-
       //@ts-ignore
       ref.chart.services.events.addEventListener(
         'scatter-click',
-        ({ detail }) => {
-          onTaskSelection(detail.datum.taskId);
-        },
+        handleScatterClick,
       );
     }
 
@@ -581,9 +567,7 @@ export default function ModelComparator({
         //@ts-ignore
         ref.chart.services.events.removeEventListener(
           'scatter-click',
-          ({ detail }) => {
-            onTaskSelection(detail.datum.taskId);
-          },
+          handleScatterClick,
         );
       }
     };
@@ -687,7 +671,7 @@ export default function ModelComparator({
               // Run statistical significance calculations
               setStatisticalInformationPerMetric(
                 runStatisticalSignificanceTest(
-                  evaluationsPerMetric,
+                  resultsPerMetric,
                   metrics,
                   modelA,
                   modelB,
@@ -740,7 +724,7 @@ export default function ModelComparator({
                     metric,
                     modelA,
                     modelB,
-                    evaluationsPerMetric[metric.name].length / models.length,
+                    resultsPerMetric[metric.name].length / models.length,
                     modelColors,
                     modelOrder,
                     theme,
@@ -766,7 +750,7 @@ export default function ModelComparator({
                     metric,
                     modelA,
                     modelB,
-                    evaluationsPerMetric[metric.name].length / models.length,
+                    resultsPerMetric[metric.name].length / models.length,
                     modelColors,
                     modelOrder,
                     theme,
@@ -862,12 +846,12 @@ export default function ModelComparator({
                           statisticalInformationPerMetric[selectedMetric.name]
                             .distributionA.length
                         }/${
-                          evaluationsPerMetric[selectedMetric.name].length /
+                          resultsPerMetric[selectedMetric.name].length /
                           models.length
                         })`,
                       },
                     },
-                    width: `${Math.round(WindowWidth * 0.8)}px`,
+                    width: `${Math.round(windowWidth * 0.8)}px`,
                     height: '500px',
                     toolbar: {
                       enabled: false,
@@ -937,14 +921,12 @@ export default function ModelComparator({
         statisticalInformationPerMetric &&
         statisticalInformationPerMetric.hasOwnProperty(selectedMetric.name) && (
           <div className={classes.row}>
-            <h4>
-              Tasks{selectedMetric && filteredEvaluations && <sup>*</sup>}
-            </h4>
-            {filteredEvaluations ? (
+            <h4>Tasks{selectedMetric && filteredResults && <sup>*</sup>}</h4>
+            {filteredResults ? (
               <>
                 <TasksTable
                   metrics={[selectedMetric]}
-                  evaluations={filteredEvaluations}
+                  results={filteredResults}
                   models={[modelA, modelB]}
                   filters={filters}
                   onClick={onTaskSelection}

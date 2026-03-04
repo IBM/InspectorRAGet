@@ -120,6 +120,7 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
           feedback="Copied to clipboard"
         >
           {`{
+              "schema_version": 2,
               "name": "Example",
               "models": [
                   {
@@ -202,9 +203,7 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
                     }
                   ],
                   "input": [{"speaker": "user", "text": "What it the document number?"}],
-                  "targets": [{
-                    "text": "The document number is 1."
-                  }]
+                  "targets": [{"type": "text", "value": "The document number is 1."}]
                 },
                 {
                   "task_id": "task_2",
@@ -217,17 +216,15 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
                     }
                   ],
                   "input": [{"speaker": "user", "text": "Hello"}],
-                  "targets": [{
-                    "text": "How can I help you?"
-                  }]
+                  "targets": [{"type": "text", "value": "How can I help you?"}]
                 }
               ],
-              "evaluations": [
+              "results": [
                 {
                   "task_id": "task_1",
                   "model_id": "model_a",
-                  "model_response": "Document number is 1.",
-                  "annotations": {
+                  "output": {"type": "text", "value": "Document number is 1."},
+                  "scores": {
                     "faithfulness": {
                       "annotator_a": {
                         "timestamp": 1694615234,
@@ -250,7 +247,7 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
                         "value": 82.5,
                         "duration": 0
                       }
-                    }
+                    },
                     "comments": {
                       "annotator_b": {
                         "timestamp": 1694615234,
@@ -263,8 +260,8 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
                 {
                   "task_id": "task_1",
                   "model_id": "model_b",
-                  "model_response": "This is document number 2.",
-                  "annotations": {
+                  "output": {"type": "text", "value": "This is document number 2."},
+                  "scores": {
                     "faithfulness": {
                       "annotator_a": {
                         "timestamp": 1694615234,

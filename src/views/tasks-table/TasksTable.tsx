@@ -45,7 +45,7 @@ import { SimpleBarChart } from '@carbon/charts-react';
 import { ScaleTypes } from '@carbon/charts';
 
 import { useTheme } from '@/src/theme';
-import { Metric, Model, Task, TaskEvaluation } from '@/src/types';
+import { Metric, Model, Task, ModelResult } from '@/src/types';
 import { extractMetricDisplayValue } from '@/src/utilities/metrics';
 import { truncate } from '@/src/utilities/strings';
 import { useDataStore } from '@/src/store';
@@ -61,7 +61,7 @@ type EvaluationRow = {
 };
 interface Props {
   metrics: Metric[];
-  evaluations: TaskEvaluation[];
+  results: ModelResult[];
   models: Model[];
   filters: { [key: string]: string[] };
   annotator?: string;
@@ -71,12 +71,12 @@ interface Props {
 // --- Compute functions ---
 /**
  * Helper function to compute evaluation table headers and rows
- * @param evaluations full set of evaluations
+ * @param results full set of results
  * @param metric metric under consideration
  * @returns
  */
 function populateTable(
-  evaluations: TaskEvaluation[],
+  results: ModelResult[],
   metrics: Metric[],
   models: Model[],
   taskInputMap: { [key: string]: any },
@@ -93,10 +93,10 @@ function populateTable(
   ];
   const rows: EvaluationRow[] = [];
 
-  // Combine evaluations across models into a single map keyed by taskId
-  const evaluationsMap = new Map<string, any>();
-  evaluations.forEach((evaluation) => {
-    const entry = evaluationsMap.get(evaluation.taskId) || {};
+  // Combine results across models into a single map keyed by taskId
+  const resultsMap = new Map<string, any>();
+  results.forEach((evaluation) => {
+    const entry = resultsMap.get(evaluation.taskId) || {};
 
     // Only populate filter values on the first evaluation for this task
     if (isEmpty(entry) && !isEmpty(filters)) {
@@ -130,7 +130,7 @@ function populateTable(
       }
     });
 
-    evaluationsMap.set(evaluation.taskId, entry);
+    resultsMap.set(evaluation.taskId, entry);
     modelIds.add(evaluation.modelId);
   });
 
@@ -150,7 +150,7 @@ function populateTable(
     });
   });
 
-  evaluationsMap.forEach((record, taskId) => {
+  resultsMap.forEach((record, taskId) => {
     rows.push({ id: taskId, task: taskInputMap[taskId] || taskId, ...record });
   });
 
@@ -256,7 +256,7 @@ function sparkline(
 // --- Main component ---
 export default function TasksTable({
   metrics,
-  evaluations,
+  results,
   models,
   filters,
   annotator,
@@ -270,38 +270,35 @@ export default function TasksTable({
   const { item, taskMap, updateTask: updateTask } = useDataStore();
   const { createNotification } = useNotification();
 
-  const evaluationsMap = useMemo(() => {
+  const resultsMap = useMemo(() => {
     return Object.fromEntries(
-      evaluations.map((evaluation) => [
+      results.map((evaluation) => [
         `${evaluation.taskId}:${evaluation.modelId}`,
         Object.fromEntries(
           metrics.map((metric) => [metric.name, evaluation[metric.name]]),
         ),
       ]),
     );
-  }, [evaluations, metrics]);
+  }, [results, metrics]);
 
   const taskInputMap = useMemo(() => {
     return Object.fromEntries(
-      evaluations.map((evaluation) => [
-        `${evaluation.taskId}`,
-        evaluation.query,
-      ]),
+      results.map((evaluation) => [`${evaluation.taskId}`, evaluation.query]),
     );
-  }, [evaluations]);
+  }, [results]);
 
   var [headers, rows]: [{ key: string; header: string }[], EvaluationRow[]] =
     useMemo(
       () =>
         populateTable(
-          evaluations,
+          results,
           metrics,
           models,
           taskInputMap,
           filters,
           annotator,
         ),
-      [evaluations, metrics, models, filters, taskInputMap, annotator],
+      [results, metrics, models, filters, taskInputMap, annotator],
     );
 
   useEffect(() => {
@@ -489,13 +486,11 @@ export default function TasksTable({
                     <TableBody>
                       {rows.map((row, index) => {
                         const { key: _key, ...rowProps } = getRowProps({ row });
+                        const { key: _selKey, ...selectionProps } =
+                          getSelectionProps({ row });
                         return (
                           <TableRow key={'row--' + index} {...rowProps}>
-                            <TableSelectRow
-                              {...getSelectionProps({
-                                row,
-                              })}
-                            />
+                            <TableSelectRow {...selectionProps} />
                             {row.cells.map((cell) =>
                               cell.info.header === 'task' ? (
                                 <TableCell key={cell.id}>
@@ -601,14 +596,14 @@ export default function TasksTable({
                                                           }
                                                         </div>
                                                         {!annotator &&
-                                                        evaluationsMap[
+                                                        resultsMap[
                                                           cell.id.split(
                                                             '::value',
                                                             1,
                                                           )[0]
                                                         ]
                                                           ? sparkline(
-                                                              evaluationsMap[
+                                                              resultsMap[
                                                                 cell.id.split(
                                                                   '::value',
                                                                   1,

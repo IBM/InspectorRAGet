@@ -34,7 +34,7 @@
   border-left: dashed 1px var(--cds-border-inverse);
 }
 
-.evaluationsContainer {
+.resultsContainer {
   width: 40%;
   height: 100%;
   margin-left: auto;
@@ -147,4 +147,9 @@
   column-gap: $spacing-03;
   align-items: center;
   color: var(--cds-support-warning);
+}
+
+.notProvided {
+  color: var(--cds-text-helper);
+  font-style: italic;
 }

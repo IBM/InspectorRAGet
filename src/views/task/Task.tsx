@@ -23,7 +23,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { Tag, Tooltip } from '@carbon/react';
 import { AddComment } from '@carbon/icons-react';
 
-import { Model, TaskCommentProvenance, TaskEvaluation } from '@/src/types';
+import { Model, TaskCommentProvenance, ModelResult } from '@/src/types';
 import { useDataStore } from '@/src/store';
 import { extractMouseSelection } from '@/src/utilities/selectors';
 import { useNotification } from '@/src/components/notification/Notification';
@@ -133,11 +133,9 @@ export default function Task({ taskId, onClose }: Props) {
     (task?.comments?.length && task.comments.length > 0) || false,
   );
 
-  const evaluations = useMemo(() => {
+  const results = useMemo(() => {
     if (data) {
-      return data.evaluations.filter(
-        (evaluation) => evaluation.taskId === taskId,
-      );
+      return data.results.filter((result) => result.taskId === taskId);
     }
     return undefined;
   }, [taskId, data]);
@@ -192,11 +190,11 @@ export default function Task({ taskId, onClose }: Props) {
           Press 'Escape' to close
         </Tag>
       </div>
-      {task && evaluations && (
+      {task && results && (
         <div>
           <TaskTile
             task={task}
-            evaluations={evaluations}
+            results={results}
             expanded={false}
             onClickFlagIcon={() => {
               updateTask(task.taskId, {
@@ -212,7 +210,7 @@ export default function Task({ taskId, onClose }: Props) {
           ></TaskTile>
         </div>
       )}
-      {task && models && evaluations && (
+      {task && models && results && (
         <div className={classes.taskContainer}>
           {task.comments && !isEmpty(task.comments) && showComments && (
             <div className={classes.commentsContainer}>

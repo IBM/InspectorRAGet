@@ -18,7 +18,7 @@
 
 'use client';
 
-import { Metric, Model, Task, TaskEvaluation } from '@/src/types';
+import { Metric, Model, Task, ModelResult } from '@/src/types';
 import { RetrievedDocument } from '@/src/task-types/qa/types';
 import { taskTypeRegistry } from '@/src/task-types';
 
@@ -26,7 +26,7 @@ interface Props {
   models: Model[];
   metrics: Metric[];
   task: Task;
-  evaluations: TaskEvaluation[];
+  results: ModelResult[];
   onClose: Function;
   open: boolean;
   documents?: RetrievedDocument[];
@@ -36,7 +36,7 @@ export default function TaskCopierModal({
   models,
   metrics,
   task,
-  evaluations,
+  results,
   onClose,
   open = false,
   documents,
@@ -52,7 +52,7 @@ export default function TaskCopierModal({
       models={models}
       metrics={metrics}
       task={task}
-      evaluations={evaluations}
+      results={results}
       onClose={onClose}
       open={open}
       documents={documents}

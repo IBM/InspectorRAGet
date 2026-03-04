@@ -22,9 +22,9 @@ import { useState, useEffect, useRef } from 'react';
 
 import { CodeSnippet } from '@carbon/react';
 
+import { ToolCallRecord } from '@/src/types';
 import {
   Message,
-  ToolCall,
   ToolMessage,
   AssistantMessage,
 } from '@/src/task-types/rag/types';
@@ -47,16 +47,16 @@ interface ChatLineProps {
 // ===================================================================================
 //                               RENDER FUNCTIONS
 // ===================================================================================
-function Tool({ tool }: { tool: ToolCall }) {
+function Tool({ tool }: { tool: ToolCallRecord }) {
   return (
     <div className={cx(classes.message, classes.toolCall)}>
       <span>
         Tool ID: {tool.id}&nbsp;
-        {tool.function.name ? <span>({tool.function.name})</span> : null}
+        {tool.name ? <span>({tool.name})</span> : null}
       </span>
-      {tool.function.arguments ? (
+      {tool.arguments ? (
         <CodeSnippet type="multi" hideCopyButton wrapText>
-          {JSON.stringify(tool.function.arguments, null, 2)}
+          {JSON.stringify(tool.arguments, null, 2)}
         </CodeSnippet>
       ) : null}
     </div>

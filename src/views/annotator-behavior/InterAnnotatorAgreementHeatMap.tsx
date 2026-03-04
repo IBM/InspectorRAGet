@@ -21,40 +21,42 @@
 import { useMemo } from 'react';
 import { HeatmapChart } from '@carbon/charts-react';
 
-import { TaskEvaluation } from '@/src/types';
+import { ModelResult } from '@/src/types';
 
 import ConfusionMatrix from './ConfusionMatrix.ts';
 import { ColorLegendType, ScaleTypes } from '@carbon/charts';
 
 function prepareHeatMapData(agreementMap: {
   [key: string]: { [key: string]: ConfusionMatrix };
-}) {
-  // Prepare heat map data as array
-  const temp: any[] = [];
+}): { annotator1: string; annotator2: string; value: number | string }[] {
+  const temp: {
+    annotator1: string;
+    annotator2: string;
+    value: number | string;
+  }[] = [];
   for (const [worker1, values] of Object.entries(agreementMap)) {
     for (const [worker2, value] of Object.entries(values)) {
       temp.push({
         annotator1: worker1,
         annotator2: worker2,
-        value: worker1 === worker2 ? 1.0 : value.cohenKappaScore()?.toFixed(2),
+        // Self-agreement is always 1; off-diagonal may return undefined if not enough data
+        value:
+          worker1 === worker2
+            ? 1.0
+            : (value.cohenKappaScore()?.toFixed(2) ?? 0),
       });
     }
   }
   return temp;
 }
 
-/**
- * Helper function to compute inter-annotator agreement table headers and rows
- * agreement is calculated based on Cohen-kappa
- * @param evaluations full set of annotations (per instance ?)
- * @returns
- */
-function populateTable(evaluations: TaskEvaluation[], metric: string) {
-  // Collect unique annotators and metric values from all evaluations
+/** Build pairwise confusion matrices for all annotators from the given metric results. */
+function populateTable(results: ModelResult[], metric: string) {
+  // Collect unique annotators and metric values from all results
   const workers: Set<string> = new Set<string>();
   const values: Set<string | number> = new Set<string>();
 
-  evaluations.forEach((evaluation) => {
+  results.forEach((evaluation) => {
     for (const worker in evaluation[metric]) {
       workers.add(worker);
       values.add(evaluation[metric][worker].value);
@@ -62,7 +64,7 @@ function populateTable(evaluations: TaskEvaluation[], metric: string) {
   });
 
   // Build a confusion matrix for each annotator pair
-  let confusionMatrices: {
+  const confusionMatrices: {
     [key: string]: { [key: string]: ConfusionMatrix };
   } = {};
   workers.forEach((worker1) => {
@@ -76,7 +78,7 @@ function populateTable(evaluations: TaskEvaluation[], metric: string) {
   });
 
   // Populate confusion matrices with pairwise annotation comparisons
-  evaluations.forEach((evaluation) => {
+  results.forEach((evaluation) => {
     for (const annotator1 of Object.keys(evaluation[metric])) {
       for (const annotator2 of Object.keys(evaluation[metric])) {
         if (annotator1 !== annotator2) {
@@ -93,17 +95,17 @@ function populateTable(evaluations: TaskEvaluation[], metric: string) {
 }
 
 export default function InterAnnotatorAgreementTable({
-  evaluations,
+  results,
   metric,
   theme,
 }: {
-  evaluations: TaskEvaluation[];
+  results: ModelResult[];
   metric: string;
   theme?: string;
 }) {
   const agreementData = useMemo(
-    () => populateTable(evaluations, metric),
-    [evaluations, metric],
+    () => populateTable(results, metric),
+    [results, metric],
   );
   return (
     <HeatmapChart

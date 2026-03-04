@@ -32,8 +32,7 @@ import {
   ContainedListItem,
 } from '@carbon/react';
 
-import { Model, TaskEvaluation, Task, Metric } from '@/src/types';
-import { MessageStep } from '@/src/task-types/rag/types';
+import { Model, ModelResult, Task, Metric, outputAsText } from '@/src/types';
 import { useDataStore } from '@/src/store';
 import { truncate } from '@/src/utilities/strings';
 
@@ -43,9 +42,8 @@ import RAGCopier from '@/src/task-types/rag/Copier';
 
 import classes from './TaskView.module.scss';
 
-// ===================================================================================
-//                                TYPES
-// ===================================================================================
+// --- Types ---
+
 interface Props {
   task: Task;
   models: Map<string, Model>;
@@ -55,35 +53,33 @@ interface Props {
   updateCommentProvenance: Function;
 }
 
-// ===================================================================================
-//                               RENDER FUNCTIONS
-// ===================================================================================
+// --- Render helpers ---
 
-function Evaluation({
-  evaluation,
+function Scores({
+  result,
   hMetrics,
   aMetrics,
 }: {
-  evaluation: TaskEvaluation;
+  result: ModelResult;
   hMetrics: Map<string, Metric>;
   aMetrics: Map<string, Metric>;
 }) {
   return (
-    <div className={classes.evaluationContainer}>
-      {evaluation.annotations && hMetrics.size ? (
+    <div className={classes.resultContainer}>
+      {result.scores && hMetrics.size ? (
         <>
           <h5>Human Evaluations:</h5>
           <AnnotationsTable
-            annotations={evaluation.annotations}
+            annotations={result.scores}
             metrics={[...hMetrics.values()]}
           ></AnnotationsTable>
         </>
       ) : null}
-      {evaluation.annotations && aMetrics.size ? (
+      {result.scores && aMetrics.size ? (
         <>
           <h5>Algorithmic Evaluations:</h5>
           <AnnotationsTable
-            annotations={evaluation.annotations}
+            annotations={result.scores}
             metrics={[...aMetrics.values()]}
           ></AnnotationsTable>
         </>
@@ -92,21 +88,8 @@ function Evaluation({
   );
 }
 
-function Steps({ steps }: { steps?: MessageStep[] }) {
-  return (
-    <div className={classes.stepsContainer}>
-      {steps && !isEmpty(steps) ? (
-        <></>
-      ) : (
-        <h4>No steps information is available.</h4>
-      )}
-    </div>
-  );
-}
+// --- Main component ---
 
-// ===================================================================================
-//                               MAIN FUNCTION
-// ===================================================================================
 export default function RAGTaskView({
   task,
   models,
@@ -115,20 +98,19 @@ export default function RAGTaskView({
   setTaskCopierModalOpen,
   updateCommentProvenance,
 }: Props) {
-  const [selectedEvaluationIndex, setSelectedEvaluationIndex] =
-    useState<number>(0);
+  const [selectedResultIndex, setSelectedResultIndex] = useState<number>(0);
 
   const { item: data } = useDataStore();
 
-  const evaluations = useMemo(() => {
-    let taskEvaluations: TaskEvaluation[] | undefined = undefined;
+  const results = useMemo(() => {
+    let taskResults: ModelResult[] | undefined = undefined;
     if (data) {
-      taskEvaluations = data.evaluations.filter(
-        (evaluation) => evaluation.taskId === task.taskId,
+      taskResults = data.results.filter(
+        (result) => result.taskId === task.taskId,
       );
     }
 
-    return taskEvaluations;
+    return taskResults;
   }, [task.taskId, data]);
 
   const [hMetrics, aMetrics] = useMemo(() => {
@@ -148,19 +130,19 @@ export default function RAGTaskView({
 
   return (
     <>
-      {models && metrics && task && evaluations && (
+      {models && metrics && task && results && (
         <RAGCopier
           open={taskCopierModalOpen}
           models={Array.from(models.values())}
           metrics={metrics}
           task={task}
-          evaluations={evaluations}
+          results={results}
           onClose={() => {
             setTaskCopierModalOpen(false);
           }}
         ></RAGCopier>
       )}
-      {task && models && evaluations && (
+      {task && models && results && (
         <>
           <div className={classes.inputContainer}>
             {Array.isArray(task.input)
@@ -192,29 +174,27 @@ export default function RAGTaskView({
           <div className={classes.modelsContainer}>
             <Tabs
               onChange={(e) => {
-                setSelectedEvaluationIndex(e.selectedIndex);
+                setSelectedResultIndex(e.selectedIndex);
               }}
             >
               <TabList aria-label="Models tab" contained>
-                {evaluations.map((evaluation) => (
-                  <Tab key={'model-' + evaluation.modelId}>
+                {results.map((result) => (
+                  <Tab key={'model-' + result.modelId}>
                     {truncate(
-                      models.get(evaluation.modelId)?.name ||
-                        evaluation.modelId,
+                      models.get(result.modelId)?.name || result.modelId,
                       15,
                     )}
                   </Tab>
                 ))}
               </TabList>
               <TabPanels>
-                {evaluations.map((evaluation) => (
-                  <TabPanel key={'model-' + evaluation.modelId + '-panel'}>
+                {results.map((result) => (
+                  <TabPanel key={'model-' + result.modelId + '-panel'}>
                     <div className={classes.tabContainer}>
                       <div className={classes.tabContentHeader}>
                         <h5>Model:</h5>
                         <span>
-                          {models.get(evaluation.modelId)?.name ||
-                            evaluation.modelId}
+                          {models.get(result.modelId)?.name || result.modelId}
                         </span>
                       </div>
                       <ContainedList
@@ -227,82 +207,53 @@ export default function RAGTaskView({
                             className={classes.responseContainer}
                             onMouseDown={() => {
                               updateCommentProvenance(
-                                `${evaluation.modelId}::evaluation::response`,
+                                `${result.modelId}::evaluation::response`,
                               );
                             }}
                             onMouseUp={() =>
                               updateCommentProvenance(
-                                `${evaluation.modelId}::evaluation::response`,
+                                `${result.modelId}::evaluation::response`,
                               )
                             }
                           >
                             {parse(
-                              DOMPurify.sanitize(evaluation.modelResponse),
+                              DOMPurify.sanitize(outputAsText(result.output)),
                             )}
                           </div>
                         </ContainedListItem>
                       </ContainedList>
 
-                      {task.targets && !isEmpty(task.targets) ? (
-                        <ContainedList
-                          label="Targets"
-                          kind="disclosed"
-                          size="sm"
-                        >
-                          {task.targets.length > 1 ? (
+                      <ContainedList label="Targets" kind="disclosed" size="sm">
+                        {task.targets && !isEmpty(task.targets) ? (
+                          task.targets.length > 1 ? (
                             task.targets.map((target, targetIdx) =>
-                              target.text ? (
+                              target.type === 'text' ? (
                                 <ContainedListItem key={`target--${targetIdx}`}>
                                   <span>
-                                    Target {targetIdx + 1}: {target.text}
+                                    Target {targetIdx + 1}: {target.value}
                                   </span>
                                 </ContainedListItem>
                               ) : null,
                             )
-                          ) : (
+                          ) : task.targets[0].type === 'text' ? (
                             <ContainedListItem key={`target--0`}>
-                              <span>{task.targets[0].text}</span>
+                              <span>{task.targets[0].value}</span>
                             </ContainedListItem>
-                          )}
-                        </ContainedList>
-                      ) : null}
+                          ) : null
+                        ) : (
+                          <ContainedListItem>
+                            <span className={classes.notProvided}>
+                              Not provided
+                            </span>
+                          </ContainedListItem>
+                        )}
+                      </ContainedList>
 
-                      <Tabs>
-                        <TabList
-                          aria-label="Model performance tab"
-                          contained
-                          fullWidth
-                        >
-                          <Tab
-                            key={'model-' + evaluation.modelId + '-evaluations'}
-                          >
-                            Evaluations
-                          </Tab>
-                          <Tab key={'model-' + evaluation.modelId + '-steps'}>
-                            Steps
-                          </Tab>
-                        </TabList>
-                        <TabPanels>
-                          <TabPanel
-                            key={
-                              'model-' +
-                              evaluation.modelId +
-                              '-evaluations-panel'
-                            }
-                          >
-                            <Evaluation
-                              evaluation={evaluation}
-                              hMetrics={hMetrics}
-                              aMetrics={aMetrics}
-                            />
-                          </TabPanel>
-                          <TabPanel
-                            key={'model-' + evaluation.modelId + '-steps-panel'}
-                          >
-                            <Steps steps={evaluation.steps} />
-                          </TabPanel>
-                        </TabPanels>
-                      </Tabs>
+                      <Scores
+                        result={result}
+                        hMetrics={hMetrics}
+                        aMetrics={aMetrics}
+                      />
                     </div>
                   </TabPanel>
                 ))}

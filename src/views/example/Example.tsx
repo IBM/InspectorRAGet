@@ -32,7 +32,7 @@ import {
   HeatMap_03,
 } from '@carbon/icons-react';
 
-import { Data, TaskEvaluation } from '@/src/types';
+import { Data, ModelResult } from '@/src/types';
 import { calculateAggregateValue } from '@/src/utilities/metrics';
 import { useDataStore } from '@/src/store';
 import { useBackButton } from '@/src/hooks/useBackButton';
@@ -77,7 +77,7 @@ export default memo(function Example({ data }: { data: Data }) {
     return [metricMap, Object.values(metricMap)];
   }, [data.metrics]);
 
-  const [evaluationsPerMetric, filters] = useMemo(() => {
+  const [resultsPerMetric, filters] = useMemo(() => {
     const modelNames: { [key: string]: string } = Object.fromEntries(
       data.models.map((model) => [model.modelId, model.name]),
     );
@@ -88,7 +88,7 @@ export default memo(function Example({ data }: { data: Data }) {
           data.filters.map((filter) => [filter, new Set<string>()]),
         )
       : {};
-    const evaluationsPerMetricMap: { [key: string]: TaskEvaluation[] } = {};
+    const resultsPerMetricMap: { [key: string]: ModelResult[] } = {};
 
     data.tasks.forEach((task) => {
       tasks.set(task.taskId, task);
@@ -143,10 +143,10 @@ export default memo(function Example({ data }: { data: Data }) {
       }
     }
 
-    data.evaluations?.forEach((evaluation) => {
+    data.results?.forEach((evaluation) => {
       const task = tasks.get(evaluation.taskId);
 
-      // Attach applicable filter values from the task to each evaluation entry
+      // Attach applicable filter values from the task to each result entry
       const filters = {};
       if (task && !isEmpty(applicableFilters)) {
         for (const filter in applicableFilters) {
@@ -156,7 +156,7 @@ export default memo(function Example({ data }: { data: Data }) {
         }
       }
 
-      for (const metricName in evaluation.annotations) {
+      for (const metricName in evaluation.scores) {
         // Process only eligible metrics
         if (!eligibleMetricsMap.hasOwnProperty(metricName)) {
           continue;
@@ -165,19 +165,19 @@ export default memo(function Example({ data }: { data: Data }) {
         // Compute agreement statistics
         const aggregateStatistic = calculateAggregateValue(
           eligibleMetricsMap[metricName],
-          evaluation.annotations[metricName],
+          evaluation.scores[metricName],
         );
 
-        // Create metric wise evaluations object
-        if (evaluationsPerMetricMap.hasOwnProperty(metricName)) {
-          evaluationsPerMetricMap[metricName] = [
-            ...evaluationsPerMetricMap[metricName],
+        // Build the per-metric results map entry
+        if (resultsPerMetricMap.hasOwnProperty(metricName)) {
+          resultsPerMetricMap[metricName] = [
+            ...resultsPerMetricMap[metricName],
             {
               taskId: evaluation.taskId,
               modelId: evaluation.modelId,
-              modelResponse: evaluation.modelResponse,
-              annotations: evaluation.annotations,
-              [metricName]: evaluation.annotations[metricName],
+              output: evaluation.output,
+              scores: evaluation.scores,
+              [metricName]: evaluation.scores[metricName],
               ...(aggregateStatistic && {
                 [`${metricName}_agg`]: aggregateStatistic,
               }),
@@ -188,13 +188,13 @@ export default memo(function Example({ data }: { data: Data }) {
             },
           ];
         } else {
-          evaluationsPerMetricMap[metricName] = [
+          resultsPerMetricMap[metricName] = [
             {
               taskId: evaluation.taskId,
               modelId: evaluation.modelId,
-              modelResponse: evaluation.modelResponse,
-              annotations: evaluation.annotations,
-              [metricName]: evaluation.annotations[metricName],
+              output: evaluation.output,
+              scores: evaluation.scores,
+              [metricName]: evaluation.scores[metricName],
               ...(aggregateStatistic && {
                 [`${metricName}_agg`]: aggregateStatistic,
               }),
@@ -208,8 +208,8 @@ export default memo(function Example({ data }: { data: Data }) {
       }
     });
 
-    for (const evaluations of Object.values(evaluationsPerMetricMap)) {
-      evaluations.sort((a, b) => {
+    for (const results of Object.values(resultsPerMetricMap)) {
+      results.sort((a, b) => {
         if (
           modelNames.hasOwnProperty(a.modelId) &&
           modelNames.hasOwnProperty(b.modelId)
@@ -223,7 +223,7 @@ export default memo(function Example({ data }: { data: Data }) {
     }
 
     return [
-      evaluationsPerMetricMap,
+      resultsPerMetricMap,
       Object.fromEntries(
         Object.entries(applicableFilters).map(([filter, vals]) => [
           filter,
@@ -231,13 +231,7 @@ export default memo(function Example({ data }: { data: Data }) {
         ]),
       ),
     ];
-  }, [
-    data.evaluations,
-    data.tasks,
-    data.models,
-    data.filters,
-    eligibleMetricsMap,
-  ]);
+  }, [data.results, data.tasks, data.models, data.filters, eligibleMetricsMap]);
 
   const {} = useBackButton();
 
@@ -298,13 +292,13 @@ export default memo(function Example({ data }: { data: Data }) {
               <PredictionsTable
                 tasks={data.tasks}
                 models={data.models}
-                evaluations={data.evaluations}
+                results={data.results}
                 filters={filters}
               ></PredictionsTable>
             </TabPanel>
             <TabPanel key={'annotator-behavior-panel'}>
               <AnnotatorBehavior
-                evaluationsPerMetric={evaluationsPerMetric}
+                resultsPerMetric={resultsPerMetric}
                 models={data.models}
                 metrics={data.metrics.filter(
                   (metric) => metric.author === 'human',
@@ -314,7 +308,7 @@ export default memo(function Example({ data }: { data: Data }) {
             </TabPanel>
             <TabPanel key={'performance-overview-panel'}>
               <PerformanceOverview
-                evaluationsPerMetric={evaluationsPerMetric}
+                resultsPerMetric={resultsPerMetric}
                 models={data.models}
                 metrics={eligibleMetrics}
                 filters={filters}
@@ -323,7 +317,7 @@ export default memo(function Example({ data }: { data: Data }) {
             </TabPanel>
             <TabPanel key={'model-behavior-panel'}>
               <ModelBehavior
-                evaluationsPerMetric={evaluationsPerMetric}
+                resultsPerMetric={resultsPerMetric}
                 models={data.models}
                 metrics={eligibleMetrics}
                 filters={filters}
@@ -339,7 +333,7 @@ export default memo(function Example({ data }: { data: Data }) {
                 />
               ) : (
                 <ModelComparator
-                  evaluationsPerMetric={evaluationsPerMetric}
+                  resultsPerMetric={resultsPerMetric}
                   models={data.models}
                   metrics={eligibleMetrics}
                   filters={filters}
@@ -354,7 +348,7 @@ export default memo(function Example({ data }: { data: Data }) {
                 <DisabledTab message="Nothing to see here in absence of multiple metrics." />
               ) : (
                 <MetricBehavior
-                  evaluationsPerMetric={evaluationsPerMetric}
+                  resultsPerMetric={resultsPerMetric}
                   models={data.models}
                   metrics={eligibleMetrics}
                   filters={filters}

@@ -108,6 +108,25 @@ describe('migrateData', () => {
     expect(data.tasks[0].task_type).toBe('generation');
   });
 
+  it('renames evaluations key to results', () => {
+    const raw = {
+      tasks: [{ task_id: 't1', task_type: 'generation', input: 'hi' }],
+      models: [],
+      metrics: [],
+      evaluations: [
+        {
+          task_id: 't1',
+          model_id: 'm1',
+          model_response: 'hello',
+          annotations: { accuracy: { system: { value: 0.9 } } },
+        },
+      ],
+    };
+    const { data } = migrateData(raw);
+    expect(data.results).toHaveLength(1);
+    expect(data.evaluations).toBeUndefined();
+  });
+
   it('migrates all tasks in a multi-task file', () => {
     const raw = {
       name: 'Multi',

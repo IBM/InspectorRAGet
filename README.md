@@ -1,6 +1,6 @@
 # InspectorRAGet
 
-InspectorRAGet, an introspection platform for RAG evaluation. InspectorRAGet allows the user to analyze aggregate and instance-level performance of RAG systems, using both human and algorithmic metrics as well as annotator quality.
+InspectorRAGet, an introspection platform for LLM-based system evaluation. InspectorRAGet allows the user to analyze aggregate and instance-level performance of RAG systems, text generation models, and chat/tool-calling systems, using both human and algorithmic metrics as well as annotator quality.
 
 InspectorRAGet has been developed as a [React](https://react.dev/) web application built with [NextJS 14](https://nextjs.org/) framework and the [Carbon Design System](https://carbondesignsystem.com/).
 
@@ -65,8 +65,7 @@ To make it easier to get started, we have created notebooks showcasing how Inspe
 
 If you want to use your own code/framework, not covered by the integration notebooks above, to run the evaluation, you can manually transform the evaluation results to the input format expected by InspectorRAGet, described below. Examples of input files in the expected format can be found in the [data](data) folder.
 
-The experiment results json file expected by InspectorRAGet can be broadly split into six sections along their functional boundaries. The first section captures general details about the experiment in `name`, `description` and `timestamp` fields. The second and third sections describe the
-sets of models and metrics used in the experiment via the `models` and `metrics` fields, respectively. The last three sections cover the dataset and the outcome of evaluation experiment in the form of `documents`, `tasks` and `evaluations` fields.
+The experiment results json file expected by InspectorRAGet can be broadly split into six sections along their functional boundaries. The first section captures general details about the experiment in `name`, `description` and `timestamp` fields. The second and third sections describe the sets of models and metrics used in the experiment via the `models` and `metrics` fields, respectively. The last three sections cover the dataset and the outcome of the evaluation experiment in the form of `documents`, `tasks` and `results` fields.
 
 #### 1. Metadata
 
@@ -183,7 +182,7 @@ Notes:
       "tasks": [
             {
                   "task_id": "task_1",
-                  "task_type": "rag",
+                  "task_type": "qa",
                   "category": "grounded",
                   "input": [
                         {
@@ -198,13 +197,14 @@ Notes:
                   ],
                   "targets": [
                         {
-                              "text": "Sample response"
+                              "type": "text",
+                              "value": "Sample response"
                         }
                   ]
             },
             {
                   "task_id": "task_2",
-                  "task_type": "rag",
+                  "task_type": "generation",
                   "category": "random",
                   "input": [
                         {
@@ -212,14 +212,10 @@ Notes:
                               "text": "Hello"
                         }
                   ],
-                  "contexts": [
-                        {
-                              "document_id": "GUID 2"
-                        }
-                  ],
                   "targets": [
                         {
-                              "text": "How can I help you?"
+                              "type": "text",
+                              "value": "How can I help you?"
                         }
                   ]
             }
@@ -229,23 +225,26 @@ Notes:
 Notes:
 
 1. Each task must have a unique `task_id`.
-2. Task type can be of `rag`, or of `text_generation`, or of `chat` type.
-3. For `rag` and `text_generation` type task, `input` is an array of utterances. An utterance's speaker could be either `user` or `agent`. Each utterance must have a `text` field.
-4. For `chat` type task, `input` must be array of messages as defined by OpenAI's chat completion APIs (https://platform.openai.com/docs/api-reference/chat/create#chat-create-messages).
-5. For `rag` task, `contexts` field represents a subset of documents from the `documents` field relevant to the `input` and is available to the generative models.
-6. `targets` field is an array of expected gold or reference texts.
-7. `category` is an optional field that represents the type of task for grouping similar tasks.
-8. `filters` is a top-level field (parallel to `tasks`) which specifies an array of fields defined inside `tasks` for filtering tasks during analysis.
+2. Task type can be `qa` (single-turn retrieval QA), `generation` (text/JSON generation), `rag` (multi-turn retrieval conversation), or `tool_calling` (function-calling evaluation).
+3. For `qa`, `generation`, and `rag` tasks, `input` is an array of utterances where each utterance has a `speaker` (`user` or `agent`) and a `text` field.
+4. For `tool_calling` tasks, `input` must be an array of messages following the OpenAI chat completion format.
+5. For `qa` and `rag` tasks, the `contexts` field is an array of document references (subset of `documents`) available to the model.
+6. `targets` is an array of expected outputs. Each target is a typed object: `{ "type": "text", "value": "..." }` for text outputs, or `{ "type": "tool_calls", "calls": [...] }` for tool-calling ground truth.
+7. `category` is an optional field for grouping similar tasks.
+8. `filters` is a top-level field (parallel to `tasks`) specifying an array of task fields to expose as filters during analysis.
 
-#### 6. Evaluations
+#### 6. Results
 
 ```json
-"evaluations": [
+"results": [
       {
             "task_id": "task_1 | task_2",
             "model_id": "model_1 | model_2",
-            "model_response": "Model response",
-            "annotations": {
+            "output": {
+                  "type": "text",
+                  "value": "Model response text"
+            },
+            "scores": {
                   "metric_a": {
                         "system": {
                               "value": 0.233766233766233
@@ -260,7 +259,7 @@ Notes:
                         "system": {
                               "value": "text"
                         }
-                  },
+                  }
             }
       }
 ]
@@ -268,12 +267,12 @@ Notes:
 
 Notes:
 
-1. `evaluations` field must contain evaluation for every model defined in `models` section and on every task in `tasks` section. Thus, total number of evaluations is equal to number of models (M) X number of tasks (T) = M X T
-2. Each evaluation must be associated with single task and single model.
-3. Each evaluation must have model prediction on a task captured in the `model_response` field.
-4. `annotations` field captures ratings on the model for a given task and for every metric specified in the `metrics` field.
-5. Each metric annotation is a dictionary containing worker ids as keys. In the example above, `system` is a worker id.
-6. Annotation from any worker on all metrics must be in the form of a dictionary. At minimum, such dictionary contains `value` key capturing model's rating for the metric by the worker.
+1. `results` must contain one entry for every model defined in `models` and every task in `tasks`. Total number of results equals number of models (M) × number of tasks (T).
+2. Each result must be associated with a single task and a single model.
+3. `output` is a typed object representing the model's response. For text responses use `{ "type": "text", "value": "..." }`. For tool-calling tasks use `{ "type": "tool_calls", "calls": [...] }`.
+4. `scores` captures ratings for the model on a given task, for every metric specified in the `metrics` field.
+5. Each metric score is a dictionary with evaluator/worker IDs as keys. In the example above, `system` is the worker ID for an automated scorer.
+6. Each per-worker score must be a dictionary containing at minimum a `value` key with the numeric or categorical rating.
 
 ## Citation
 

@@ -21,7 +21,7 @@
 import { useState, useMemo } from 'react';
 import { Modal, RadioTile, CodeSnippet } from '@carbon/react';
 
-import { Metric, Model, Task, TaskEvaluation } from '@/src/types';
+import { Metric, Model, Task, ModelResult, outputAsText } from '@/src/types';
 import { RetrievedDocument } from '@/src/task-types/qa/types';
 import { WarningAlt } from '@carbon/icons-react';
 
@@ -31,7 +31,7 @@ interface Props {
   models: Model[];
   metrics: Metric[];
   task: Task;
-  evaluations: TaskEvaluation[];
+  results: ModelResult[];
   onClose: Function;
   open: boolean;
   documents?: RetrievedDocument[];
@@ -41,7 +41,7 @@ function prepareText(
   models: Model[],
   metrics: Metric[],
   task: Task,
-  evaluations: TaskEvaluation[],
+  results: ModelResult[],
   documents?: RetrievedDocument[],
 ): string {
   const separator = '=======================================================\n';
@@ -79,15 +79,15 @@ function prepareText(
     }
   }
 
-  if (evaluations && evaluations.length) {
+  if (results && results.length) {
     responses = `${separator}Responses\n${separator}`;
     const responseSeparator =
       '\n-------------------------------------------------------\n';
-    evaluations.forEach((evaluation) => {
+    results.forEach((evaluation) => {
       const model = models.find(
         (entry) => entry.modelId === evaluation.modelId,
       );
-      responses += `${model ? model.name.trim() : evaluation.modelId.trim()}${responseSeparator}${evaluation.modelResponse.trim()}\n${separator}`;
+      responses += `${model ? model.name.trim() : evaluation.modelId.trim()}${responseSeparator}${outputAsText(evaluation.output)}\n${separator}`;
     });
   }
 
@@ -98,7 +98,7 @@ function prepareLaTEXT(
   models: Model[],
   metrics: Metric[],
   task: Task,
-  evaluations: TaskEvaluation[],
+  results: ModelResult[],
   documents?: RetrievedDocument[],
 ): string {
   let input, context, responses;
@@ -139,14 +139,14 @@ function prepareLaTEXT(
     }
   }
 
-  if (evaluations && evaluations.length) {
+  if (results && results.length) {
     responses =
       '\\toprule \n\t\\multicolumn{1}{|c|}{\\textbf{Responses}} \\\\ \n\t';
-    evaluations.forEach((evaluation) => {
+    results.forEach((evaluation) => {
       const model = models.find(
         (entry) => entry.modelId === evaluation.modelId,
       );
-      responses += `\\toprule \n\t\\textbf{${model ? model.name.trim() : evaluation.modelId.trim()}} \\\\ \n\t\\midrule \n\t${evaluation.modelResponse.trim()} \\\\ \n\t`;
+      responses += `\\toprule \n\t\\textbf{${model ? model.name.trim() : evaluation.modelId.trim()}} \\\\ \n\t\\midrule \n\t${outputAsText(evaluation.output)} \\\\ \n\t`;
     });
     responses += '\\bottomrule \n\t';
   }
@@ -158,20 +158,20 @@ function prepareJSON(
   models: Model[],
   metrics: Metric[],
   task: Task,
-  evaluations: TaskEvaluation[],
+  results: ModelResult[],
   documents?: RetrievedDocument[],
 ): string {
   return JSON.stringify(
     {
       input: task.input,
       ...(documents && { passages: documents }),
-      responses: evaluations.map((evaluation) => {
+      responses: results.map((evaluation) => {
         const model = models.find(
           (entry) => entry.modelId === evaluation.modelId,
         );
         return {
           model: model ? model.name : evaluation.modelId,
-          response: evaluation.modelResponse,
+          response: evaluation.output,
         };
       }),
     },
@@ -184,7 +184,7 @@ export default function QACopierModal({
   models,
   metrics,
   task,
-  evaluations,
+  results,
   onClose,
   open = false,
   documents,
@@ -194,15 +194,15 @@ export default function QACopierModal({
   const textToCopy = useMemo(() => {
     let text;
     if (format === 'Text') {
-      text = prepareText(models, metrics, task, evaluations, documents);
+      text = prepareText(models, metrics, task, results, documents);
     } else if (format === 'LaTEX') {
-      text = prepareLaTEXT(models, metrics, task, evaluations, documents);
+      text = prepareLaTEXT(models, metrics, task, results, documents);
     } else {
-      text = prepareJSON(models, metrics, task, evaluations, documents);
+      text = prepareJSON(models, metrics, task, results, documents);
     }
 
     return text;
-  }, [models, metrics, task, evaluations, documents, format]);
+  }, [models, metrics, task, results, documents, format]);
 
   return (
     <Modal

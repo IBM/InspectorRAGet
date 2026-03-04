@@ -22,7 +22,7 @@ import {
   Data,
   MetricValue,
   RawData,
-  TaskEvaluation,
+  ModelResult,
   DisqualificationReason,
   DisqualifiedTasks,
   Task,
@@ -65,31 +65,31 @@ function sortMetricValues(values: MetricValue[]) {
 
 function disqualifyEvaluation(
   reasons: DisqualificationReason[],
-  evaluation: TaskEvaluation,
+  evaluation: ModelResult,
   disqualifiedTasks: DisqualifiedTasks,
-  evaluationsPerTask: { [key: string]: TaskEvaluation[] },
+  resultsPerTask: { [key: string]: ModelResult[] },
 ) {
-  // If task was previously qualified, move all its evaluations to disqualified
-  if (evaluationsPerTask.hasOwnProperty(evaluation.taskId)) {
-    const qualifiedEvaluations = evaluationsPerTask[evaluation.taskId];
-    delete evaluationsPerTask[evaluation.taskId];
+  // If task was previously qualified, move all its results to disqualified
+  if (resultsPerTask.hasOwnProperty(evaluation.taskId)) {
+    const qualifiedResults = resultsPerTask[evaluation.taskId];
+    delete resultsPerTask[evaluation.taskId];
 
     disqualifiedTasks[evaluation.taskId] = {
       reasons: reasons,
-      evaluations: [...qualifiedEvaluations, evaluation],
+      results: [...qualifiedResults, evaluation],
     };
   } else {
-    // Task already disqualified or new: append reasons and evaluation
+    // Task already disqualified or new: append reasons and result
     if (disqualifiedTasks.hasOwnProperty(evaluation.taskId)) {
       disqualifiedTasks[evaluation.taskId].reasons = [
         ...disqualifiedTasks[evaluation.taskId].reasons,
         ...reasons,
       ];
-      disqualifiedTasks[evaluation.taskId].evaluations.push(evaluation);
+      disqualifiedTasks[evaluation.taskId].results.push(evaluation);
     } else {
       disqualifiedTasks[evaluation.taskId] = {
         reasons: reasons,
-        evaluations: [evaluation],
+        results: [evaluation],
       };
     }
   }
@@ -106,39 +106,35 @@ export function processData(
   );
   const requiredModelIDs = new Set(data.models.map((model) => model.modelId));
 
-  // --- Disqualify evaluations missing required metrics or models ---
+  // --- Disqualify results missing required metrics or models ---
 
   /**
    * Disqualification rules:
-   * - Only preserve evaluations for models listed in the models section
-   * - A task needs evaluations for every listed model
-   * - Each evaluation must have annotations for every plottable metric
+   * - Only preserve results for models listed in the models section
+   * - A task needs a result for every listed model
+   * - Each result must have scores for every plottable metric
    */
   const disqualifiedTasks: DisqualifiedTasks = {};
-  const evaluationsPerTask: { [key: string]: TaskEvaluation[] } = {};
+  const resultsPerTask: { [key: string]: ModelResult[] } = {};
 
-  data.evaluations.forEach((evaluation) => {
+  data.results.forEach((evaluation) => {
     const disqualificationReasons: DisqualificationReason[] = [];
     plottableMetrics.forEach((metric) => {
-      if (!evaluation.annotations.hasOwnProperty(metric.name)) {
+      if (!evaluation.scores.hasOwnProperty(metric.name)) {
         disqualificationReasons.push({
           kind: DataErrorKinds.MISSING_METRIC,
           data: metric.name,
         });
       } else {
-        if (isEmpty(evaluation.annotations[metric.name])) {
+        if (isEmpty(evaluation.scores[metric.name])) {
           disqualificationReasons.push({
             kind: DataErrorKinds.MISSING_VALUE,
             data: metric.name,
           });
         } else {
-          for (const evaluator of Object.keys(
-            evaluation.annotations[metric.name],
-          )) {
+          for (const evaluator of Object.keys(evaluation.scores[metric.name])) {
             if (
-              !evaluation.annotations[metric.name][evaluator].hasOwnProperty(
-                'value',
-              )
+              !evaluation.scores[metric.name][evaluator].hasOwnProperty('value')
             ) {
               disqualificationReasons.push({
                 kind: DataErrorKinds.MISSING_VALUE,
@@ -151,15 +147,15 @@ export function processData(
     });
 
     if (isEmpty(disqualificationReasons)) {
-      // Only keep evaluations for models listed in the models section
+      // Only keep results for models listed in the models section
       if (requiredModelIDs.has(evaluation.modelId)) {
-        if (evaluationsPerTask.hasOwnProperty(evaluation.taskId)) {
-          evaluationsPerTask[evaluation.taskId].push(evaluation);
+        if (resultsPerTask.hasOwnProperty(evaluation.taskId)) {
+          resultsPerTask[evaluation.taskId].push(evaluation);
         } else {
           if (disqualifiedTasks.hasOwnProperty(evaluation.taskId)) {
-            disqualifiedTasks[evaluation.taskId].evaluations.push(evaluation);
+            disqualifiedTasks[evaluation.taskId].results.push(evaluation);
           } else {
-            evaluationsPerTask[evaluation.taskId] = [evaluation];
+            resultsPerTask[evaluation.taskId] = [evaluation];
           }
         }
       }
@@ -168,18 +164,18 @@ export function processData(
         disqualificationReasons,
         evaluation,
         disqualifiedTasks,
-        evaluationsPerTask,
+        resultsPerTask,
       );
     }
   });
 
-  // --- Verify model coverage: every task must have an evaluation per model ---
+  // --- Verify model coverage: every task must have a result per model ---
 
   // Check already-disqualified tasks for additional missing models
   Object.keys(disqualifiedTasks).forEach((taskId) => {
-    if (disqualifiedTasks[taskId].evaluations.length !== data.models.length) {
+    if (disqualifiedTasks[taskId].results.length !== data.models.length) {
       const availableModelIDs = new Set(
-        disqualifiedTasks[taskId].evaluations.map(
+        disqualifiedTasks[taskId].results.map(
           (evaluation) => evaluation.modelId,
         ),
       );
@@ -200,43 +196,43 @@ export function processData(
   });
 
   // Check qualified tasks -- demote to disqualified if any model is missing
-  Object.keys(evaluationsPerTask).forEach((taskId) => {
-    if (data.models.length !== evaluationsPerTask[taskId].length) {
+  Object.keys(resultsPerTask).forEach((taskId) => {
+    if (data.models.length !== resultsPerTask[taskId].length) {
       const availableModelIDs = new Set(
-        evaluationsPerTask[taskId].map((evaluation) => evaluation.modelId),
+        resultsPerTask[taskId].map((evaluation) => evaluation.modelId),
       );
       const missingModelIDs = [...requiredModelIDs].filter(
         (modelId) => !availableModelIDs.has(modelId),
       );
 
       if (!isEmpty(missingModelIDs)) {
-        const disqualifiedEvaluations = evaluationsPerTask[taskId];
+        const disqualifiedResults = resultsPerTask[taskId];
         disqualifiedTasks[taskId] = {
           reasons: missingModelIDs.map((modelId) => {
             return { kind: DataErrorKinds.MISSING_MODEL, data: modelId };
           }),
-          evaluations: disqualifiedEvaluations,
+          results: disqualifiedResults,
         };
 
-        delete evaluationsPerTask[taskId];
+        delete resultsPerTask[taskId];
       }
     }
   });
 
-  // --- Flatten qualified evaluations and collect annotators ---
+  // --- Flatten qualified results and collect annotators ---
 
   const uniqueQuailifiedTaskIds = new Set<string>();
   const annotators = new Set<string>();
-  const qualifiedEvaluations: TaskEvaluation[] = [];
+  const qualifiedResults: ModelResult[] = [];
 
-  Object.keys(evaluationsPerTask).forEach((taskId) => {
+  Object.keys(resultsPerTask).forEach((taskId) => {
     uniqueQuailifiedTaskIds.add(taskId);
-    evaluationsPerTask[taskId].forEach((evaluation) => {
-      Object.keys(evaluation.annotations).forEach((metric) => {
-        const entry = evaluation.annotations[metric];
+    resultsPerTask[taskId].forEach((evaluation) => {
+      Object.keys(evaluation.scores).forEach((metric) => {
+        const entry = evaluation.scores[metric];
         Object.keys(entry).forEach((annotator) => annotators.add(annotator));
       });
-      qualifiedEvaluations.push(evaluation);
+      qualifiedResults.push(evaluation);
     });
   });
 
@@ -289,7 +285,7 @@ export function processData(
         };
       }),
       documents: data.documents,
-      evaluations: qualifiedEvaluations,
+      results: qualifiedResults,
       annotators: Array.from(annotators),
       numTasks: qualifiedTasks.length,
       // Carry the migration flag so exportData can show a one-time toast

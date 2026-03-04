@@ -38,7 +38,7 @@ import {
 } from '@carbon/react';
 import { WarningAlt, WarningAltFilled } from '@carbon/icons-react';
 
-import { Task, Model, TaskEvaluation } from '@/src/types';
+import { Task, Model, ModelResult, outputAsText } from '@/src/types';
 import { truncate } from '@/src/utilities/strings';
 import { areObjectsIntersecting } from '@/src/utilities/objects';
 import Filters from '@/src/components/filters/Filters';
@@ -47,32 +47,23 @@ import classes from './PredictionsTable.module.scss';
 
 const MAX_NUM_ROWS = 150;
 
-// ===================================================================================
-//                               COMPUTE FUNCTIONS
-// ===================================================================================
-/**
- * Helper function to compute evaluations table headers and rows
- * @param tasks eligible tasks
- * @param evaluations full set of evaluations
- * @returns
- */
+// --- Compute functions ---
+
+/** Build table rows from the task list, attaching model predictions for each eligible task. */
 function populateTableRows(
   tasks: Task[],
-  evaluations: TaskEvaluation[],
+  results: ModelResult[],
   eligibleTaskIDs: Set<string>,
 ) {
-  // Collate predictions per task
-  const evaluationsPerTask = new Map<string, TaskEvaluation[]>();
-  evaluations.forEach((evaluation) => {
-    if (eligibleTaskIDs.has(evaluation.taskId)) {
-      const evaluationsForTask = evaluationsPerTask.get(evaluation.taskId);
-      if (evaluationsForTask) {
-        evaluationsPerTask.set(evaluation.taskId, [
-          ...evaluationsForTask,
-          evaluation,
-        ]);
+  // Collate results per task
+  const resultsPerTask = new Map<string, ModelResult[]>();
+  results.forEach((result) => {
+    if (eligibleTaskIDs.has(result.taskId)) {
+      const existingResults = resultsPerTask.get(result.taskId);
+      if (existingResults) {
+        resultsPerTask.set(result.taskId, [...existingResults, result]);
       } else {
-        evaluationsPerTask.set(evaluation.taskId, [evaluation]);
+        resultsPerTask.set(result.taskId, [result]);
       }
     }
   });
@@ -108,14 +99,14 @@ function populateTableRows(
       // Add first target, if present
       if (task.targets && !isEmpty(task.targets)) {
         row['targets'] = task.targets
-          .map((target) => [target.text])
-          .filter((entry) => entry !== undefined);
+          .map((target) => (target.type === 'text' ? [target.value] : []))
+          .filter((entry) => entry.length > 0);
       }
       // Add model responses
-      const taskEvaluations = evaluationsPerTask.get(task.taskId);
-      if (taskEvaluations) {
-        taskEvaluations.forEach((evaluation) => {
-          row[evaluation.modelId] = evaluation.modelResponse;
+      const taskResults = resultsPerTask.get(task.taskId);
+      if (taskResults) {
+        taskResults.forEach((result) => {
+          row[result.modelId] = outputAsText(result.output);
         });
       }
 
@@ -126,18 +117,17 @@ function populateTableRows(
   return rows;
 }
 
-// ===================================================================================
-//                               MAIN FUNCTION
-// ===================================================================================
+// --- Main component ---
+
 export default function PredictionsTable({
   tasks,
   models,
-  evaluations,
+  results,
   filters,
 }: {
   tasks: Task[];
   models: Model[];
-  evaluations: TaskEvaluation[];
+  results: ModelResult[];
   filters: { [key: string]: string[] };
 }) {
   const [selectedModels, setSelectedModels] = useState<Model[]>(models);
@@ -169,11 +159,11 @@ export default function PredictionsTable({
 
   // Populate table rows, sampling if the total exceeds MAX_NUM_ROWS
   const rows = useMemo(() => {
-    const tableRows = populateTableRows(tasks, evaluations, eligibleTaskIDs);
+    const tableRows = populateTableRows(tasks, results, eligibleTaskIDs);
     return tableRows.length > MAX_NUM_ROWS
       ? sampleSize(tableRows, MAX_NUM_ROWS)
       : tableRows;
-  }, [tasks, evaluations, eligibleTaskIDs]);
+  }, [tasks, results, eligibleTaskIDs]);
 
   const showWarning = rows.length === MAX_NUM_ROWS;
 
@@ -209,11 +199,11 @@ export default function PredictionsTable({
           <div className={classes.selectors}>
             <div className={classes.modelSelector}>
               <FilterableMultiSelect
-                id={'model-selector'}
+                id={'predictions-model-selector'}
                 titleText="Choose models"
                 items={models}
-                initialSelectedItems={selectedModels}
-                itemToString={(item) => item.name}
+                selectedItems={selectedModels}
+                itemToString={(item) => (item ? item.name : '')}
                 onChange={(event) => {
                   setSelectedModels(event.selectedItems);
                 }}
@@ -293,39 +283,39 @@ export default function PredictionsTable({
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {rows.map((row, index) => (
-                          <TableRow
-                            key={'row--' + index}
-                            {...getRowProps({ row })}
-                          >
-                            {row.cells.map((cell) => (
-                              <TableCell key={cell.id}>
-                                {cell.info.header === 'targets' && cell.value
-                                  ? cell.value.length > 1
-                                    ? cell.value.map(
-                                        (targetText, targetIdx) => (
-                                          <>
-                                            <span>
+                        {rows.map((row, index) => {
+                          const { key: _key, ...rowProps } = getRowProps({
+                            row,
+                          });
+                          return (
+                            <TableRow key={'row--' + index} {...rowProps}>
+                              {row.cells.map((cell) => (
+                                <TableCell key={cell.id}>
+                                  {cell.info.header === 'targets' && cell.value
+                                    ? cell.value.length > 1
+                                      ? cell.value.map(
+                                          (targetText, targetIdx) => (
+                                            <span key={targetIdx}>
                                               Target {targetIdx + 1}
                                               :&nbsp;
                                               {parse(
                                                 DOMPurify.sanitize(targetText),
                                               )}
+                                              <div
+                                                className={
+                                                  classes.targetSeparator
+                                                }
+                                              />
                                             </span>
-                                            <div
-                                              className={
-                                                classes.targetSeparator
-                                              }
-                                            />
-                                          </>
-                                        ),
-                                      )
-                                    : parse(DOMPurify.sanitize(cell.value[0]))
-                                  : parse(DOMPurify.sanitize(cell.value))}
-                              </TableCell>
-                            ))}
-                          </TableRow>
-                        ))}
+                                          ),
+                                        )
+                                      : parse(DOMPurify.sanitize(cell.value[0]))
+                                    : parse(DOMPurify.sanitize(cell.value))}
+                                </TableCell>
+                              ))}
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </TableContainer>

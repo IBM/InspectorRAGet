@@ -21,7 +21,7 @@
 import { useState, useMemo } from 'react';
 import { Modal, RadioTile, CodeSnippet } from '@carbon/react';
 
-import { Metric, Model, Task, TaskEvaluation } from '@/src/types';
+import { Metric, Model, Task, ModelResult, outputAsText } from '@/src/types';
 import { WarningAlt } from '@carbon/icons-react';
 
 import classes from './Copier.module.scss';
@@ -30,7 +30,7 @@ interface Props {
   models: Model[];
   metrics: Metric[];
   task: Task;
-  evaluations: TaskEvaluation[];
+  results: ModelResult[];
   onClose: Function;
   open: boolean;
 }
@@ -39,7 +39,7 @@ function prepareText(
   models: Model[],
   metrics: Metric[],
   task: Task,
-  evaluations: TaskEvaluation[],
+  results: ModelResult[],
 ): string {
   const separator = '=======================================================\n';
   let input, responses;
@@ -48,15 +48,15 @@ function prepareText(
     input = `${separator}Input\n${separator}${task.input.trim()}`;
   }
 
-  if (evaluations && evaluations.length) {
+  if (results && results.length) {
     responses = `${separator}Responses\n${separator}`;
     const responseSeparator =
       '\n-------------------------------------------------------\n';
-    evaluations.forEach((evaluation) => {
+    results.forEach((evaluation) => {
       const model = models.find(
         (entry) => entry.modelId === evaluation.modelId,
       );
-      responses += `${model ? model.name.trim() : evaluation.modelId.trim()}${responseSeparator}${evaluation.modelResponse.trim()}\n${separator}`;
+      responses += `${model ? model.name.trim() : evaluation.modelId.trim()}${responseSeparator}${outputAsText(evaluation.output)}\n${separator}`;
     });
   }
 
@@ -67,7 +67,7 @@ function prepareLaTEXT(
   models: Model[],
   metrics: Metric[],
   task: Task,
-  evaluations: TaskEvaluation[],
+  results: ModelResult[],
 ): string {
   let input, responses;
 
@@ -75,14 +75,14 @@ function prepareLaTEXT(
     input = `\\multicolumn{1}{|c|}{\\textbf{Input}} \\\\ \n\t\\toprule \n\t${task.input.trim()}  \\\\ \n\t`;
   }
 
-  if (evaluations && evaluations.length) {
+  if (results && results.length) {
     responses =
       '\\toprule \n\t\\multicolumn{1}{|c|}{\\textbf{Responses}} \\\\ \n\t';
-    evaluations.forEach((evaluation) => {
+    results.forEach((evaluation) => {
       const model = models.find(
         (entry) => entry.modelId === evaluation.modelId,
       );
-      responses += `\\toprule \n\t\\textbf{${model ? model.name.trim() : evaluation.modelId.trim()}} \\\\ \n\t\\midrule \n\t${evaluation.modelResponse.trim()} \\\\ \n\t`;
+      responses += `\\toprule \n\t\\textbf{${model ? model.name.trim() : evaluation.modelId.trim()}} \\\\ \n\t\\midrule \n\t${outputAsText(evaluation.output)} \\\\ \n\t`;
     });
     responses += '\\bottomrule \n\t';
   }
@@ -94,18 +94,18 @@ function prepareJSON(
   models: Model[],
   metrics: Metric[],
   task: Task,
-  evaluations: TaskEvaluation[],
+  results: ModelResult[],
 ): string {
   return JSON.stringify(
     {
       input: task.input,
-      responses: evaluations.map((evaluation) => {
+      responses: results.map((evaluation) => {
         const model = models.find(
           (entry) => entry.modelId === evaluation.modelId,
         );
         return {
           model: model ? model.name : evaluation.modelId,
-          response: evaluation.modelResponse,
+          response: evaluation.output,
         };
       }),
     },
@@ -118,7 +118,7 @@ export default function GenerationCopierModal({
   models,
   metrics,
   task,
-  evaluations,
+  results,
   onClose,
   open = false,
 }: Props) {
@@ -127,15 +127,15 @@ export default function GenerationCopierModal({
   const textToCopy = useMemo(() => {
     let text;
     if (format === 'Text') {
-      text = prepareText(models, metrics, task, evaluations);
+      text = prepareText(models, metrics, task, results);
     } else if (format === 'LaTEX') {
-      text = prepareLaTEXT(models, metrics, task, evaluations);
+      text = prepareLaTEXT(models, metrics, task, results);
     } else {
-      text = prepareJSON(models, metrics, task, evaluations);
+      text = prepareJSON(models, metrics, task, results);
     }
 
     return text;
-  }, [models, metrics, task, evaluations, format]);
+  }, [models, metrics, task, results, format]);
 
   return (
     <Modal

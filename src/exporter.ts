@@ -37,12 +37,12 @@ export function exportData(
         documents: data.documents,
       }),
       tasks: data.tasks,
-      evaluations: data.evaluations.map((evaluation) => {
+      results: data.results.map((evaluation) => {
         return {
           taskId: evaluation.taskId,
           modelId: evaluation.modelId,
-          modelResponse: evaluation.modelResponse,
-          annotations: evaluation.annotations,
+          output: evaluation.output,
+          scores: evaluation.scores,
           ...(evaluation.contexts && { contexts: evaluation.contexts }),
         };
       }),
@@ -56,7 +56,7 @@ export function exportData(
         }
       });
 
-      // Subset export: only include documents and evaluations for the given tasks
+      // Subset export: only include documents and results for the given tasks
       if (data.tasks.length !== tasks.length) {
         const documentsMap: Map<string, RetrievedDocument> = new Map(
           data.documents?.map((document) => [document.documentId, document]),
@@ -93,14 +93,14 @@ export function exportData(
             documents: Array.from(relevantDocuments),
           }),
           tasks: tasks,
-          evaluations: data.evaluations
+          results: data.results
             .filter((evaluation) => relevantTaskIds.has(evaluation.taskId))
             .map((evaluation) => {
               return {
                 taskId: evaluation.taskId,
                 modelId: evaluation.modelId,
-                modelResponse: evaluation.modelResponse,
-                annotations: evaluation.annotations,
+                output: evaluation.output,
+                scores: evaluation.scores,
                 ...(evaluation.contexts && { contexts: evaluation.contexts }),
               };
             }),
@@ -118,12 +118,12 @@ export function exportData(
             documents: data.documents,
           }),
           tasks: tasks,
-          evaluations: data.evaluations.map((evaluation) => {
+          results: data.results.map((evaluation) => {
             return {
               taskId: evaluation.taskId,
               modelId: evaluation.modelId,
-              modelResponse: evaluation.modelResponse,
-              annotations: evaluation.annotations,
+              output: evaluation.output,
+              scores: evaluation.scores,
               ...(evaluation.contexts && { contexts: evaluation.contexts }),
             };
           }),

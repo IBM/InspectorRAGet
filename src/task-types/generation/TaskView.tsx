@@ -34,7 +34,7 @@ import {
 } from '@carbon/react';
 import { TextHighlight } from '@carbon/icons-react';
 
-import { Model, TaskEvaluation, Task, Metric } from '@/src/types';
+import { Model, ModelResult, Task, Metric, outputAsText } from '@/src/types';
 import { useDataStore } from '@/src/store';
 import { truncate, overlaps } from '@/src/utilities/strings';
 import { mark } from '@/src/utilities/highlighter';
@@ -44,9 +44,8 @@ import GenerationCopier from '@/src/task-types/generation/Copier';
 
 import classes from './TaskView.module.scss';
 
-// ===================================================================================
-//                                TYPES
-// ===================================================================================
+// --- Types ---
+
 interface Props {
   task: Task;
   models: Map<string, Model>;
@@ -56,9 +55,8 @@ interface Props {
   updateCommentProvenance: Function;
 }
 
-// ===================================================================================
-//                               MAIN FUNCTION
-// ===================================================================================
+// --- Main component ---
+
 export default function GenerationTaskView({
   task,
   models,
@@ -72,24 +70,24 @@ export default function GenerationTaskView({
 
   const { item: data } = useDataStore();
 
-  const evaluations = useMemo(() => {
-    let taskEvaluations: TaskEvaluation[] | undefined = undefined;
+  const results = useMemo(() => {
+    let taskResults: ModelResult[] | undefined = undefined;
     if (data) {
-      taskEvaluations = data.evaluations.filter(
-        (evaluation) => evaluation.taskId === task.taskId,
+      taskResults = data.results.filter(
+        (result) => result.taskId === task.taskId,
       );
 
       // Compute input-response overlap for highlight support
-      taskEvaluations.forEach((evaluation) => {
+      taskResults.forEach((result) => {
         if (typeof task.input === 'string') {
-          evaluation.overlaps = overlaps(evaluation.modelResponse, task.input);
+          result.overlaps = overlaps(outputAsText(result.output), task.input);
         } else {
-          evaluation.overlaps = [];
+          result.overlaps = [];
         }
       });
     }
 
-    return taskEvaluations;
+    return taskResults;
   }, [task.taskId, task.input, data]);
 
   const [hMetrics, aMetrics] = useMemo(() => {
@@ -109,20 +107,20 @@ export default function GenerationTaskView({
 
   return (
     <>
-      {models && metrics && task && evaluations && (
+      {models && metrics && task && results && (
         <GenerationCopier
           open={taskCopierModalOpen}
           models={Array.from(models.values())}
           metrics={metrics}
           task={task}
-          evaluations={evaluations}
+          results={results}
           onClose={() => {
             setTaskCopierModalOpen(false);
           }}
         ></GenerationCopier>
       )}
 
-      {task && models && evaluations && (
+      {task && models && results && (
         <>
           <div className={classes.inputContainer}>
             {typeof task.input === 'string' ? (
@@ -170,7 +168,7 @@ export default function GenerationTaskView({
                         showOverlap
                           ? mark(
                               task.input,
-                              evaluations[selectedModelIndex].overlaps,
+                              results[selectedModelIndex].overlaps,
                               'target',
                             )
                           : task.input,
@@ -184,7 +182,7 @@ export default function GenerationTaskView({
 
           <div className={classes.separator} />
 
-          <div className={classes.evaluationsContainer}>
+          <div className={classes.resultsContainer}>
             <Tabs
               onChange={(e) => {
                 setSelectedModelIndex(e.selectedIndex);
@@ -195,25 +193,23 @@ export default function GenerationTaskView({
                 aria-label="Models tab"
                 contained
               >
-                {evaluations.map((evaluation) => (
-                  <Tab key={'model-' + evaluation.modelId}>
+                {results.map((result) => (
+                  <Tab key={'model-' + result.modelId}>
                     {truncate(
-                      models.get(evaluation.modelId)?.name ||
-                        evaluation.modelId,
+                      models.get(result.modelId)?.name || result.modelId,
                       15,
                     )}
                   </Tab>
                 ))}
               </TabList>
               <TabPanels>
-                {evaluations.map((evaluation) => (
-                  <TabPanel key={'model-' + evaluation.modelId + '-panel'}>
+                {results.map((result) => (
+                  <TabPanel key={'model-' + result.modelId + '-panel'}>
                     <div className={classes.tabContainer}>
                       <div className={classes.tabContentHeader}>
                         <h5>Model:</h5>
                         <span>
-                          {models.get(evaluation.modelId)?.name ||
-                            evaluation.modelId}
+                          {models.get(result.modelId)?.name || result.modelId}
                         </span>
                       </div>
                       <ContainedList
@@ -226,12 +222,12 @@ export default function GenerationTaskView({
                             className={classes.responseContainer}
                             onMouseDown={() => {
                               updateCommentProvenance(
-                                `${evaluation.modelId}::evaluation::response`,
+                                `${result.modelId}::evaluation::response`,
                               );
                             }}
                             onMouseUp={() =>
                               updateCommentProvenance(
-                                `${evaluation.modelId}::evaluation::response`,
+                                `${result.modelId}::evaluation::response`,
                               )
                             }
                           >
@@ -239,48 +235,50 @@ export default function GenerationTaskView({
                               DOMPurify.sanitize(
                                 showOverlap
                                   ? mark(
-                                      evaluation.modelResponse,
-                                      evaluation.overlaps,
+                                      outputAsText(result.output),
+                                      result.overlaps,
                                       'source',
                                     )
-                                  : evaluation.modelResponse,
+                                  : outputAsText(result.output),
                               ),
                             )}
                           </div>
                         </ContainedListItem>
                       </ContainedList>
-                      {task.targets && !isEmpty(task.targets) ? (
-                        <ContainedList
-                          label="Targets"
-                          kind="disclosed"
-                          size="sm"
-                        >
-                          {task.targets.map((target, targetIdx) =>
-                            target.text ? (
+                      <ContainedList label="Targets" kind="disclosed" size="sm">
+                        {task.targets && !isEmpty(task.targets) ? (
+                          task.targets.map((target, targetIdx) =>
+                            target.type === 'text' ? (
                               <ContainedListItem key={`target--${targetIdx}`}>
                                 <span>
-                                  Target {targetIdx + 1}: {target.text}
+                                  Target {targetIdx + 1}: {target.value}
                                 </span>
                               </ContainedListItem>
                             ) : null,
-                          )}
-                        </ContainedList>
-                      ) : null}
+                          )
+                        ) : (
+                          <ContainedListItem>
+                            <span className={classes.notProvided}>
+                              Not provided
+                            </span>
+                          </ContainedListItem>
+                        )}
+                      </ContainedList>
 
-                      {evaluation.annotations && hMetrics.size ? (
+                      {result.scores && hMetrics.size ? (
                         <>
                           <h5>Human Evaluations:</h5>
                           <AnnotationsTable
-                            annotations={evaluation.annotations}
+                            annotations={result.scores}
                             metrics={[...hMetrics.values()]}
                           ></AnnotationsTable>
                         </>
                       ) : null}
-                      {evaluation.annotations && aMetrics.size ? (
+                      {result.scores && aMetrics.size ? (
                         <>
                           <h5>Algorithmic Evaluations:</h5>
                           <AnnotationsTable
-                            annotations={evaluation.annotations}
+                            annotations={result.scores}
                             metrics={[...aMetrics.values()]}
                           ></AnnotationsTable>
                         </>

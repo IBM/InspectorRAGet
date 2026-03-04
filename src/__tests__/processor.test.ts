@@ -44,18 +44,18 @@ function minimalData(overrides?: Partial<RawData>): RawData {
         input: 'Hello',
       },
     ],
-    evaluations: [
+    results: [
       {
         taskId: 't1',
         modelId: 'm1',
-        modelResponse: 'Hi there',
-        annotations: { accuracy: { system: { value: 0.9 } } },
+        output: { type: 'text', value: 'Hi there' },
+        scores: { accuracy: { system: { value: 0.9 } } },
       },
       {
         taskId: 't1',
         modelId: 'm2',
-        modelResponse: 'Hey',
-        annotations: { accuracy: { system: { value: 0.8 } } },
+        output: { type: 'text', value: 'Hey' },
+        scores: { accuracy: { system: { value: 0.8 } } },
       },
     ],
     ...overrides,
@@ -65,10 +65,10 @@ function minimalData(overrides?: Partial<RawData>): RawData {
 // --- processData: basic qualification ---
 
 describe('processData', () => {
-  it('qualifies tasks that have evaluations for all models and all metrics', () => {
+  it('qualifies tasks that have results for all models and all metrics', () => {
     const [data, disqualified] = processData(minimalData());
     expect(data.tasks).toHaveLength(1);
-    expect(data.evaluations).toHaveLength(2);
+    expect(data.results).toHaveLength(2);
     expect(data.numTasks).toBe(1);
     expect(Object.keys(disqualified)).toHaveLength(0);
   });
@@ -90,7 +90,7 @@ describe('processData', () => {
     expect(data.metrics[0].name).toBe('accuracy');
   });
 
-  it('extracts annotator IDs from evaluations', () => {
+  it('extracts annotator IDs from results', () => {
     const [data] = processData(minimalData());
     expect(data.annotators).toContain('system');
   });
@@ -99,11 +99,11 @@ describe('processData', () => {
 
   it('disqualifies a task when an evaluation is missing a metric annotation', () => {
     const raw = minimalData();
-    raw.evaluations[0] = {
+    raw.results[0] = {
       taskId: 't1',
       modelId: 'm1',
-      modelResponse: 'Hi',
-      annotations: {},
+      output: { type: 'text', value: 'Hi' },
+      scores: {},
     } as any;
 
     const [data, disqualified] = processData(raw);
@@ -118,11 +118,11 @@ describe('processData', () => {
 
   it('disqualifies a task when a metric annotation has empty evaluators', () => {
     const raw = minimalData();
-    raw.evaluations[0] = {
+    raw.results[0] = {
       taskId: 't1',
       modelId: 'm1',
-      modelResponse: 'Hi',
-      annotations: { accuracy: {} },
+      output: { type: 'text', value: 'Hi' },
+      scores: { accuracy: {} },
     } as any;
 
     const [data, disqualified] = processData(raw);
@@ -136,11 +136,11 @@ describe('processData', () => {
 
   it('disqualifies a task when an annotation is missing the value field', () => {
     const raw = minimalData();
-    raw.evaluations[0] = {
+    raw.results[0] = {
       taskId: 't1',
       modelId: 'm1',
-      modelResponse: 'Hi',
-      annotations: { accuracy: { system: { timestamp: 123 } } },
+      output: { type: 'text', value: 'Hi' },
+      scores: { accuracy: { system: { timestamp: 123 } } },
     } as any;
 
     const [data, disqualified] = processData(raw);
@@ -154,10 +154,10 @@ describe('processData', () => {
 
   // --- Disqualification: missing models ---
 
-  it('disqualifies a task when not all models have evaluations', () => {
+  it('disqualifies a task when not all models have results', () => {
     const raw = minimalData();
-    // Remove evaluation for m2
-    raw.evaluations = [raw.evaluations[0]];
+    // Remove result for m2
+    raw.results = [raw.results[0]];
 
     const [data, disqualified] = processData(raw);
     expect(data.tasks).toHaveLength(0);
@@ -168,22 +168,20 @@ describe('processData', () => {
     ).toBe(true);
   });
 
-  it('ignores evaluations for models not in the models list', () => {
+  it('ignores results for models not in the models list', () => {
     const raw = minimalData();
-    // Add evaluation for unlisted model
-    raw.evaluations.push({
+    // Add result for unlisted model
+    raw.results.push({
       taskId: 't1',
       modelId: 'unknown_model',
-      modelResponse: 'Yo',
-      annotations: { accuracy: { system: { value: 0.5 } } },
+      output: { type: 'text', value: 'Yo' },
+      scores: { accuracy: { system: { value: 0.5 } } },
     } as any);
 
     const [data] = processData(raw);
     // Should still qualify with the two known models
-    expect(data.evaluations).toHaveLength(2);
-    expect(data.evaluations.every((e) => e.modelId !== 'unknown_model')).toBe(
-      true,
-    );
+    expect(data.results).toHaveLength(2);
+    expect(data.results.every((e) => e.modelId !== 'unknown_model')).toBe(true);
   });
 
   // --- Text-only metrics are not used for qualification ---
@@ -222,18 +220,18 @@ describe('processData', () => {
         },
       ],
     });
-    raw.evaluations = [
+    raw.results = [
       {
         taskId: 't1',
         modelId: 'm1',
-        modelResponse: 'Hi',
-        annotations: { quality: { human1: { value: 'high' } } },
+        output: { type: 'text', value: 'Hi' },
+        scores: { quality: { human1: { value: 'high' } } },
       },
       {
         taskId: 't1',
         modelId: 'm2',
-        modelResponse: 'Hey',
-        annotations: { quality: { human1: { value: 'low' } } },
+        output: { type: 'text', value: 'Hey' },
+        scores: { quality: { human1: { value: 'low' } } },
       },
     ] as any;
 
@@ -257,18 +255,18 @@ describe('processData', () => {
         },
       ],
     });
-    raw.evaluations = [
+    raw.results = [
       {
         taskId: 't1',
         modelId: 'm1',
-        modelResponse: 'Hi',
-        annotations: { quality: { h: { value: 'good' } } },
+        output: { type: 'text', value: 'Hi' },
+        scores: { quality: { h: { value: 'good' } } },
       },
       {
         taskId: 't1',
         modelId: 'm2',
-        modelResponse: 'Hey',
-        annotations: { quality: { h: { value: 'bad' } } },
+        output: { type: 'text', value: 'Hey' },
+        scores: { quality: { h: { value: 'bad' } } },
       },
     ] as any;
 
@@ -294,12 +292,12 @@ describe('processData', () => {
       taskType: 'generation',
       input: 'Bye',
     } as any);
-    // t2 only has evaluation for m1, not m2 — should be disqualified
-    raw.evaluations.push({
+    // t2 only has a result for m1, not m2 — should be disqualified
+    raw.results.push({
       taskId: 't2',
       modelId: 'm1',
-      modelResponse: 'Goodbye',
-      annotations: { accuracy: { system: { value: 0.7 } } },
+      output: { type: 'text', value: 'Goodbye' },
+      scores: { accuracy: { system: { value: 0.7 } } },
     } as any);
 
     const [data, disqualified] = processData(raw);

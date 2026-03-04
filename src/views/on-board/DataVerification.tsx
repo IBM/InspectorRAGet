@@ -179,22 +179,24 @@ export default memo(function DataVerificationView({
                             </TableRow>
                           </TableHead>
                           <TableBody>
-                            {rows.map((row, index) => (
-                              <TableRow
-                                key={'row--' + index}
-                                {...getRowProps({ row })}
-                              >
-                                {row.cells.map((cell) => (
-                                  <TableCell key={cell.id}>
-                                    {cell.info.header != 'taskId'
-                                      ? !isEmpty(cell.value)
-                                        ? [...cell.value].join(', ')
-                                        : '-'
-                                      : cell.value}
-                                  </TableCell>
-                                ))}
-                              </TableRow>
-                            ))}
+                            {rows.map((row, index) => {
+                              const { key: _key, ...rowProps } = getRowProps({
+                                row,
+                              });
+                              return (
+                                <TableRow key={'row--' + index} {...rowProps}>
+                                  {row.cells.map((cell) => (
+                                    <TableCell key={cell.id}>
+                                      {cell.info.header != 'taskId'
+                                        ? !isEmpty(cell.value)
+                                          ? [...cell.value].join(', ')
+                                          : '-'
+                                        : cell.value}
+                                    </TableCell>
+                                  ))}
+                                </TableRow>
+                              );
+                            })}
                           </TableBody>
                         </Table>
                       </TableContainer>

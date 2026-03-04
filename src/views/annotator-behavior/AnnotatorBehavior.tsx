@@ -41,7 +41,7 @@ import { BoxplotChart, StackedBarChart } from '@carbon/charts-react';
 import { ScaleTypes } from '@carbon/charts';
 
 import { useTheme } from '@/src/theme';
-import { Model, TaskEvaluation, Metric } from '@/src/types';
+import { Model, ModelResult, Metric } from '@/src/types';
 import { AgreementLevels } from '@/src/utilities/metrics';
 import {
   getAgreementLevelColorPalette,
@@ -54,24 +54,27 @@ import '@carbon/charts-react/styles.css';
 import classes from './AnnotatorBehavior.module.scss';
 import InterAnnotatorAgreementHeatMap from '@/src/views/annotator-behavior/InterAnnotatorAgreementHeatMap.tsx';
 
-// ===================================================================================
-//                                TYPES
-// ===================================================================================
+// --- Types ---
+
 interface Props {
-  evaluationsPerMetric: { [key: string]: TaskEvaluation[] };
+  resultsPerMetric: { [key: string]: ModelResult[] };
   models: Model[];
   metrics: Metric[];
   filters: { [key: string]: string[] };
 }
 
-// ===================================================================================
-//                                CONSTANTS
-// ===================================================================================
+// --- Constants ---
+
 const VOTING_PATTERNS: string[] = Object.keys(getVotingPatternColorPalette());
 
-// ===================================================================================
-//                               HELPER FUNCTIONS
-// ===================================================================================
+// Zero-initialized counts for all voting patterns — spread as the base when
+// inserting a new voter entry so every pattern key is always present.
+const ZERO_VOTING_PATTERN: { [key: string]: number } = Object.fromEntries(
+  VOTING_PATTERNS.map((pattern) => [pattern, 0]),
+);
+
+// --- Helper functions ---
+
 function normalize(data: { [key: string]: number }) {
   const total = Object.values(data).reduce((a, b) => a + b, 0);
   return Object.fromEntries(
@@ -97,22 +100,18 @@ function updateVotingPattern(
       votingPatternsPerTopicPerVoter[topic][voter][votingPattern] += 1;
     } else {
       votingPatternsPerTopicPerVoter[topic][voter] = {
-        ...Object.fromEntries(VOTING_PATTERNS.map((pattern) => [pattern, 0])),
+        ...ZERO_VOTING_PATTERN,
         [votingPattern]: 1,
       };
     }
   } else {
     votingPatternsPerTopicPerVoter[topic] = {
-      [voter]: {
-        ...Object.fromEntries(VOTING_PATTERNS.map((pattern) => [pattern, 0])),
-        [votingPattern]: 1,
-      },
+      [voter]: { ...ZERO_VOTING_PATTERN, [votingPattern]: 1 },
     };
   }
 }
 
 function prepareBoxPlotData(data: { [key: string]: number[] }) {
-  // Populate plot data array
   const plotData: { [key: string]: string | number }[] = [];
   for (const [worker, durations] of Object.entries(data)) {
     durations.forEach((duration) => {
@@ -125,9 +124,8 @@ function prepareBoxPlotData(data: { [key: string]: number[] }) {
   }
   return plotData;
 }
-// ===================================================================================
-//                              RENDER FUNCTIONS
-// ===================================================================================
+// --- Render functions ---
+
 function renderAgreementDistribution(
   record: {
     [key: string]: { [key: string]: number };
@@ -212,19 +210,21 @@ function renderAnnotatorVotingPattern(
     VOTING_PATTERNS.map((pattern) => [pattern, 0]),
   );
   for (const distribution of Object.values(record)) {
-    for (const [affiliaion, count] of Object.entries(distribution)) {
-      overall[affiliaion] += count;
+    for (const [affiliation, count] of Object.entries(distribution)) {
+      overall[affiliation] += count;
     }
   }
 
   const chartData: { [key: string]: string | number }[] = [];
-  for (const [affliation, count] of Object.entries(normalize(overall))) {
-    chartData.push({ group: affliation, key: 'All', value: count });
+  for (const [affiliation, count] of Object.entries(normalize(overall))) {
+    chartData.push({ group: affiliation, key: 'All', value: count });
   }
   for (const [individual, distribution] of Object.entries(record)) {
-    for (const [affiliaion, count] of Object.entries(normalize(distribution))) {
+    for (const [affiliation, count] of Object.entries(
+      normalize(distribution),
+    )) {
       chartData.push({
-        group: affiliaion,
+        group: affiliation,
         key: `ID: ${individual}`,
         value: count,
       });
@@ -266,11 +266,10 @@ function renderAnnotatorVotingPattern(
   );
 }
 
-// ===================================================================================
-//                               MAIN FUNCTION
-// ===================================================================================
+// --- Main component ---
+
 export default function AnnotatorBehavior({
-  evaluationsPerMetric,
+  resultsPerMetric,
   models,
   metrics,
   filters,
@@ -284,12 +283,11 @@ export default function AnnotatorBehavior({
   }>({});
 
   const { theme } = useTheme();
-  const visibleEvaluationsPerMetric = useMemo(() => {
-    const filteredEvaluationsPerMetric: { [key: string]: TaskEvaluation[] } =
-      {};
-    for (const [metric, evaluations] of Object.entries(evaluationsPerMetric)) {
+  const visibleResultsPerMetric = useMemo(() => {
+    const filteredResultsPerMetric: { [key: string]: ModelResult[] } = {};
+    for (const [metric, results] of Object.entries(resultsPerMetric)) {
       if (eligibleMetricNames.has(metric)) {
-        filteredEvaluationsPerMetric[metric] = evaluations.filter(
+        filteredResultsPerMetric[metric] = results.filter(
           (evaluation) =>
             selectedModels
               .map((model) => model.modelId)
@@ -300,13 +298,8 @@ export default function AnnotatorBehavior({
         );
       }
     }
-    return filteredEvaluationsPerMetric;
-  }, [
-    evaluationsPerMetric,
-    eligibleMetricNames,
-    selectedModels,
-    selectedFilters,
-  ]);
+    return filteredResultsPerMetric;
+  }, [resultsPerMetric, eligibleMetricNames, selectedModels, selectedFilters]);
 
   const [
     agreementDistributionPerMetricPerModel,
@@ -319,7 +312,7 @@ export default function AnnotatorBehavior({
       [key: string]: { [key: string]: { [key: string]: number } };
     } = {};
 
-    for (const metric in visibleEvaluationsPerMetric) {
+    for (const metric in visibleResultsPerMetric) {
       agreementStatisticPerMetricPerModel[metric] = Object.fromEntries(
         selectedModels.map((model) => [
           model.modelId,
@@ -328,10 +321,8 @@ export default function AnnotatorBehavior({
       );
     }
 
-    for (const [metric, evaluations] of Object.entries(
-      visibleEvaluationsPerMetric,
-    )) {
-      evaluations.forEach((evaluation) => {
+    for (const [metric, results] of Object.entries(visibleResultsPerMetric)) {
+      results.forEach((evaluation) => {
         switch (evaluation[`${metric}_agg`].level) {
           // Case: All annotators gave same rating
           case AgreementLevels.ABSOLUTE_AGREEMENT:
@@ -415,7 +406,7 @@ export default function AnnotatorBehavior({
       agreementStatisticPerMetricPerModel,
       votingPatternsPerMetricPerAnnotator,
     ];
-  }, [visibleEvaluationsPerMetric, selectedModels]);
+  }, [visibleResultsPerMetric, selectedModels]);
 
   // Build time duration distribution per annotator across all evaluations
   const timeDistributionPerAnnotator: {
@@ -423,16 +414,13 @@ export default function AnnotatorBehavior({
   } = useMemo(() => {
     const temp: { [key: string]: number[] } = {};
     const processedEvaluationTaskIDs = new Set();
-    for (const [metric, evaluations] of Object.entries(evaluationsPerMetric)) {
-      evaluations.forEach((evaluation) => {
+    for (const [metric, results] of Object.entries(resultsPerMetric)) {
+      results.forEach((evaluation) => {
         if (!processedEvaluationTaskIDs.has(evaluation.taskId)) {
           Object.keys(evaluation[metric]).forEach((worker) => {
             if (evaluation[metric][worker]['duration'] !== undefined) {
               if (temp.hasOwnProperty(worker)) {
-                temp[worker] = [
-                  ...temp[worker],
-                  evaluation[metric][worker]['duration'],
-                ];
+                temp[worker].push(evaluation[metric][worker]['duration']);
               } else {
                 temp[worker] = [evaluation[metric][worker]['duration']];
               }
@@ -443,7 +431,7 @@ export default function AnnotatorBehavior({
       break;
     }
     return temp;
-  }, [evaluationsPerMetric]);
+  }, [resultsPerMetric]);
 
   return (
     <div className={classes.page}>
@@ -465,11 +453,11 @@ export default function AnnotatorBehavior({
           <div className={classes.selectors}>
             <div className={classes.modelSelector}>
               <FilterableMultiSelect
-                id={'model-selector'}
+                id={'annotator-model-selector'}
                 titleText="Choose models"
                 items={models}
-                initialSelectedItems={selectedModels}
-                itemToString={(item) => item.name}
+                selectedItems={selectedModels}
+                itemToString={(item) => (item ? item.name : '')}
                 onChange={(event) => {
                   setSelectedModels(event.selectedItems);
                 }}
@@ -560,43 +548,43 @@ export default function AnnotatorBehavior({
                   <Information />
                 </ToggletipButton>
                 <ToggletipContent>
-                  <h6>How to interprete Cohen's kappa coefficient?</h6>
+                  <h6>How to interpret Cohen's kappa coefficient?</h6>
                   <DataTable
                     rows={[
                       {
                         id: 0,
                         score: '0',
-                        intepretation: 'No agreement',
+                        interpretation: 'No agreement',
                       },
                       {
                         id: 1,
                         score: '0.10-0.20',
-                        intepretation: 'Slight agreement',
+                        interpretation: 'Slight agreement',
                       },
                       {
                         id: 2,
                         score: '0.21-0.40',
-                        intepretation: 'Fair agreement',
+                        interpretation: 'Fair agreement',
                       },
                       {
                         id: 3,
                         score: '0.41-0.60',
-                        intepretation: 'Moderate agreement',
+                        interpretation: 'Moderate agreement',
                       },
                       {
                         id: 4,
                         score: '0.61-0.80',
-                        intepretation: 'Substantial agreement',
+                        interpretation: 'Substantial agreement',
                       },
                       {
                         id: 5,
                         score: '0.81-0.99',
-                        intepretation: 'Near perfect agreement',
+                        interpretation: 'Near perfect agreement',
                       },
                       {
                         id: 6,
                         score: '1',
-                        intepretation: 'Perfect agreement',
+                        interpretation: 'Perfect agreement',
                       },
                     ]}
                     headers={[
@@ -605,7 +593,7 @@ export default function AnnotatorBehavior({
                         header: "Cohen's kappa",
                       },
                       {
-                        key: 'intepretation',
+                        key: 'interpretation',
                         header: 'Intepretation',
                       },
                     ]}
@@ -663,40 +651,38 @@ export default function AnnotatorBehavior({
             <div
               className={cx(
                 classes.graphsContainer,
-                Object.keys(visibleEvaluationsPerMetric).length <= 3
+                Object.keys(visibleResultsPerMetric).length <= 3
                   ? classes.center
                   : null,
               )}
             >
-              {Object.keys(visibleEvaluationsPerMetric).map(
-                (metricName, idx) => {
-                  const metric = metrics.find(
-                    (entry) => entry.name === metricName,
-                  );
-                  return (
-                    <div
-                      key={'inter-annotator-agreement-heatmap-' + idx}
-                      className={classes.graph}
-                    >
-                      <h5>
-                        <strong>
-                          {metric?.displayName
-                            ? metric?.displayName
-                            : metricName.charAt(0).toUpperCase() +
-                              metricName.slice(1).toLowerCase()}
-                        </strong>
-                      </h5>
-                      {visibleEvaluationsPerMetric[metricName] && (
-                        <InterAnnotatorAgreementHeatMap
-                          evaluations={visibleEvaluationsPerMetric[metricName]}
-                          metric={metricName}
-                          theme={theme}
-                        ></InterAnnotatorAgreementHeatMap>
-                      )}
-                    </div>
-                  );
-                },
-              )}
+              {Object.keys(visibleResultsPerMetric).map((metricName, idx) => {
+                const metric = metrics.find(
+                  (entry) => entry.name === metricName,
+                );
+                return (
+                  <div
+                    key={'inter-annotator-agreement-heatmap-' + idx}
+                    className={classes.graph}
+                  >
+                    <h5>
+                      <strong>
+                        {metric?.displayName
+                          ? metric?.displayName
+                          : metricName.charAt(0).toUpperCase() +
+                            metricName.slice(1).toLowerCase()}
+                      </strong>
+                    </h5>
+                    {visibleResultsPerMetric[metricName] && (
+                      <InterAnnotatorAgreementHeatMap
+                        results={visibleResultsPerMetric[metricName]}
+                        metric={metricName}
+                        theme={theme}
+                      ></InterAnnotatorAgreementHeatMap>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
           {!isEmpty(timeDistributionPerAnnotator) ? (

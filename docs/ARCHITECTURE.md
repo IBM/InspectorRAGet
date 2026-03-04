@@ -225,6 +225,25 @@ Input files use `snake_case`. The app converts to `camelCase` on load (`camelCas
 - Global styles in `src/app/global.scss`
 - Theme: Carbon `g10` (light) and `g90` (dark), toggled via header
 
+### Carbon Component Gotchas
+
+**TabPanel renders all panels simultaneously (hidden, not unmounted)**
+
+Carbon's `TabPanel` uses the HTML `hidden` attribute to hide inactive panels — it does NOT lazy-mount or unmount them. All tab panels and their full component trees are live in the DOM at all times. Consequences:
+
+- Any component with a non-unique `id` prop will have duplicate DOM IDs across tabs. This silently breaks components that rely on `id` for internal DOM wiring (labels, aria associations, focus management). The browser uses the **first** matching element — clicks on a selector in a later tab quietly target the hidden first tab's element instead.
+- **Rule:** every Carbon component that takes an `id` prop and is used in multiple tabs must have a globally unique `id`. Pattern used here: `{view-name}-{component-name}`, e.g. `model-behavior-model-selector`, `metric-behavior-model-selector`.
+- Components confirmed affected: `FilterableMultiSelect`, `Toggle`, `Select`. Assume all interactive Carbon components are affected.
+
+**`FilterableMultiSelect` — controlled vs uncontrolled**
+
+- Use `selectedItems` (controlled) rather than `initialSelectedItems` (uncontrolled) when the parent needs to own the selection state (e.g. to filter data). The uncontrolled path fires `onChange` via a `useEffect` guarded by an `isMounted` ref; under React StrictMode's double-invoke behaviour this guard can leave the component unresponsive.
+- Always add a null guard to `itemToString`: `(item) => (item ? item.name : '')`. Carbon passes `null` to `itemToString` in some internal code paths (e.g. when clearing the filter input); without the guard this throws and corrupts Downshift's internal state.
+
+**`@carbon/charts-react/styles.css` import**
+
+Import this stylesheet once, at the highest shared layout level (e.g. `app/layout.tsx` or `global.scss`), not per-component. All rules are scoped under `.cds--chart-holder` so there is no global style pollution, but importing it in multiple component files creates redundant CSS bundles.
+
 ### Deployment
 
 - Dockerfile for containerized deployment

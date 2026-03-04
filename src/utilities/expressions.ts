@@ -17,7 +17,7 @@
  **/
 
 import { isEmpty, intersectionWith, unionWith, isEqual } from 'lodash';
-import { Metric, TaskEvaluation } from '@/src/types';
+import { Metric, ModelResult } from '@/src/types';
 import { castToNumber } from '@/src/utilities/metrics';
 
 // ===================================================================================
@@ -147,14 +147,14 @@ export function validate(
 }
 
 export function evaluate(
-  evaluationsPerTaskPerModel: {
-    [key: string]: { [key: string]: TaskEvaluation };
+  resultsPerTaskPerModel: {
+    [key: string]: { [key: string]: ModelResult };
   },
   expression: object,
   metric: Metric,
   annotator?: string,
-): TaskEvaluation[] {
-  const eligibleEvaluations: TaskEvaluation[] = [];
+): ModelResult[] {
+  const eligibleResults: ModelResult[] = [];
   const keys = Object.keys(expression);
 
   const operators = keys.filter((key) => key.startsWith('$'));
@@ -165,11 +165,11 @@ export function evaluate(
       operator === EXPRESSION_OPERATORS.AND ||
       operator === EXPRESSION_OPERATORS.OR
     ) {
-      const results: TaskEvaluation[][] = [];
+      const results: ModelResult[][] = [];
 
       expression[operator].forEach((condition) => {
         results.push(
-          evaluate(evaluationsPerTaskPerModel, condition, metric, annotator),
+          evaluate(resultsPerTaskPerModel, condition, metric, annotator),
         );
       });
 
@@ -180,8 +180,8 @@ export function evaluate(
       }
     }
   } else {
-    // No logical operator: check each task's evaluations against per-model conditions
-    Object.values(evaluationsPerTaskPerModel).forEach((evaluationPerModel) => {
+    // No logical operator: check each task's results against per-model conditions
+    Object.values(resultsPerTaskPerModel).forEach((evaluationPerModel) => {
       let satisfy: boolean = true;
 
       for (let idx = 0; idx < keys.length; idx++) {
@@ -305,10 +305,10 @@ export function evaluate(
       }
 
       if (satisfy) {
-        eligibleEvaluations.push(...Object.values(evaluationPerModel));
+        eligibleResults.push(...Object.values(evaluationPerModel));
       }
     });
   }
 
-  return eligibleEvaluations;
+  return eligibleResults;
 }

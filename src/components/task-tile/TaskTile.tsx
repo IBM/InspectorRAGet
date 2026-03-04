@@ -19,7 +19,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, memo } from 'react';
+import { Fragment, useMemo, memo } from 'react';
 import {
   ExpandableTile,
   TileAboveTheFoldContent,
@@ -44,7 +44,7 @@ import {
   Copy,
 } from '@carbon/icons-react';
 
-import { Task, TaskEvaluation } from '@/src/types';
+import { Task, ModelResult } from '@/src/types';
 import { MetricDefinitions } from '@/src/utilities/metrics';
 import { castDurationToString } from '@/src/utilities/time';
 
@@ -52,7 +52,7 @@ import classes from './TaskTile.module.scss';
 
 interface Props {
   task: Task;
-  evaluations: TaskEvaluation[];
+  results: ModelResult[];
   expanded?: boolean;
   onClickFlagIcon: Function;
   onClickCommentsIcon: Function;
@@ -60,7 +60,7 @@ interface Props {
 }
 export default memo(function TaskTile({
   task,
-  evaluations,
+  results,
   expanded = true,
   onClickFlagIcon,
   onClickCommentsIcon,
@@ -70,16 +70,16 @@ export default memo(function TaskTile({
     const annotatorsMap: { [key: string]: number } = {};
     const metricsSet: Set<string> = new Set();
     const modelsSet: Set<string> = new Set();
-    evaluations.forEach((evaluation) => {
+    results.forEach((evaluation) => {
       // Add model information
       modelsSet.add(evaluation.modelId);
-      for (const metric in evaluation.annotations) {
+      for (const metric in evaluation.scores) {
         // Add metric information
         metricsSet.add(metric);
-        for (const annotator in evaluation.annotations[metric]) {
+        for (const annotator in evaluation.scores[metric]) {
           // Add annotator information
           annotatorsMap[annotator] =
-            evaluation.annotations[metric][annotator].duration || 0;
+            evaluation.scores[metric][annotator].duration || 0;
         }
       }
     });
@@ -91,7 +91,7 @@ export default memo(function TaskTile({
     );
 
     return [annotatorsMap, metricsSet, modelsSet, avgDuration];
-  }, [evaluations]);
+  }, [results]);
 
   const [
     durationInDays,
@@ -151,12 +151,12 @@ export default memo(function TaskTile({
       <TileBelowTheFoldContent>
         <div className={classes.block}>
           <div className={classes.information}>
-            <div className={classes.artifactEvaluations}>
+            <div className={classes.artifactResults}>
               <div className={classes.artifactTitle}>
                 <span># of evaluations</span>
               </div>
               <div className={classes.artifactValue}>
-                <span>{evaluations.length}</span>
+                <span>{results.length}</span>
               </div>
             </div>
             <div className={classes.artifactAnnotators}>
@@ -248,8 +248,8 @@ export default memo(function TaskTile({
                         ] = castDurationToString(annotators[annotator]);
 
                         return (
-                          <>
-                            <span key={'annotator-' + idx}>
+                          <Fragment key={'annotator-' + idx}>
+                            <span>
                               {annotator}:&nbsp;
                               {durationInDaysForAnnotator
                                 ? durationInDaysForAnnotator + ' days '
@@ -263,7 +263,7 @@ export default memo(function TaskTile({
                               {durationInSecondsForAnnotator} sec
                             </span>
                             <br />
-                          </>
+                          </Fragment>
                         );
                       },
                     )}

@@ -16,26 +16,7 @@
  *
  **/
 
-interface FunctionTool {
-  name: string;
-  arguments: object | any[];
-}
-
-export interface ToolCall {
-  id: string;
-  type: 'function';
-  function: FunctionTool;
-  parents?: string[];
-  children?: string[];
-}
-
-export interface MessageStep {
-  id: string;
-  input: any;
-  output: any;
-  parents?: string[];
-  children?: string[];
-}
+import type { ToolCallRecord } from '@/src/types';
 
 export interface Message {
   role: 'system' | 'developer' | 'user' | 'tool' | 'assistant';
@@ -74,6 +55,5 @@ export interface ToolMessage extends Message {
 export interface AssistantMessage extends Message {
   role: 'assistant';
   refusal?: string;
-  tool_calls?: ToolCall[];
-  steps?: MessageStep[];
+  tool_calls?: ToolCallRecord[];
 }

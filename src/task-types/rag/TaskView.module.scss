@@ -61,7 +61,7 @@
   line-height: 1.4em;
 }
 
-.evaluationContainer {
+.resultContainer {
   display: flex;
   flex-direction: column;
   row-gap: $spacing-03;
@@ -73,4 +73,9 @@
   flex-direction: column;
   row-gap: $spacing-03;
   overflow: auto;
+}
+
+.notProvided {
+  color: var(--cds-text-helper);
+  font-style: italic;
 }

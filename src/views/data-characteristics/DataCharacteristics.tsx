@@ -198,27 +198,34 @@ function computeContextRelevance(
   return relevantContextIndexes;
 }
 
-async function computeStatistics(
+type Statistics = {
+  input: {
+    word_count?: ReturnType<typeof computeWordCount>;
+    utterance_count?: ReturnType<typeof computeUtterances>;
+  };
+  tasks_distribution: { [filter: string]: { [value: string]: number } };
+  contexts: {
+    relevance?: ReturnType<typeof computeContextRelevance>;
+  };
+};
+
+function computeStatistics(
   tasks: Task[],
   filters: { [key: string]: string[] },
-  selectedAggregator,
-  setStatistics,
-  setLoading: Function,
+  selectedAggregator: Aggregator,
+  setStatistics: (s: Statistics) => void,
+  setLoading: (b: boolean) => void,
 ) {
-  const statistics = {
+  const statistics: Statistics = {
     input: {},
     tasks_distribution: {},
     contexts: {},
   };
 
-  statistics['input']['word_count'] = computeWordCount(
+  statistics.input.word_count = computeWordCount(tasks, Object.keys(filters));
+  statistics.input.utterance_count = computeUtterances(
     tasks,
     Object.keys(filters),
-  );
-
-  statistics['input']['utterance_count'] = computeUtterances(
-    tasks,
-    filters ? Object.keys(filters) : [],
   );
 
   if (!isEmpty(filters)) {
@@ -246,7 +253,7 @@ async function computeStatistics(
     });
 
     Object.keys(taskDistributionPerFilter).forEach((filter) => {
-      statistics['tasks_distribution'][filter] = normalize(
+      statistics.tasks_distribution[filter] = normalize(
         taskDistributionPerFilter[filter],
       );
     });
@@ -258,7 +265,7 @@ async function computeStatistics(
     selectedAggregator,
   );
   if (!isEmpty(contextRelevance)) {
-    statistics['contexts']['relevance'] = contextRelevance;
+    statistics.contexts.relevance = contextRelevance;
   }
 
   setStatistics(statistics);
@@ -600,15 +607,19 @@ function ContextRelevanceChart({
 }
 // --- Main component ---
 export default function DataCharacteristics({ tasks, filters }: Props) {
-  const [WindowWidth, setWindowWidth] = useState<number>(
+  const [windowWidth, setWindowWidth] = useState<number>(
     global?.window && window.innerWidth,
   );
-  const [WindowHeight, setWindowHeight] = useState<number>(
+  const [windowHeight, setWindowHeight] = useState<number>(
     global?.window && window.innerHeight,
   );
 
   const [loading, setLoading] = useState<boolean>(true);
-  const [statistics, setStatistics] = useState<{}>({});
+  const [statistics, setStatistics] = useState<Statistics>({
+    input: {},
+    tasks_distribution: {},
+    contexts: {},
+  });
   const [showTaskDistributionGraphs, setShowTaskDistributionGraphs] =
     useState<boolean>(true);
   const [showInputCharacteristicsGraphs, setShowInputCharacteristicsGraphs] =
@@ -631,12 +642,8 @@ export default function DataCharacteristics({ tasks, filters }: Props) {
       setWindowWidth(window.innerWidth);
       setWindowHeight(window.innerHeight);
     };
-
     window.addEventListener('resize', handleWindowResize);
-
-    return () => {
-      window.removeEventListener('resize', handleWindowResize);
-    };
+    return () => window.removeEventListener('resize', handleWindowResize);
   }, []);
 
   const { theme } = useTheme();
@@ -670,7 +677,7 @@ export default function DataCharacteristics({ tasks, filters }: Props) {
         </div>
       ) : (
         <>
-          {Object.keys(statistics['tasks_distribution']).length ? (
+          {Object.keys(statistics.tasks_distribution).length ? (
             <div className={classes.row}>
               <Tooltip
                 label={'Click to toggle task distributions'}
@@ -697,20 +704,20 @@ export default function DataCharacteristics({ tasks, filters }: Props) {
               {showTaskDistributionGraphs && (
                 <div
                   className={cx(
-                    Object.keys(statistics['tasks_distribution']).length > 3
+                    Object.keys(statistics.tasks_distribution).length > 3
                       ? classes.graphsGrid
                       : classes.graphsFlex,
                   )}
                 >
-                  {Object.keys(statistics['tasks_distribution']).length > 0 &&
+                  {Object.keys(statistics.tasks_distribution).length > 0 &&
                   !isEmpty(filters)
                     ? Object.keys(filters).map((filter) => {
                         return (
                           <TasksDistributionChart
                             key={`task-distribution-chart--${filter}`}
-                            distributions={statistics['tasks_distribution']}
+                            distributions={statistics.tasks_distribution}
                             filter={filter}
-                            size={`${Math.min(Math.round(WindowWidth * 0.2), 450)}px`}
+                            size={`${Math.min(Math.round(windowWidth * 0.2), 450)}px`}
                             theme={theme}
                           />
                         );
@@ -721,7 +728,7 @@ export default function DataCharacteristics({ tasks, filters }: Props) {
             </div>
           ) : null}
 
-          {Object.keys(statistics['input']).length ? (
+          {Object.keys(statistics.input).length ? (
             <div className={classes.row}>
               <Tooltip
                 label={'Click to toggle input characteristics'}
@@ -749,33 +756,31 @@ export default function DataCharacteristics({ tasks, filters }: Props) {
 
               {showInputCharacteristicsGraphs && (
                 <div className={cx(classes.graphsFlex)}>
-                  {statistics['input'].hasOwnProperty('word_count') &&
-                    statistics['input']['word_count'] && (
-                      <Histogram
-                        records={statistics['input']['word_count']}
-                        filters={filters}
-                        groupBy={wordCountGroupBy}
-                        setGroupBy={setWordCountGroupBy}
-                        caption={'Number of Words'}
-                        xLabel="Number of Words"
-                        yLabel="Number of Tasks"
-                        theme={theme}
-                        width={
-                          Object.keys(statistics['input']).length === 1
-                            ? `${Math.round(WindowWidth * 0.4)}px`
-                            : '600px'
-                        }
-                        height={
-                          Object.keys(statistics['input']).length === 1
-                            ? `${Math.round(WindowHeight * 0.4)}px`
-                            : '600px'
-                        }
-                      />
-                    )}
-                  {statistics['input'].hasOwnProperty('utterance_count') &&
-                  statistics['input']['utterance_count'].length ? (
+                  {statistics.input.word_count && (
                     <Histogram
-                      records={statistics['input']['utterance_count']}
+                      records={statistics.input.word_count}
+                      filters={filters}
+                      groupBy={wordCountGroupBy}
+                      setGroupBy={setWordCountGroupBy}
+                      caption={'Number of Words'}
+                      xLabel="Number of Words"
+                      yLabel="Number of Tasks"
+                      theme={theme}
+                      width={
+                        Object.keys(statistics.input).length === 1
+                          ? `${Math.round(windowWidth * 0.4)}px`
+                          : '600px'
+                      }
+                      height={
+                        Object.keys(statistics.input).length === 1
+                          ? `${Math.round(windowHeight * 0.4)}px`
+                          : '600px'
+                      }
+                    />
+                  )}
+                  {statistics.input.utterance_count?.length ? (
+                    <Histogram
+                      records={statistics.input.utterance_count}
                       filters={filters}
                       groupBy={utteranceCountGroupBy}
                       setGroupBy={setUtteranceCountGroupBy}
@@ -784,13 +789,13 @@ export default function DataCharacteristics({ tasks, filters }: Props) {
                       yLabel="Number of Tasks"
                       theme={theme}
                       width={
-                        Object.keys(statistics['input']).length === 1
-                          ? `${Math.round(WindowWidth * 0.4)}px`
+                        Object.keys(statistics.input).length === 1
+                          ? `${Math.round(windowWidth * 0.4)}px`
                           : '600px'
                       }
                       height={
-                        Object.keys(statistics['input']).length === 1
-                          ? `${Math.round(WindowHeight * 0.4)}px`
+                        Object.keys(statistics.input).length === 1
+                          ? `${Math.round(windowHeight * 0.4)}px`
                           : '600px'
                       }
                     />
@@ -800,7 +805,7 @@ export default function DataCharacteristics({ tasks, filters }: Props) {
             </div>
           ) : null}
 
-          {Object.keys(statistics['contexts']).length ? (
+          {Object.keys(statistics.contexts).length ? (
             <div className={classes.row}>
               <Tooltip
                 label={'Click to toggle contexts characteristics'}
@@ -828,10 +833,10 @@ export default function DataCharacteristics({ tasks, filters }: Props) {
 
               {showContextsCharacteristicsGraphs && (
                 <div className={cx(classes.graphsFlex)}>
-                  {statistics['contexts'].hasOwnProperty('relevance') &&
-                    !isEmpty(statistics['contexts']['relevance']) && (
+                  {statistics.contexts.relevance &&
+                    !isEmpty(statistics.contexts.relevance) && (
                       <ContextRelevanceChart
-                        records={statistics['contexts']['relevance']}
+                        records={statistics.contexts.relevance}
                         filters={filters}
                         groupBy={contextRelevanceGroupBy}
                         setGroupBy={setContextRelevanceGroupBy}
@@ -843,13 +848,13 @@ export default function DataCharacteristics({ tasks, filters }: Props) {
                         yDomain={[0, tasks.length]}
                         theme={theme}
                         width={
-                          Object.keys(statistics['contexts']).length === 1
-                            ? `${Math.round(WindowWidth * 0.4)}px`
+                          Object.keys(statistics.contexts).length === 1
+                            ? `${Math.round(windowWidth * 0.4)}px`
                             : '600px'
                         }
                         height={
-                          Object.keys(statistics['contexts']).length === 1
-                            ? `${Math.round(WindowHeight * 0.4)}px`
+                          Object.keys(statistics.contexts).length === 1
+                            ? `${Math.round(windowHeight * 0.4)}px`
                             : '600px'
                         }
                       />

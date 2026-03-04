@@ -78,7 +78,7 @@ export default function ExampleTile({
       <TileBelowTheFoldContent>
         <div className={styles.block}>
           <div className={styles.information}>
-            <div className={styles.artifactEvaluations}>
+            <div className={styles.artifactResults}>
               <div className={styles.artifactTitle}>
                 <span># of tasks</span>
               </div>

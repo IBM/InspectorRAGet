@@ -36,10 +36,11 @@ import { TextHighlight, WarningAlt } from '@carbon/icons-react';
 
 import {
   Model,
+  ModelResult,
   StringMatchObject,
-  TaskEvaluation,
   Task,
   Metric,
+  outputAsText,
 } from '@/src/types';
 import {
   RetrievedDocument,
@@ -55,9 +56,8 @@ import QACopier from '@/src/task-types/qa/Copier';
 
 import classes from './TaskView.module.scss';
 
-// ===================================================================================
-//                                TYPES
-// ===================================================================================
+// --- Types ---
+
 interface Props {
   task: Task;
   models: Map<string, Model>;
@@ -67,9 +67,8 @@ interface Props {
   updateCommentProvenance: Function;
 }
 
-// ===================================================================================
-//                               MAIN FUNCTION
-// ===================================================================================
+// --- Main component ---
+
 export default function QATaskView({
   task,
   models,
@@ -78,27 +77,26 @@ export default function QATaskView({
   setTaskCopierModalOpen,
   updateCommentProvenance,
 }: Props) {
-  const [selectedEvaluationIndex, setSelectedEvaluationIndex] =
-    useState<number>(0);
+  const [selectedResultIndex, setSelectedResultIndex] = useState<number>(0);
   const [showOverlap, setShowOverlap] = useState<boolean>(false);
   const [activeDocumentIndex, setActiveDocumentIndex] = useState<number>(0);
 
   const { item: data } = useDataStore();
 
-  const [documentsPerEvaluation, evaluations] = useMemo(() => {
-    const contextsPerEvaluation: RetrievedDocument[][] = [];
+  const [documentsPerResult, results] = useMemo(() => {
+    const contextsPerResult: RetrievedDocument[][] = [];
 
-    let taskEvaluations: TaskEvaluation[] | undefined = undefined;
+    let taskResults: ModelResult[] | undefined = undefined;
     if (data) {
-      taskEvaluations = data.evaluations.filter(
-        (evaluation) => evaluation.taskId === task.taskId,
+      taskResults = data.results.filter(
+        (result) => result.taskId === task.taskId,
       );
 
-      // Identify context documents for each evaluation and compute context-response overlaps
-      taskEvaluations.forEach((evaluation) => {
+      // Identify context documents for each result and compute context-response overlaps
+      taskResults.forEach((result) => {
         const contextDocuments: RetrievedDocument[] = [];
-        const contexts = evaluation.contexts
-          ? evaluation.contexts
+        const contexts = result.contexts
+          ? result.contexts
           : task.contexts
             ? task.contexts
             : [];
@@ -150,22 +148,21 @@ export default function QATaskView({
           });
         }
 
-        // Compute context-response overlap and add to evaluation object
+        // Compute context-response overlap and attach to result for highlight support
         const textOverlaps: StringMatchObject[][] = [];
         contextDocuments.forEach((contextDocument) => {
           textOverlaps.push(
-            overlaps(evaluation.modelResponse, contextDocument.text),
+            overlaps(outputAsText(result.output), contextDocument.text),
           );
         });
 
-        evaluation.overlaps = textOverlaps;
+        result.overlaps = textOverlaps;
 
-        // Add context documents
-        contextsPerEvaluation.push(contextDocuments);
+        contextsPerResult.push(contextDocuments);
       });
     }
 
-    return [contextsPerEvaluation, taskEvaluations];
+    return [contextsPerResult, taskResults];
   }, [task.taskId, task.contexts, task.annotations, data]);
 
   const [hMetrics, aMetrics] = useMemo(() => {
@@ -185,21 +182,21 @@ export default function QATaskView({
 
   return (
     <>
-      {models && metrics && task && evaluations && (
+      {models && metrics && task && results && (
         <QACopier
           open={taskCopierModalOpen}
           models={Array.from(models.values())}
           metrics={metrics}
           task={task}
-          evaluations={evaluations}
-          documents={documentsPerEvaluation[selectedEvaluationIndex]}
+          results={results}
+          documents={documentsPerResult[selectedResultIndex]}
           onClose={() => {
             setTaskCopierModalOpen(false);
           }}
         ></QACopier>
       )}
 
-      {task && models && evaluations && (
+      {task && models && results && (
         <>
           <div className={classes.inputContainer}>
             <div
@@ -264,7 +261,7 @@ export default function QATaskView({
                 </>
               ) : null}
             </div>
-            {documentsPerEvaluation && (
+            {documentsPerResult && (
               <div className={classes.contextContainer}>
                 <div className={classes.header}>
                   <h4>Contexts</h4>
@@ -296,34 +293,34 @@ export default function QATaskView({
                     </div>
                   )}
                 </div>
-                {isEmpty(documentsPerEvaluation[selectedEvaluationIndex]) ? (
+                {isEmpty(documentsPerResult[selectedResultIndex]) ? (
                   <div className={classes.contextUnavailableWarning}>
                     <WarningAlt size={24} /> No context is available
                   </div>
                 ) : (
                   <DocumentPanel
-                    key={`evaluation--${selectedEvaluationIndex}__documents`}
-                    documents={documentsPerEvaluation[
-                      selectedEvaluationIndex
-                    ].map((document, documentIdx) => {
-                      return {
-                        documentId: document.documentId,
-                        text: showOverlap
-                          ? mark(
-                              document.text,
-                              evaluations[selectedEvaluationIndex].overlaps[
-                                documentIdx
-                              ],
-                              'target',
-                            )
-                          : document.text,
-                        ...(document.title && { title: document.title }),
-                        ...(document.url && { url: document.url }),
-                        ...(document.annotations && {
-                          annotations: document.annotations,
-                        }),
-                      };
-                    })}
+                    key={`result--${selectedResultIndex}__documents`}
+                    documents={documentsPerResult[selectedResultIndex].map(
+                      (document, documentIdx) => {
+                        return {
+                          documentId: document.documentId,
+                          text: showOverlap
+                            ? mark(
+                                document.text,
+                                results[selectedResultIndex].overlaps[
+                                  documentIdx
+                                ],
+                                'target',
+                              )
+                            : document.text,
+                          ...(document.title && { title: document.title }),
+                          ...(document.url && { url: document.url }),
+                          ...(document.annotations && {
+                            annotations: document.annotations,
+                          }),
+                        };
+                      },
+                    )}
                     onMouseDown={(provenance: string) => {
                       updateCommentProvenance(provenance);
                     }}
@@ -341,10 +338,10 @@ export default function QATaskView({
 
           <div className={classes.separator} />
 
-          <div className={classes.evaluationsContainer}>
+          <div className={classes.resultsContainer}>
             <Tabs
               onChange={(e) => {
-                setSelectedEvaluationIndex(e.selectedIndex);
+                setSelectedResultIndex(e.selectedIndex);
                 setActiveDocumentIndex(0);
               }}
             >
@@ -353,25 +350,23 @@ export default function QATaskView({
                 aria-label="Models tab"
                 contained
               >
-                {evaluations.map((evaluation) => (
-                  <Tab key={'model-' + evaluation.modelId}>
+                {results.map((result) => (
+                  <Tab key={'model-' + result.modelId}>
                     {truncate(
-                      models.get(evaluation.modelId)?.name ||
-                        evaluation.modelId,
+                      models.get(result.modelId)?.name || result.modelId,
                       15,
                     )}
                   </Tab>
                 ))}
               </TabList>
               <TabPanels>
-                {evaluations.map((evaluation, evaluationIdx) => (
-                  <TabPanel key={'model-' + evaluation.modelId + '-panel'}>
+                {results.map((result, resultIdx) => (
+                  <TabPanel key={'model-' + result.modelId + '-panel'}>
                     <div className={classes.tabContainer}>
                       <div className={classes.tabContentHeader}>
                         <h5>Model:</h5>
                         <span>
-                          {models.get(evaluation.modelId)?.name ||
-                            evaluation.modelId}
+                          {models.get(result.modelId)?.name || result.modelId}
                         </span>
                       </div>
                       <ContainedList
@@ -384,68 +379,69 @@ export default function QATaskView({
                             className={classes.responseContainer}
                             onMouseDown={() => {
                               updateCommentProvenance(
-                                `${evaluation.modelId}::evaluation::response`,
+                                `${result.modelId}::evaluation::response`,
                               );
                             }}
                             onMouseUp={() =>
                               updateCommentProvenance(
-                                `${evaluation.modelId}::evaluation::response`,
+                                `${result.modelId}::evaluation::response`,
                               )
                             }
                           >
                             {parse(
                               DOMPurify.sanitize(
-                                showOverlap &&
-                                  evaluationIdx === selectedEvaluationIndex
+                                showOverlap && resultIdx === selectedResultIndex
                                   ? mark(
-                                      evaluation.modelResponse,
-                                      evaluation.overlaps[activeDocumentIndex],
+                                      outputAsText(result.output),
+                                      result.overlaps[activeDocumentIndex],
                                       'source',
                                     )
-                                  : evaluation.modelResponse,
+                                  : outputAsText(result.output),
                               ),
                             )}
                           </div>
                         </ContainedListItem>
                       </ContainedList>
 
-                      {task.targets && !isEmpty(task.targets) ? (
-                        <ContainedList
-                          label="Targets"
-                          kind="disclosed"
-                          size="sm"
-                        >
-                          {task.targets.length > 1 ? (
+                      <ContainedList label="Targets" kind="disclosed" size="sm">
+                        {task.targets && !isEmpty(task.targets) ? (
+                          task.targets.length > 1 ? (
                             task.targets.map((target, targetIdx) =>
-                              target.text ? (
+                              target.type === 'text' ? (
                                 <ContainedListItem key={`target--${targetIdx}`}>
                                   <span>
-                                    Target {targetIdx + 1}: {target.text}
+                                    Target {targetIdx + 1}: {target.value}
                                   </span>
                                 </ContainedListItem>
                               ) : null,
                             )
-                          ) : (
+                          ) : task.targets[0].type === 'text' ? (
                             <ContainedListItem key={`target--0`}>
-                              <span>{task.targets[0].text}</span>
+                              <span>{task.targets[0].value}</span>
                             </ContainedListItem>
-                          )}
-                        </ContainedList>
-                      ) : null}
-                      {evaluation.annotations && hMetrics.size ? (
+                          ) : null
+                        ) : (
+                          <ContainedListItem>
+                            <span className={classes.notProvided}>
+                              Not provided
+                            </span>
+                          </ContainedListItem>
+                        )}
+                      </ContainedList>
+                      {result.scores && hMetrics.size ? (
                         <>
                           <h5>Human Evaluations:</h5>
                           <AnnotationsTable
-                            annotations={evaluation.annotations}
+                            annotations={result.scores}
                             metrics={[...hMetrics.values()]}
                           ></AnnotationsTable>
                         </>
                       ) : null}
-                      {evaluation.annotations && aMetrics.size ? (
+                      {result.scores && aMetrics.size ? (
                         <>
                           <h5>Algorithmic Evaluations:</h5>
                           <AnnotationsTable
-                            annotations={evaluation.annotations}
+                            annotations={result.scores}
                             metrics={[...aMetrics.values()]}
                           ></AnnotationsTable>
                         </>
