@@ -31,6 +31,7 @@ import {
   Button,
   ContainedList,
   ContainedListItem,
+  InlineNotification,
 } from '@carbon/react';
 import { TextHighlight } from '@carbon/icons-react';
 
@@ -39,7 +40,8 @@ import { useDataStore } from '@/src/store';
 import { truncate, overlaps } from '@/src/utilities/strings';
 import { mark } from '@/src/utilities/highlighter';
 
-import AnnotationsTable from '@/src/views/annotations-table/AnnotationsTable';
+import EvaluationsPanel from '@/src/components/evaluations/EvaluationsPanel';
+import StepGroup from '@/src/components/steps/StepGroup';
 import GenerationCopier from '@/src/task-types/generation/Copier';
 
 import classes from './TaskView.module.scss';
@@ -121,80 +123,68 @@ export default function GenerationTaskView({
       )}
 
       {task && models && results && (
-        <>
+        <div className={classes.layout}>
           <div className={classes.inputContainer}>
-            {typeof task.input === 'string' ? (
-              <>
-                <div className={classes.header}>
-                  <h4>Input</h4>
-                  <div className={classes.headerActions}>
+            {typeof task.input === 'string' && (
+              <div className={classes.inputSection}>
+                <ContainedList
+                  label="Input"
+                  kind="on-page"
+                  action={
                     <Button
-                      id="text-highlight"
+                      id="generation-text-highlight"
                       renderIcon={TextHighlight}
-                      kind={'ghost'}
-                      hasIconOnly={true}
-                      iconDescription={
-                        'Click to highlight text common in input and response'
-                      }
-                      tooltipAlignment={'end'}
-                      tooltipPosition={'bottom'}
-                      onClick={() => {
-                        setShowOverlap(!showOverlap);
-                      }}
+                      kind="ghost"
+                      hasIconOnly
+                      iconDescription="Highlight text common in input and response"
+                      tooltipAlignment="end"
+                      tooltipPosition="bottom"
+                      onClick={() => setShowOverlap(!showOverlap)}
                     />
-                  </div>
-                </div>
-                <div className={classes.disclaimers}>
-                  {showOverlap && (
-                    <div className={classes.overlapDisclaimer}>
-                      <div className={classes.legendCopiedText}>&#9632;</div>
-                      <span>
-                        &nbsp;marks text assumed to be copied from input into
-                        model response
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <div
-                  className={classes.inputTextContainer}
-                  onMouseDown={() => {
-                    updateCommentProvenance('input');
-                  }}
-                  onMouseUp={() => updateCommentProvenance('input')}
+                  }
                 >
-                  <p>
-                    {parse(
-                      DOMPurify.sanitize(
-                        showOverlap
-                          ? mark(
-                              task.input,
-                              results[selectedModelIndex].overlaps,
-                              'target',
-                            )
-                          : task.input,
-                      ),
+                  <ContainedListItem>
+                    {showOverlap && (
+                      <div className={classes.overlapDisclaimer}>
+                        <div className={classes.legendCopiedText}>&#9632;</div>
+                        <span>
+                          &nbsp;marks text assumed to be copied from input into
+                          model response
+                        </span>
+                      </div>
                     )}
-                  </p>
-                </div>
-              </>
-            ) : null}
+                    <div
+                      className={classes.inputContent}
+                      onMouseDown={() => updateCommentProvenance('input')}
+                      onMouseUp={() => updateCommentProvenance('input')}
+                    >
+                      <p>
+                        {parse(
+                          DOMPurify.sanitize(
+                            showOverlap
+                              ? mark(
+                                  task.input,
+                                  results[selectedModelIndex].overlaps,
+                                  'target',
+                                )
+                              : task.input,
+                          ),
+                        )}
+                      </p>
+                    </div>
+                  </ContainedListItem>
+                </ContainedList>
+              </div>
+            )}
           </div>
 
           <div className={classes.separator} />
 
           <div className={classes.resultsContainer}>
-            <Tabs
-              onChange={(e) => {
-                setSelectedModelIndex(e.selectedIndex);
-              }}
-            >
-              <TabList
-                className={classes.tabList}
-                aria-label="Models tab"
-                contained
-              >
+            <Tabs onChange={(e) => setSelectedModelIndex(e.selectedIndex)}>
+              <TabList aria-label="Models tab" contained fullWidth>
                 {results.map((result) => (
-                  <Tab key={'model-' + result.modelId}>
+                  <Tab key={`model-${result.modelId}`}>
                     {truncate(
                       models.get(result.modelId)?.name || result.modelId,
                       15,
@@ -204,27 +194,17 @@ export default function GenerationTaskView({
               </TabList>
               <TabPanels>
                 {results.map((result) => (
-                  <TabPanel key={'model-' + result.modelId + '-panel'}>
+                  <TabPanel key={`model-${result.modelId}-panel`}>
                     <div className={classes.tabContainer}>
-                      <div className={classes.tabContentHeader}>
-                        <h5>Model:</h5>
-                        <span>
-                          {models.get(result.modelId)?.name || result.modelId}
-                        </span>
-                      </div>
-                      <ContainedList
-                        size="sm"
-                        label="Response"
-                        kind="disclosed"
-                      >
+                      <ContainedList label="Response" kind="on-page">
                         <ContainedListItem>
                           <div
                             className={classes.responseContainer}
-                            onMouseDown={() => {
+                            onMouseDown={() =>
                               updateCommentProvenance(
                                 `${result.modelId}::evaluation::response`,
-                              );
-                            }}
+                              )
+                            }
                             onMouseUp={() =>
                               updateCommentProvenance(
                                 `${result.modelId}::evaluation::response`,
@@ -245,7 +225,8 @@ export default function GenerationTaskView({
                           </div>
                         </ContainedListItem>
                       </ContainedList>
-                      <ContainedList label="Targets" kind="disclosed" size="sm">
+
+                      <ContainedList label="Target" kind="on-page">
                         {task.targets && !isEmpty(task.targets) ? (
                           task.targets.map((target, targetIdx) =>
                             target.type === 'text' ? (
@@ -265,31 +246,74 @@ export default function GenerationTaskView({
                         )}
                       </ContainedList>
 
-                      {result.scores && hMetrics.size ? (
-                        <>
-                          <h5>Human Evaluations:</h5>
-                          <AnnotationsTable
-                            annotations={result.scores}
-                            metrics={[...hMetrics.values()]}
-                          ></AnnotationsTable>
-                        </>
-                      ) : null}
-                      {result.scores && aMetrics.size ? (
-                        <>
-                          <h5>Algorithmic Evaluations:</h5>
-                          <AnnotationsTable
-                            annotations={result.scores}
-                            metrics={[...aMetrics.values()]}
-                          ></AnnotationsTable>
-                        </>
-                      ) : null}
+                      <hr className={classes.sectionDivider} />
+
+                      <Tabs>
+                        <TabList
+                          aria-label="Result details"
+                          contained
+                          fullWidth
+                        >
+                          <Tab>Evaluations</Tab>
+                          <Tab
+                            disabled={
+                              !(
+                                Array.isArray(result.modelSteps) &&
+                                result.modelSteps.length > 0
+                              )
+                            }
+                          >
+                            Steps
+                          </Tab>
+                        </TabList>
+                        <TabPanels>
+                          <TabPanel className={classes.flushTabPanel}>
+                            <EvaluationsPanel
+                              scores={result.scores}
+                              hMetrics={hMetrics}
+                              aMetrics={aMetrics}
+                              onCellMouseDown={(metricName, annotator) =>
+                                updateCommentProvenance(
+                                  `${result.modelId}::evaluation::scores::${metricName}::${annotator}`,
+                                )
+                              }
+                            />
+                          </TabPanel>
+                          <TabPanel className={classes.flushTabPanel}>
+                            {Array.isArray(result.modelSteps) &&
+                              result.modelSteps.length > 0 && (
+                                <>
+                                  {!result.modelSteps.some(
+                                    (s) => s.startTimestamp !== undefined,
+                                  ) && (
+                                    <InlineNotification
+                                      kind="info"
+                                      title="Auto-constructed steps"
+                                      subtitle="These steps were derived from the message thread and may not reflect actual execution order."
+                                      lowContrast
+                                      hideCloseButton
+                                    />
+                                  )}
+                                  <StepGroup
+                                    steps={result.modelSteps}
+                                    onStepMouseDown={(stepId) =>
+                                      updateCommentProvenance(
+                                        `${result.modelId}::steps::${stepId}`,
+                                      )
+                                    }
+                                  />
+                                </>
+                              )}
+                          </TabPanel>
+                        </TabPanels>
+                      </Tabs>
                     </div>
                   </TabPanel>
                 ))}
               </TabPanels>
             </Tabs>
           </div>
-        </>
+        </div>
       )}
     </>
   );

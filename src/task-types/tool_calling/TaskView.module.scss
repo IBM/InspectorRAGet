@@ -1,0 +1,244 @@
+/**
+ *
+ * Copyright 2023-present InspectorRAGet Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ **/
+
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/colors' as *;
+
+// --- Layout ---
+
+// Inner flex row — fills the 1fr grid cell given by Task.module.scss
+.layout {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+
+  @media (width <= 1023px) {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+}
+
+// --- Left column ---
+
+.inputContainer {
+  flex: 0 0 40%;
+  max-width: 40%;
+  height: 100%;
+  margin-left: $spacing-03;
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-03;
+  overflow-y: auto;
+
+  @media (width <= 1023px) {
+    flex: none;
+    max-width: 100%;
+    height: auto;
+    overflow-y: visible;
+  }
+}
+
+// Inner scroll area inside ContainedList for conversation messages
+.conversationContent {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-03;
+  overflow-y: auto;
+  max-height: 40vh;
+}
+
+// Search box inside the tools ContainedList — full-width with solid background
+.toolsSearch {
+  width: 100%;
+  margin-bottom: $spacing-03;
+
+  :global(.cds--search-input) {
+    background-color: var(--cds-field-01);
+    border: 1px solid var(--cds-border-strong-01);
+  }
+}
+
+// Expanded content area inside a ToolDefinitionCard
+.toolDefinitionContent {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-02;
+  padding-top: $spacing-02;
+  border-top: 1px solid var(--cds-border-subtle-01);
+}
+
+.toolDescription {
+  font-size: 0.875rem;
+  color: var(--cds-text-secondary);
+  margin: 0;
+}
+
+.toolParamList {
+  margin: 0;
+  padding-left: $spacing-05;
+  font-size: 0.75rem;
+  color: var(--cds-text-secondary);
+}
+
+.toolParamList li {
+  margin-bottom: $spacing-01;
+}
+
+.toolParamRequired {
+  color: var(--cds-support-error);
+  font-weight: 600;
+}
+
+// Horizontal divider between Conversation and Available Tools panels.
+// Matches the vertical column separator style.
+.inputDivider {
+  border: none;
+  border-top: dashed 1px var(--cds-border-inverse);
+  margin: 0;
+  flex-shrink: 0;
+
+  @media (width <= 1023px) {
+    display: none;
+  }
+}
+
+// --- Separator ---
+
+.separator {
+  width: 1px;
+  flex-shrink: 0;
+  margin: 0 $spacing-03;
+  border-left: dashed 1px var(--cds-border-inverse);
+
+  @media (width <= 1023px) {
+    display: none;
+  }
+}
+
+// --- Right column ---
+
+.modelsContainer {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 60%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+
+  @media (width <= 1023px) {
+    flex: none;
+    height: auto;
+  }
+}
+
+.tabContainer {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-03;
+  overflow-y: auto;
+}
+
+// Remove Carbon's default horizontal padding on inner tab panels so tables
+// and step cards span the full width of the column.
+.flushTabPanel {
+  padding-inline: 0;
+}
+
+// Visual break between the Target section and the Evaluations/Steps tabs.
+// Matches the vertical column separator: dashed, same token, same weight.
+.sectionDivider {
+  border: none;
+  border-top: dashed 1px var(--cds-border-inverse);
+  margin: 0;
+}
+
+// --- Tool call card ---
+
+// Wraps multiple ToolCallCards with consistent vertical spacing
+.callList {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-03;
+}
+
+%call-card-base {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-02;
+  padding: $spacing-03;
+  border-radius: 2px;
+}
+
+.callCard {
+  @extend %call-card-base;
+
+  background-color: var(--cds-layer-01);
+}
+
+.callCardHeader {
+  display: flex;
+  align-items: center;
+  column-gap: $spacing-02;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+// Applied when the header row is clickable (call has arguments)
+.callCardHeaderClickable {
+  cursor: pointer;
+}
+
+// Decorative chevron at the right edge — click is handled by the header div
+.expandToggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  color: var(--cds-icon-secondary);
+}
+
+// Arguments JSON block — capped height so large payloads don't flood the layout.
+// Override Carbon's internal max-width so the snippet spans the full card width.
+.argumentsBlock {
+  max-height: 240px;
+  overflow-y: auto;
+
+  :global(.cds--snippet) {
+    max-width: 100%;
+  }
+}
+
+.callDependency {
+  font-size: 0.75rem;
+  color: var(--cds-text-secondary);
+}
+
+// --- Misc ---
+
+.notProvided {
+  color: var(--cds-text-helper);
+  font-style: italic;
+}
+
+.noCallBadge {
+  color: var(--cds-text-secondary);
+  font-style: italic;
+  font-size: 0.875rem;
+}

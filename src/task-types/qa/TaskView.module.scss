@@ -19,124 +19,122 @@
 @use '@carbon/react/scss/spacing' as *;
 @use '@carbon/colors' as *;
 
+// --- Layout ---
+
+// Inner flex row — fills the 1fr grid cell given by Task.module.scss
+.layout {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+// --- Left / right columns ---
+
 .inputContainer {
-  width: 60%;
+  flex: 0 0 60%;
+  max-width: 60%;
   height: 100%;
   margin-left: $spacing-03;
   display: flex;
   flex-direction: column;
   row-gap: $spacing-03;
+  overflow: hidden;
 }
 
 .separator {
   width: 1px;
   margin: 0 $spacing-03;
   border-left: dashed 1px var(--cds-border-inverse);
+  flex-shrink: 0;
 }
 
 .resultsContainer {
-  width: 40%;
+  // Right column: model tabs
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 40%;
   height: 100%;
-  margin-left: auto;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
 }
 
-.tabContainer {
+// --- Section containers inside left column ---
+
+.questionSection {
+  // ContainedList wrapper for a single-turn question — fixed small height
+  flex: 0 0 auto;
+  max-height: 30%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.conversationSection {
+  // Capped at 40% so long conversations don't crowd out the context panel.
+  flex: 0 0 auto;
+  max-height: 40%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+// Inner scroll area inside ContainedList items
+.scrollableContent {
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   row-gap: $spacing-03;
-  overflow-y: auto;
+  padding-block: $spacing-03;
 }
 
-.header {
+// Horizontal rule between question/conversation and the contexts panel.
+// Matches the vertical column separator style.
+.inputDivider {
+  border: none;
+  border-top: dashed 1px var(--cds-border-inverse);
+  margin: 0;
+}
+
+.contextSection {
+  // Takes all remaining vertical space after the question/conversation sections.
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+// --- Context section internals ---
+
+// Passed to DocumentPanel so it fills the remaining height below the
+// ContainedList header and uses layer-01. Only applied in this context —
+// DocumentPanel is reused elsewhere without this treatment.
+.contextDocumentPanel {
+  flex: 1 1 0;
+  min-height: 0;
+  background-color: var(--cds-layer-01);
+}
+
+.contextActions {
   display: flex;
   align-items: center;
-}
-
-.headerActions {
-  align-self: flex-end;
-  margin-left: auto;
-  display: flex;
-}
-
-.questionContainer {
-  height: 15%;
-  display: flex;
-  flex-direction: column;
-  row-gap: $spacing-03;
-}
-
-.questionTextContainer {
-  padding: $spacing-05;
-  border: $gray-30 solid 1px;
-  overflow-y: auto;
-}
-
-.conversationContainer {
-  height: 40%;
-  display: flex;
-  flex-direction: column;
-  row-gap: $spacing-03;
-}
-
-.conversationUtteranceContainer {
-  height: 100%;
-  border: $gray-30 solid 1px;
-  padding: $spacing-03 $spacing-05;
-  display: flex;
-  flex-direction: column;
-  row-gap: $spacing-05;
-  overflow-y: auto;
-}
-
-.inputTextContainer {
-  height: 100%;
-  border: $gray-30 solid 1px;
-  padding: $spacing-03 $spacing-05;
-  display: flex;
-  flex-direction: column;
-  row-gap: $spacing-05;
-  overflow-y: auto;
-}
-
-.contextContainer {
-  height: 60%;
-  margin-bottom: $spacing-05;
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  overflow: scroll;
-}
-
-.contextDisclaimers {
-  display: flex;
-  flex-direction: column;
-  row-gap: $spacing-02;
-  margin-bottom: $spacing-03;
+  column-gap: $spacing-02;
 }
 
 .contextOverlapDisclaimer {
   display: flex;
   align-items: center;
   font-size: 14px;
-  color: #6f6f6f;
+  color: var(--cds-text-secondary);
+  padding-block: $spacing-02;
 }
 
 .legendCopiedText {
   color: #f1c21b;
   mix-blend-mode: hard-light;
-}
-
-.tabContentHeader {
-  display: flex;
-  column-gap: $spacing-02;
-  align-items: baseline;
-}
-
-.responseContainer {
-  line-height: 1.4em;
 }
 
 .contextUnavailableWarning {
@@ -147,6 +145,39 @@
   column-gap: $spacing-03;
   align-items: center;
   color: var(--cds-support-warning);
+}
+
+// --- Right column internals ---
+
+.tabContainer {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-03;
+  overflow-y: auto;
+}
+
+// Remove Carbon's default horizontal padding on inner tab panels so tables
+// and step cards span the full width of the column.
+.flushTabPanel {
+  padding-inline: 0;
+}
+
+// Visual break between the Target section and the Evaluations/Steps tabs.
+// Matches the vertical column separator: dashed, same token, same weight.
+.sectionDivider {
+  border: none;
+  border-top: dashed 1px var(--cds-border-inverse);
+  margin: 0;
+}
+
+.tabContentHeader {
+  display: flex;
+  column-gap: $spacing-02;
+  align-items: baseline;
+}
+
+.responseContainer {
+  line-height: 1.4em;
 }
 
 .notProvided {

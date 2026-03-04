@@ -31,6 +31,7 @@ import {
   Button,
   ContainedList,
   ContainedListItem,
+  InlineNotification,
 } from '@carbon/react';
 import { TextHighlight, WarningAlt } from '@carbon/icons-react';
 
@@ -51,7 +52,8 @@ import { truncate, overlaps } from '@/src/utilities/strings';
 import { mark } from '@/src/utilities/highlighter';
 
 import DocumentPanel from '@/src/views/document/DocumentPanel';
-import AnnotationsTable from '@/src/views/annotations-table/AnnotationsTable';
+import EvaluationsPanel from '@/src/components/evaluations/EvaluationsPanel';
+import StepGroup from '@/src/components/steps/StepGroup';
 import QACopier from '@/src/task-types/qa/Copier';
 
 import classes from './TaskView.module.scss';
@@ -197,92 +199,69 @@ export default function QATaskView({
       )}
 
       {task && models && results && (
-        <>
+        <div className={classes.layout}>
           <div className={classes.inputContainer}>
-            <div
-              className={
-                Array.isArray(task.input) && task.input.length > 1
-                  ? classes.conversationContainer
-                  : classes.questionContainer
-              }
-            >
-              {typeof task.input === 'string' ? (
-                <>
-                  <div className={classes.header}>
-                    <h4>Question</h4>
-                  </div>
-                  <div
-                    className={classes.questionTextContainer}
-                    onMouseDown={() => {
-                      updateCommentProvenance('input');
-                    }}
-                    onMouseUp={() => updateCommentProvenance('input')}
-                  >
-                    {task.input}
-                  </div>
-                </>
-              ) : Array.isArray(task.input) ? (
-                <>
-                  <div className={classes.header}>
-                    <h4>Conversation</h4>
-                  </div>
-                  <div
-                    className={classes.conversationUtteranceContainer}
-                    onMouseDown={() => {
-                      updateCommentProvenance('input');
-                    }}
-                    onMouseUp={() => updateCommentProvenance('input')}
-                  >
-                    {task.input.map((utterance, idx) => (
-                      <span key={'uttereance-' + idx}>
-                        <strong>
-                          {utterance.speaker.charAt(0).toUpperCase() +
-                            utterance.speaker.slice(1).toLowerCase()}
-                        </strong>
-                        : {utterance.text}
-                      </span>
-                    ))}
-                  </div>
-                </>
-              ) : typeof task.input === 'string' ? (
-                <>
-                  <div className={classes.header}>
-                    <h4>Input</h4>
-                  </div>
-                  <div
-                    className={classes.inputTextContainer}
-                    onMouseDown={() => {
-                      updateCommentProvenance('input');
-                    }}
-                    onMouseUp={() => updateCommentProvenance('input')}
-                  >
-                    {task.input}
-                  </div>
-                </>
-              ) : null}
-            </div>
+            {typeof task.input === 'string' ? (
+              <div className={classes.questionSection}>
+                <ContainedList label="Question" kind="on-page">
+                  <ContainedListItem>
+                    <div
+                      className={classes.scrollableContent}
+                      onMouseDown={() => updateCommentProvenance('input')}
+                      onMouseUp={() => updateCommentProvenance('input')}
+                    >
+                      {task.input}
+                    </div>
+                  </ContainedListItem>
+                </ContainedList>
+              </div>
+            ) : Array.isArray(task.input) ? (
+              <div className={classes.conversationSection}>
+                <ContainedList label="Conversation" kind="on-page">
+                  <ContainedListItem>
+                    <div
+                      className={classes.scrollableContent}
+                      onMouseDown={() => updateCommentProvenance('input')}
+                      onMouseUp={() => updateCommentProvenance('input')}
+                    >
+                      {task.input.map((utterance, idx) => (
+                        <span key={`utterance-${idx}`}>
+                          <strong>
+                            {utterance.speaker.charAt(0).toUpperCase() +
+                              utterance.speaker.slice(1).toLowerCase()}
+                          </strong>
+                          : {utterance.text}
+                        </span>
+                      ))}
+                    </div>
+                  </ContainedListItem>
+                </ContainedList>
+              </div>
+            ) : null}
+
             {documentsPerResult && (
-              <div className={classes.contextContainer}>
-                <div className={classes.header}>
-                  <h4>Contexts</h4>
-                  <div className={classes.headerActions}>
-                    <Button
-                      id="text-highlight"
-                      renderIcon={TextHighlight}
-                      kind={'ghost'}
-                      hasIconOnly={true}
-                      iconDescription={
-                        'Click to highlight text common in context and response'
-                      }
-                      tooltipAlignment={'end'}
-                      tooltipPosition={'bottom'}
-                      onClick={() => {
-                        setShowOverlap(!showOverlap);
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className={classes.contextDisclaimers}>
+              <>
+                <hr className={classes.inputDivider} />
+                <div className={classes.contextSection}>
+                  {/* Header-only ContainedList — no items, so Carbon renders just the label + action row */}
+                  <ContainedList
+                    label="Contexts"
+                    kind="on-page"
+                    action={
+                      <div className={classes.contextActions}>
+                        <Button
+                          id="text-highlight"
+                          renderIcon={TextHighlight}
+                          kind="ghost"
+                          hasIconOnly
+                          iconDescription="Highlight text common in context and response"
+                          tooltipAlignment="end"
+                          tooltipPosition="bottom"
+                          onClick={() => setShowOverlap(!showOverlap)}
+                        />
+                      </div>
+                    }
+                  />
                   {showOverlap && (
                     <div className={classes.contextOverlapDisclaimer}>
                       <div className={classes.legendCopiedText}>&#9632;</div>
@@ -292,17 +271,16 @@ export default function QATaskView({
                       </span>
                     </div>
                   )}
-                </div>
-                {isEmpty(documentsPerResult[selectedResultIndex]) ? (
-                  <div className={classes.contextUnavailableWarning}>
-                    <WarningAlt size={24} /> No context is available
-                  </div>
-                ) : (
-                  <DocumentPanel
-                    key={`result--${selectedResultIndex}__documents`}
-                    documents={documentsPerResult[selectedResultIndex].map(
-                      (document, documentIdx) => {
-                        return {
+                  {isEmpty(documentsPerResult[selectedResultIndex]) ? (
+                    <div className={classes.contextUnavailableWarning}>
+                      <WarningAlt size={24} /> No context is available
+                    </div>
+                  ) : (
+                    <DocumentPanel
+                      key={`result--${selectedResultIndex}__documents`}
+                      className={classes.contextDocumentPanel}
+                      documents={documentsPerResult[selectedResultIndex].map(
+                        (document, documentIdx) => ({
                           documentId: document.documentId,
                           text: showOverlap
                             ? mark(
@@ -318,21 +296,21 @@ export default function QATaskView({
                           ...(document.annotations && {
                             annotations: document.annotations,
                           }),
-                        };
-                      },
-                    )}
-                    onMouseDown={(provenance: string) => {
-                      updateCommentProvenance(provenance);
-                    }}
-                    onMouseUp={(provenance: string) =>
-                      updateCommentProvenance(provenance)
-                    }
-                    notify={(documentIndex: number) => {
-                      setActiveDocumentIndex(documentIndex);
-                    }}
-                  />
-                )}
-              </div>
+                        }),
+                      )}
+                      onMouseDown={(provenance: string) =>
+                        updateCommentProvenance(provenance)
+                      }
+                      onMouseUp={(provenance: string) =>
+                        updateCommentProvenance(provenance)
+                      }
+                      notify={(documentIndex: number) =>
+                        setActiveDocumentIndex(documentIndex)
+                      }
+                    />
+                  )}
+                </div>
+              </>
             )}
           </div>
 
@@ -345,13 +323,9 @@ export default function QATaskView({
                 setActiveDocumentIndex(0);
               }}
             >
-              <TabList
-                className={classes.tabList}
-                aria-label="Models tab"
-                contained
-              >
+              <TabList aria-label="Models tab" contained fullWidth>
                 {results.map((result) => (
-                  <Tab key={'model-' + result.modelId}>
+                  <Tab key={`model-${result.modelId}`}>
                     {truncate(
                       models.get(result.modelId)?.name || result.modelId,
                       15,
@@ -361,27 +335,17 @@ export default function QATaskView({
               </TabList>
               <TabPanels>
                 {results.map((result, resultIdx) => (
-                  <TabPanel key={'model-' + result.modelId + '-panel'}>
+                  <TabPanel key={`model-${result.modelId}-panel`}>
                     <div className={classes.tabContainer}>
-                      <div className={classes.tabContentHeader}>
-                        <h5>Model:</h5>
-                        <span>
-                          {models.get(result.modelId)?.name || result.modelId}
-                        </span>
-                      </div>
-                      <ContainedList
-                        size="sm"
-                        label="Response"
-                        kind="disclosed"
-                      >
+                      <ContainedList label="Response" kind="on-page">
                         <ContainedListItem>
                           <div
                             className={classes.responseContainer}
-                            onMouseDown={() => {
+                            onMouseDown={() =>
                               updateCommentProvenance(
                                 `${result.modelId}::evaluation::response`,
-                              );
-                            }}
+                              )
+                            }
                             onMouseUp={() =>
                               updateCommentProvenance(
                                 `${result.modelId}::evaluation::response`,
@@ -403,7 +367,7 @@ export default function QATaskView({
                         </ContainedListItem>
                       </ContainedList>
 
-                      <ContainedList label="Targets" kind="disclosed" size="sm">
+                      <ContainedList label="Target" kind="on-page">
                         {task.targets && !isEmpty(task.targets) ? (
                           task.targets.length > 1 ? (
                             task.targets.map((target, targetIdx) =>
@@ -416,7 +380,7 @@ export default function QATaskView({
                               ) : null,
                             )
                           ) : task.targets[0].type === 'text' ? (
-                            <ContainedListItem key={`target--0`}>
+                            <ContainedListItem key="target--0">
                               <span>{task.targets[0].value}</span>
                             </ContainedListItem>
                           ) : null
@@ -428,31 +392,75 @@ export default function QATaskView({
                           </ContainedListItem>
                         )}
                       </ContainedList>
-                      {result.scores && hMetrics.size ? (
-                        <>
-                          <h5>Human Evaluations:</h5>
-                          <AnnotationsTable
-                            annotations={result.scores}
-                            metrics={[...hMetrics.values()]}
-                          ></AnnotationsTable>
-                        </>
-                      ) : null}
-                      {result.scores && aMetrics.size ? (
-                        <>
-                          <h5>Algorithmic Evaluations:</h5>
-                          <AnnotationsTable
-                            annotations={result.scores}
-                            metrics={[...aMetrics.values()]}
-                          ></AnnotationsTable>
-                        </>
-                      ) : null}
+
+                      <hr className={classes.sectionDivider} />
+
+                      <Tabs>
+                        <TabList
+                          aria-label="Result details"
+                          contained
+                          fullWidth
+                        >
+                          <Tab>Evaluations</Tab>
+                          <Tab
+                            disabled={
+                              !(
+                                Array.isArray(result.modelSteps) &&
+                                result.modelSteps.length > 0
+                              )
+                            }
+                          >
+                            Steps
+                          </Tab>
+                        </TabList>
+                        <TabPanels>
+                          <TabPanel className={classes.flushTabPanel}>
+                            <EvaluationsPanel
+                              scores={result.scores}
+                              hMetrics={hMetrics}
+                              aMetrics={aMetrics}
+                              onCellMouseDown={(metricName, annotator) =>
+                                updateCommentProvenance(
+                                  `${result.modelId}::evaluation::scores::${metricName}::${annotator}`,
+                                )
+                              }
+                            />
+                          </TabPanel>
+                          <TabPanel className={classes.flushTabPanel}>
+                            {Array.isArray(result.modelSteps) &&
+                              result.modelSteps.length > 0 && (
+                                <>
+                                  {!result.modelSteps.some(
+                                    (s) => s.startTimestamp !== undefined,
+                                  ) && (
+                                    <InlineNotification
+                                      kind="info"
+                                      title="Auto-constructed steps"
+                                      subtitle="These steps were derived from the message thread and may not reflect actual execution order."
+                                      lowContrast
+                                      hideCloseButton
+                                    />
+                                  )}
+                                  <StepGroup
+                                    steps={result.modelSteps}
+                                    onStepMouseDown={(stepId) =>
+                                      updateCommentProvenance(
+                                        `${result.modelId}::steps::${stepId}`,
+                                      )
+                                    }
+                                  />
+                                </>
+                              )}
+                          </TabPanel>
+                        </TabPanels>
+                      </Tabs>
                     </div>
                   </TabPanel>
                 ))}
               </TabPanels>
             </Tabs>
           </div>
-        </>
+        </div>
       )}
     </>
   );

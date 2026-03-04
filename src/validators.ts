@@ -30,11 +30,16 @@ function isValidModel(model): boolean {
   return true;
 }
 
-function isValidMetricValue(mval): boolean {
+// categorical is passed as true when validating values on a categorical metric,
+// which requires each entry to also carry a numericValue for aggregation/sorting.
+function isValidMetricValue(mval, categorical = false): boolean {
   if (
     !mval.hasOwnProperty('value') ||
     (typeof mval.value !== 'string' && typeof mval.value !== 'number')
   ) {
+    return false;
+  }
+  if (categorical && typeof mval.numericValue !== 'number') {
     return false;
   }
   return true;
@@ -75,7 +80,9 @@ function isValidMetric(metric): boolean {
   }
   if (
     metric.hasOwnProperty('values') &&
-    !metric.values.every((v) => isValidMetricValue(v))
+    !metric.values.every((v) =>
+      isValidMetricValue(v, metric.type === 'categorical'),
+    )
   ) {
     return false;
   }
@@ -111,6 +118,19 @@ const VALID_TASK_TYPES = new Set([
 // The new 'rag' type is multi-turn conversation and does not need contexts at the task level.
 const CONTEXTS_REQUIRED_TYPES = new Set(['qa']);
 
+function isValidToolDefinition(tool): boolean {
+  if (typeof tool.name !== 'string') {
+    return false;
+  }
+  if (
+    tool.hasOwnProperty('parameters') &&
+    typeof tool.parameters !== 'object'
+  ) {
+    return false;
+  }
+  return true;
+}
+
 function isValidTask(task): boolean {
   if (!task.hasOwnProperty('taskId')) {
     return false;
@@ -131,6 +151,14 @@ function isValidTask(task): boolean {
   }
 
   if (!task.hasOwnProperty('input')) {
+    return false;
+  }
+
+  if (
+    task.hasOwnProperty('tools') &&
+    (!Array.isArray(task.tools) ||
+      !task.tools.every((tool) => isValidToolDefinition(tool)))
+  ) {
     return false;
   }
 

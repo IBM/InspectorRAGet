@@ -18,18 +18,18 @@
 
 'use client';
 
-import { isEmpty } from 'lodash';
 import { useMemo, useState, useEffect } from 'react';
 import { Tag, Tooltip } from '@carbon/react';
 import { AddComment } from '@carbon/icons-react';
 
-import { Model, TaskCommentProvenance, ModelResult } from '@/src/types';
+import { Model, TaskCommentProvenance, CommentFinding } from '@/src/types';
 import { useDataStore } from '@/src/store';
 import { extractMouseSelection } from '@/src/utilities/selectors';
 import { useNotification } from '@/src/components/notification/Notification';
 import TaskTile from '@/src/components/task-tile/TaskTile';
 import AddCommentModal from '@/src/components/comments/AddCommentModal';
 import ViewComments from '@/src/components/comments/CommentsViewer';
+import SelectionCommentButton from '@/src/components/comments/SelectionCommentButton';
 import { taskTypeRegistry } from '@/src/task-types';
 
 import classes from './Task.module.scss';
@@ -45,11 +45,20 @@ interface Props {
 // ===================================================================================
 //                               HELPER FUNCTIONS
 // ===================================================================================
+
+// A component string contains '::' when the selection comes from a model-specific
+// area (e.g. "model123::evaluation::prediction"). Task-level areas use plain names.
+function isModelScoped(component: string): boolean {
+  return component.includes('::');
+}
+
+function modelIdFromComponent(component: string): string {
+  return component.split('::')[0];
+}
+
 /**
- * Update existing provenance
- * @param component reference location
- * @param setCommentProvenance function to update state variable
- * @param createNotification function to notify user of any issues with selection
+ * Reads the current window selection and, if non-empty, updates provenance state.
+ * Notifies the user if the selection spans incompatible DOM nodes.
  */
 function updateCommentProvenance(
   component: string,
@@ -66,14 +75,11 @@ function updateCommentProvenance(
       });
     }
   } catch (err) {
-    // Notify user
     createNotification({
       kind: 'error',
       title: 'Invalid selection',
       subtitle: 'cannot select text from different part of the page.',
     });
-
-    // Reset selection
     setCommentProvenance(undefined);
   }
 }
@@ -88,6 +94,10 @@ export default function Task({ taskId, onClose }: Props) {
     useState<boolean>(false);
   const [commentProvenance, setCommentProvenance] = useState<
     TaskCommentProvenance | undefined
+  >(undefined);
+  // Viewport coords from the mouseup event — used to position the floating button.
+  const [selectionCoords, setSelectionCoords] = useState<
+    { x: number; y: number } | undefined
   >(undefined);
 
   const { createNotification } = useNotification();
@@ -108,7 +118,13 @@ export default function Task({ taskId, onClose }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally register once; onClose is stable for the lifetime of the overlay
   }, []);
 
-  const { item: data, taskMap, updateTask } = useDataStore();
+  const {
+    item: data,
+    taskMap,
+    updateTask,
+    resultsMap,
+    updateResult,
+  } = useDataStore();
 
   const [models, metrics] = useMemo(() => {
     if (data) {
@@ -119,7 +135,6 @@ export default function Task({ taskId, onClose }: Props) {
       return [modelsMap, data.metrics];
     }
 
-    // Default return
     return [undefined, undefined];
   }, [data]);
 
@@ -133,12 +148,21 @@ export default function Task({ taskId, onClose }: Props) {
     (task?.comments?.length && task.comments.length > 0) || false,
   );
 
+  // Merge live resultsMap entries so model-level comment updates are reactive.
   const results = useMemo(() => {
-    if (data) {
-      return data.results.filter((result) => result.taskId === taskId);
-    }
-    return undefined;
-  }, [taskId, data]);
+    if (!data || !resultsMap) return undefined;
+    return data.results
+      .filter((r) => r.taskId === taskId)
+      .map((r) => resultsMap.get(`${r.taskId}::${r.modelId}`) ?? r);
+  }, [taskId, data, resultsMap]);
+
+  // Show the panel toggle only when there's something to show.
+  const hasAnyComments = useMemo(
+    () =>
+      (task?.comments?.length ?? 0) > 0 ||
+      (results?.some((r) => (r.comments?.length ?? 0) > 0) ?? false),
+    [task, results],
+  );
 
   // Look up the task-type-specific view component from the registry.
   // Falls back to null for unknown or future task types not yet in registry.
@@ -146,40 +170,78 @@ export default function Task({ taskId, onClose }: Props) {
     ? taskTypeRegistry[task.taskType]?.TaskView
     : null;
 
+  // Build the resultComments prop for CommentsViewer once per render.
+  const resultComments = useMemo(() => {
+    if (!results || !models) return [];
+    return results
+      .filter((r) => (r.comments?.length ?? 0) > 0)
+      .map((r) => ({
+        modelId: r.modelId,
+        modelName: models.get(r.modelId)?.name ?? r.modelId,
+        comments: r.comments!,
+      }));
+  }, [results, models]);
+
   return (
-    <div className={classes.page}>
+    // Dismiss the floating button on any mousedown outside it.
+    // The button itself calls stopPropagation so clicks on it don't land here.
+    <div
+      className={classes.page}
+      onMouseDown={(e) => {
+        const target = e.target as HTMLElement;
+        if (!target.closest('[data-selection-comment-btn]')) {
+          setSelectionCoords(undefined);
+        }
+      }}
+    >
       <AddCommentModal
         open={addCommentModalOpen}
         selectedText={commentProvenance ? commentProvenance.text : undefined}
-        onSubmit={(comment: string, author: string) => {
+        onSubmit={(
+          comment: string,
+          author: string,
+          finding?: CommentFinding,
+        ) => {
           const commentToAdd = {
-            comment: comment,
-            author: author,
+            comment,
+            author,
             created: Date.now(),
             updated: Date.now(),
             provenance: commentProvenance,
+            finding,
           };
 
-          updateTask(taskId, {
-            comments: task?.comments
-              ? [...task?.comments, commentToAdd]
-              : [commentToAdd],
-          });
+          if (commentProvenance && isModelScoped(commentProvenance.component)) {
+            // Route model-scoped comments (e.g. prediction area) to ModelResult.
+            const modelId = modelIdFromComponent(commentProvenance.component);
+            const result = results?.find((r) => r.modelId === modelId);
+            updateResult(taskId, modelId, {
+              comments: result?.comments
+                ? [...result.comments, commentToAdd]
+                : [commentToAdd],
+            });
+          } else {
+            updateTask(taskId, {
+              comments: task?.comments
+                ? [...task.comments, commentToAdd]
+                : [commentToAdd],
+            });
+          }
 
           setCommentProvenance(undefined);
+          setSelectionCoords(undefined);
           setAddCommentModalOpen(false);
           setShowComments(true);
         }}
         onClose={() => {
-          // Clear provenance
           setCommentProvenance(undefined);
-
-          // Close modal
+          setSelectionCoords(undefined);
           setAddCommentModalOpen(false);
         }}
         provenance={commentProvenance}
         models={models}
-      ></AddCommentModal>
+        task={task}
+      />
       <div className={classes.pageHint}>
         <Tag
           type={'outline'}
@@ -207,40 +269,50 @@ export default function Task({ taskId, onClose }: Props) {
             onClickCopyToClipboardIcon={() => {
               setTaskCopierModalOpen(true);
             }}
-          ></TaskTile>
+          />
         </div>
       )}
       {task && models && results && (
         <div className={classes.taskContainer}>
-          {task.comments && !isEmpty(task.comments) && showComments && (
+          {hasAnyComments && showComments && (
             <div className={classes.commentsContainer}>
               <ViewComments
-                comments={task.comments}
-                onUpdate={(updatedComments) => {
-                  updateTask(taskId, {
-                    comments: updatedComments,
-                  });
+                taskComments={task.comments}
+                resultComments={resultComments}
+                onUpdateTaskComments={(updated) => {
+                  updateTask(taskId, { comments: updated });
+                }}
+                onUpdateResultComments={(modelId, updated) => {
+                  updateResult(taskId, modelId, { comments: updated });
                 }}
                 models={models}
-              ></ViewComments>
+              />
             </div>
           )}
-          {TaskView ? (
-            <TaskView
-              task={task}
-              models={models}
-              metrics={metrics}
-              taskCopierModalOpen={taskCopierModalOpen}
-              setTaskCopierModalOpen={setTaskCopierModalOpen}
-              updateCommentProvenance={(provenance: string) => {
-                updateCommentProvenance(
-                  provenance,
-                  setCommentProvenance,
-                  createNotification,
-                );
-              }}
-            />
-          ) : null}
+          {/* Capture mouseup coords so the floating button can be positioned */}
+          <div
+            className={classes.taskViewWrapper}
+            onMouseUp={(e) =>
+              setSelectionCoords({ x: e.clientX, y: e.clientY })
+            }
+          >
+            {TaskView ? (
+              <TaskView
+                task={task}
+                models={models}
+                metrics={metrics}
+                taskCopierModalOpen={taskCopierModalOpen}
+                setTaskCopierModalOpen={setTaskCopierModalOpen}
+                updateCommentProvenance={(provenance: string) => {
+                  updateCommentProvenance(
+                    provenance,
+                    setCommentProvenance,
+                    createNotification,
+                  );
+                }}
+              />
+            ) : null}
+          </div>
           <div
             key={'add-comment-btn'}
             tabIndex={0}
@@ -255,8 +327,19 @@ export default function Task({ taskId, onClose }: Props) {
             }}
           >
             <Tooltip align={'top-right'} label={'Click to add comment'}>
-              <AddComment size={20}></AddComment>
+              <AddComment size={20} />
             </Tooltip>
+          </div>
+          {/* Floating contextual button — appears near cursor after text selection */}
+          <div data-selection-comment-btn>
+            <SelectionCommentButton
+              provenance={commentProvenance}
+              coords={selectionCoords}
+              onOpen={() => {
+                setSelectionCoords(undefined);
+                setAddCommentModalOpen(true);
+              }}
+            />
           </div>
         </div>
       )}

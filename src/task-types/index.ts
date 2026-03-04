@@ -22,9 +22,12 @@ import GenerationTaskView from '@/src/task-types/generation/TaskView';
 import GenerationCopier from '@/src/task-types/generation/Copier';
 import RAGTaskView from '@/src/task-types/rag/TaskView';
 import RAGCopier from '@/src/task-types/rag/Copier';
+import ToolCallingTaskView from '@/src/task-types/tool_calling/TaskView';
+import ToolCallingCopier from '@/src/task-types/tool_calling/Copier';
 
 export const taskTypeRegistry = {
   qa: { TaskView: QATaskView, Copier: QACopier },
   generation: { TaskView: GenerationTaskView, Copier: GenerationCopier },
   rag: { TaskView: RAGTaskView, Copier: RAGCopier },
+  tool_calling: { TaskView: ToolCallingTaskView, Copier: ToolCallingCopier },
 } as const;

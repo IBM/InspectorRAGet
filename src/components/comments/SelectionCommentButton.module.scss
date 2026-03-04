@@ -17,42 +17,27 @@
  **/
 
 @use '@carbon/react/scss/spacing' as *;
+@use '@carbon/colors' as *;
 
-.commentProvenance {
+// Smaller sibling of .addCommentBtn in Task.module.scss.
+// position:fixed so viewport (clientX/Y) coordinates map directly.
+.selectionCommentBtn {
+  position: fixed;
+  height: 2rem;
+  width: 2rem;
+  border-radius: 50%;
+  border: solid $gray-40 1px;
   display: flex;
-  flex-direction: column;
-  row-gap: $spacing-02;
-}
+  align-items: center;
+  justify-content: center;
+  background-color: var(--cds-background-inverse);
+  color: var(--cds-background);
+  opacity: 0.9;
+  z-index: 20;
+  cursor: pointer;
+  padding: 0;
 
-.provenanceTags {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: $spacing-02;
-}
-
-.commentBox {
-  padding-bottom: $spacing-03;
-}
-
-.reference {
-  padding-bottom: $spacing-03;
-}
-
-.label {
-  font-size: 0.75rem;
-  font-weight: 400;
-  line-height: 1rem;
-  letter-spacing: 0.32px;
-}
-
-.findingSection {
-  margin-top: $spacing-03;
-
-  summary {
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: 600;
-    user-select: none;
+  &:hover {
+    opacity: 1;
   }
 }

@@ -16,43 +16,24 @@
  *
  **/
 
-@use '@carbon/react/scss/spacing' as *;
-
-.commentProvenance {
-  display: flex;
-  flex-direction: column;
-  row-gap: $spacing-02;
-}
-
-.provenanceTags {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: $spacing-02;
-}
-
-.commentBox {
-  padding-bottom: $spacing-03;
-}
-
-.reference {
-  padding-bottom: $spacing-03;
-}
-
-.label {
-  font-size: 0.75rem;
-  font-weight: 400;
-  line-height: 1rem;
-  letter-spacing: 0.32px;
-}
-
-.findingSection {
-  margin-top: $spacing-03;
-
-  summary {
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: 600;
-    user-select: none;
-  }
+// OpenAI-compatible tool definition. parameters follows JSON Schema object format.
+// Keeping this local to the tool_calling slice; re-exported from src/types.ts for
+// consumers that import from the shared types barrel.
+export interface ToolDefinition {
+  name: string;
+  description?: string;
+  parameters?: {
+    type: 'object';
+    properties?: Record<
+      string,
+      {
+        type?: string;
+        description?: string;
+        enum?: unknown[];
+        [key: string]: unknown;
+      }
+    >;
+    required?: string[];
+    [key: string]: unknown;
+  };
 }

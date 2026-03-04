@@ -305,42 +305,22 @@ export function calculateAggregateValue(
   metric: Metric,
   entries: { [key: string]: any },
 ) {
-  if (metric.author === 'algorithm') {
-    if (metric.aggregator) {
-      let scores: string[] | number[] = Object.values(entries).map(
-        (entry) => entry.value,
-      );
-      if (metric.aggregator === 'average' || metric.aggregator === 'mean') {
-        return computeMean(metric, scores);
-      } else if (metric.aggregator === 'median') {
-        return computeMedian(metric, scores);
-      } else {
-        return computeMajority(metric, countBy(scores), scores.length);
-      }
-    } else {
-      return {
-        level: AgreementLevels.NO_AGREEMENT,
-        value: undefined,
-      };
-    }
+  const scores: string[] | number[] = Object.values(entries).map(
+    (entry) => entry.value,
+  );
+
+  // When no aggregator is declared, fall back to the natural default for the
+  // metric type: mean for numerical, majority for categorical. This keeps
+  // all downstream consumers from receiving { value: undefined }.
+  const aggregator =
+    metric.aggregator ?? (metric.type === 'numerical' ? 'mean' : 'majority');
+
+  if (aggregator === 'average' || aggregator === 'mean') {
+    return computeMean(metric, scores);
+  } else if (aggregator === 'median') {
+    return computeMedian(metric, scores);
   } else {
-    if (metric.aggregator) {
-      let scores: string[] | number[] = Object.values(entries).map(
-        (entry) => entry.value,
-      );
-      if (metric.aggregator === 'average' || metric.aggregator === 'mean') {
-        return computeMean(metric, scores);
-      } else if (metric.aggregator === 'median') {
-        return computeMedian(metric, scores);
-      } else {
-        return computeMajority(metric, countBy(scores), scores.length);
-      }
-    } else {
-      return {
-        level: AgreementLevels.NO_AGREEMENT,
-        value: undefined,
-      };
-    }
+    return computeMajority(metric, countBy(scores), scores.length);
   }
 }
 

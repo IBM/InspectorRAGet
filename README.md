@@ -145,8 +145,8 @@ Notes:
 1. Each metric must have a unique name.
 2. Metric can be of `numerical`, `categorical`, or `text` type.
 3. Numerical type metrics must specify `range` field in `[start, end, bin_size]` format.
-4. Categoricl type metrics must specify `values` field where each value must have `value` and `numerical_value` fields.
-5. Text type metric are only accesible in instance level view and not used in any experiment level aggregate statistics and visual elements.
+4. Categorical type metrics must specify a `values` field. Every entry must have both a `value` (the string label) and a `numeric_value` (an integer or float). The `numeric_value` encodes the ordering and distance between categories — it is used by aggregation (mean, median, majority), inter-annotator agreement distance, chart axis ordering, and filter range sorting. Without it, all of those computations fall back to `parseFloat(label)`, which returns `NaN` for non-numeric strings and silently corrupts statistics and visualisations. Assign values so that **higher = better** (e.g. `poor=0, acceptable=1, good=2`). The platform sorts values ascending by `numeric_value`, treats the highest as `maxValue`, and uses it as the top of all normalisation and ranking scales.
+5. Text type metrics are only accessible in the instance-level view and are not used in any aggregate statistics or visual elements.
 
 #### 4. Documents
 

@@ -106,6 +106,20 @@ export function processData(
   );
   const requiredModelIDs = new Set(data.models.map((model) => model.modelId));
 
+  // Warn about plottable metrics with no declared aggregator. A default will
+  // be applied (average for numerical, majority for categorical) but the
+  // researcher should set one explicitly for predictable results.
+  const metricsWithoutAggregator = plottableMetrics
+    .filter((metric) => !metric.aggregator)
+    .map((metric) => metric.displayName ?? metric.name);
+  if (metricsWithoutAggregator.length > 0) {
+    notifications.push({
+      title: 'Default aggregator assumed',
+      subtitle: `The following metrics have no aggregator specified and will use a default (mean for numerical, majority for categorical): ${metricsWithoutAggregator.join(', ')}.`,
+      kind: 'warning',
+    });
+  }
+
   // --- Disqualify results missing required metrics or models ---
 
   /**

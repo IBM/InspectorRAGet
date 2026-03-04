@@ -18,41 +18,26 @@
 
 @use '@carbon/react/scss/spacing' as *;
 
-.commentProvenance {
+.container {
   display: flex;
   flex-direction: column;
   row-gap: $spacing-02;
 }
 
-.provenanceTags {
+.copyFormatSelectors {
   display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: $spacing-02;
+  column-gap: $spacing-03;
 }
 
-.commentBox {
+.copyFormatSelectors > div > label {
+  background-color: var(--cds-background) !important;
+}
+
+.previewBox {
+  height: 75%;
+  background-color: var(--cds-background);
+}
+
+.heading {
   padding-bottom: $spacing-03;
-}
-
-.reference {
-  padding-bottom: $spacing-03;
-}
-
-.label {
-  font-size: 0.75rem;
-  font-weight: 400;
-  line-height: 1rem;
-  letter-spacing: 0.32px;
-}
-
-.findingSection {
-  margin-top: $spacing-03;
-
-  summary {
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: 600;
-    user-select: none;
-  }
 }

@@ -208,6 +208,34 @@ describe('validateInputData', () => {
     expect(result.valid).toBe(false);
   });
 
+  it('rejects a categorical metric value missing numericValue', () => {
+    const data = validData();
+    data.metrics[0] = {
+      name: 'quality',
+      author: 'human',
+      type: 'categorical',
+      values: [
+        { value: 'good', numericValue: 1 },
+        { value: 'bad' }, // missing numericValue
+      ],
+    } as any;
+    const result = validateInputData(data);
+    expect(result.valid).toBe(false);
+  });
+
+  it('accepts a numerical metric value without numericValue', () => {
+    // numericValue is only required for categorical; numerical metrics use value directly
+    const data = validData();
+    data.metrics[0] = {
+      name: 'score',
+      author: 'algorithm',
+      type: 'numerical',
+      range: [0, 1],
+    } as any;
+    const result = validateInputData(data);
+    expect(result.valid).toBe(true);
+  });
+
   // --- Tasks validation ---
 
   it('rejects data missing tasks', () => {

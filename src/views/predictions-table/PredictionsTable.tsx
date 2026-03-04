@@ -38,7 +38,13 @@ import {
 } from '@carbon/react';
 import { WarningAlt, WarningAltFilled } from '@carbon/icons-react';
 
-import { Task, Model, ModelResult, outputAsText } from '@/src/types';
+import {
+  Task,
+  Model,
+  ModelResult,
+  ToolCallRecord,
+  outputAsText,
+} from '@/src/types';
 import { truncate } from '@/src/utilities/strings';
 import { areObjectsIntersecting } from '@/src/utilities/objects';
 import Filters from '@/src/components/filters/Filters';
@@ -46,6 +52,16 @@ import Filters from '@/src/components/filters/Filters';
 import classes from './PredictionsTable.module.scss';
 
 const MAX_NUM_ROWS = 150;
+
+// --- Helpers ---
+
+// Renders a tool call as a compact readable signature: get_weather(city="Boston")
+function formatCallSignature(call: ToolCallRecord): string {
+  const args = Object.entries(call.arguments)
+    .map(([k, v]) => `${k}=${JSON.stringify(v)}`)
+    .join(', ');
+  return `${call.name}(${args})`;
+}
 
 // --- Compute functions ---
 
@@ -74,39 +90,43 @@ function populateTableRows(
       const row = { id: task.taskId, task: task.taskId };
       if (typeof task.input === 'string') {
         row['task'] = truncate(task.input, 80);
-      } else if (
-        Array.isArray(task.input) &&
-        task.input[task.input.length - 1].hasOwnProperty('text') &&
-        task.input[task.input.length - 1]['text']
-      ) {
-        row['task'] = truncate(task.input[task.input.length - 1]['text'], 80);
-      } else if (
-        Array.isArray(task.input) &&
-        task.input[task.input.length - 1].hasOwnProperty('role') &&
-        (task.input[task.input.length - 1]['role'] === 'system' ||
-          task.input[task.input.length - 1]['role'] === 'developer' ||
-          task.input[task.input.length - 1]['role'] === 'user' ||
-          task.input[task.input.length - 1]['role'] === 'assistant') &&
-        task.input[task.input.length - 1].hasOwnProperty('content') &&
-        task.input[task.input.length - 1]['content']
-      ) {
-        row['task'] = truncate(
-          task.input[task.input.length - 1]['content'],
-          80,
-        );
+      } else if (Array.isArray(task.input)) {
+        if (task.input[task.input.length - 1].hasOwnProperty('text')) {
+          // Legacy utterance format { speaker, text }
+          row['task'] = truncate(task.input[task.input.length - 1]['text'], 80);
+        } else {
+          // OpenAI message format — show the last user message so tool/assistant
+          // turns at the end of the thread don't obscure the actual question.
+          const lastUserMsg = [...task.input]
+            .reverse()
+            .find((m) => m.role === 'user');
+          if (lastUserMsg?.content) {
+            row['task'] = truncate(lastUserMsg['content'], 80);
+          }
+        }
       }
 
-      // Add first target, if present
+      // Add first target, if present. Render text targets as strings and
+      // tool_calls targets as compact function signatures.
       if (task.targets && !isEmpty(task.targets)) {
         row['targets'] = task.targets
-          .map((target) => (target.type === 'text' ? [target.value] : []))
+          .map((target) => {
+            if (target.type === 'text') return [target.value];
+            if (target.type === 'tool_calls')
+              return [target.calls.map(formatCallSignature).join(', ')];
+            return [];
+          })
           .filter((entry) => entry.length > 0);
       }
-      // Add model responses
+
+      // Add model responses — render tool_calls output as function signatures.
       const taskResults = resultsPerTask.get(task.taskId);
       if (taskResults) {
         taskResults.forEach((result) => {
-          row[result.modelId] = outputAsText(result.output);
+          row[result.modelId] =
+            result.output.type === 'tool_calls'
+              ? result.output.calls.map(formatCallSignature).join(', ')
+              : outputAsText(result.output);
         });
       }
 

@@ -49,11 +49,15 @@
 .commentHeaderProvenance {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
 }
 
-.commentTag {
-  max-width: 8rem;
+// Stack pills vertically in the narrow sidebar — each pill on its own line.
+.provenanceTags {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: $spacing-01;
 }
 
 .commentHeaderTimestamp {
@@ -89,4 +93,17 @@
 .commentBtn {
   display: flex;
   column-gap: $spacing-03;
+}
+
+.sectionHeading {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: $spacing-03;
+  color: var(--cds-text-secondary);
+}
+
+.commentFinding {
+  display: flex;
+  align-items: center;
+  gap: $spacing-02;
 }

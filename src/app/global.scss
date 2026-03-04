@@ -47,3 +47,10 @@ body {
 .cds--tabs--contained ~ .cds--tab-content {
   background: var(--cds-background) !important;
 }
+
+// Carbon adds margin-block-start between adjacent on-page ContainedLists.
+// Our task views use row-gap on the parent flex container instead,
+// so this sibling margin would double-space the sections.
+.cds--contained-list--on-page + .cds--contained-list--on-page {
+  margin-block-start: 0;
+}

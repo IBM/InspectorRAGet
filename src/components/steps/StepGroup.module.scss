@@ -1,0 +1,132 @@
+/**
+ *
+ * Copyright 2023-present InspectorRAGet Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ **/
+
+@use '@carbon/react/scss/spacing' as *;
+
+$line-color: var(--cds-border-interactive);
+$line-width: 1px;
+
+// Horizontal gap from spine to card left edge.
+$spine-to-card: $spacing-06;
+
+// Vertical midpoint of a step card header (padding $spacing-03 top + ~1rem text).
+$header-mid: $spacing-06;
+
+// --- Spine ---
+
+.spine {
+  position: relative;
+  padding-left: $spine-to-card;
+
+  // Solid vertical line from midpoint of first card to midpoint of last.
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: $header-mid;
+    bottom: $header-mid;
+    width: $line-width;
+    background-color: $line-color;
+  }
+
+  // Dotted tail below the last card — signals the trace ends here.
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: calc(100% - $header-mid);
+    height: $spacing-07;
+    width: $line-width;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      $line-color 0,
+      $line-color 3px,
+      transparent 3px,
+      transparent 7px
+    );
+  }
+}
+
+// --- Root nodes ---
+
+.rootNode {
+  position: relative;
+  margin-bottom: $spacing-03;
+
+  // Solid horizontal tick from spine to card.
+  &::before {
+    content: '';
+    position: absolute;
+    left: calc(-1 * $spine-to-card);
+    top: calc($header-mid - $line-width / 2);
+    width: $spine-to-card;
+    height: $line-width;
+    background-color: $line-color;
+  }
+}
+
+.rootNodeLast {
+  margin-bottom: 0;
+}
+
+// --- Children ---
+
+// Indented wrapper for response cards.
+// Uses a single L-shaped border on each child via ::before rather than a
+// separate trunk + horizontal combination, which avoids the clipping problem.
+.children {
+  margin-left: $spacing-05;
+  margin-top: $spacing-02;
+}
+
+// Each child draws its own L-shaped connector:
+//   - vertical segment: from the top of the card down to header midpoint
+//   - horizontal segment: from the spine to the card's left edge
+// For non-last children the vertical segment continues full height.
+// border-bottom-left-radius gives the smooth elbow corner.
+.childNode {
+  position: relative;
+  margin-left: $spacing-05;
+  margin-bottom: $spacing-02;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: calc(-1 * $spacing-05);
+
+    // Vertical segment runs from top of card to header midpoint.
+    top: 0;
+    height: calc($header-mid + $line-width / 2);
+    width: $spacing-05;
+
+    // L-shape: left border = vertical run, bottom border = horizontal run.
+    border-left: $line-width solid $line-color;
+    border-bottom: $line-width solid $line-color;
+    border-bottom-left-radius: 3px;
+  }
+
+  // Non-last children: extend the vertical segment the full card height so the
+  // trunk continues unbroken to the next sibling.
+  &:not(.childNodeLast)::before {
+    height: 100%;
+  }
+}
+
+.childNodeLast {
+  margin-bottom: 0;
+}

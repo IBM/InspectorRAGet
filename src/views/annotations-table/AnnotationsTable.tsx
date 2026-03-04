@@ -97,11 +97,13 @@ function populateTable(
 export default function AnnotationsTable({
   annotations,
   metrics,
+  onCellMouseDown,
 }: {
   annotations: {
     [key: string]: { [key: string]: Annotation };
   };
   metrics: Metric[];
+  onCellMouseDown?: (metricName: string, annotator: string) => void;
 }) {
   const [headers, rows] = useMemo(
     () => populateTable(annotations, metrics),
@@ -137,7 +139,17 @@ export default function AnnotationsTable({
                 return (
                   <TableRow key={'row--' + index} {...rowProps}>
                     {row.cells.map((cell) => (
-                      <TableCell key={cell.id}>{cell.value}</TableCell>
+                      <TableCell
+                        key={cell.id}
+                        onMouseDown={
+                          // Annotator column is not a score — skip it
+                          onCellMouseDown && cell.info.header !== 'annotator'
+                            ? () => onCellMouseDown(cell.info.header, row.id)
+                            : undefined
+                        }
+                      >
+                        {cell.value}
+                      </TableCell>
                     ))}
                   </TableRow>
                 );

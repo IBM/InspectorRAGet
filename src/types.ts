@@ -31,8 +31,10 @@ export type {
   ToolMessage,
   AssistantMessage,
 } from '@/src/task-types/rag/types';
+export type { ToolDefinition } from '@/src/task-types/tool_calling/types';
 
 import type { RetrievedDocument } from '@/src/task-types/qa/types';
+import type { ToolDefinition } from '@/src/task-types/tool_calling/types';
 
 export interface Notification {
   title: string;
@@ -160,6 +162,52 @@ export interface ToolCallRecord {
   dependsOn?: string;
 }
 
+// --- Step ---
+
+// A single observable step in a model's execution trace.
+// Discriminated by 'type' so renderers can handle each case without casting.
+// tool_response is always paired with a tool_call via toolCallId.
+// Timestamps are optional — present when the researcher captured timing.
+export type Step =
+  | {
+      type: 'thinking';
+      id: string;
+      content: string;
+      startTimestamp?: number;
+      endTimestamp?: number;
+    }
+  | {
+      type: 'tool_call';
+      id: string;
+      toolCallId: string;
+      name: string;
+      arguments: object;
+      startTimestamp?: number;
+      endTimestamp?: number;
+    }
+  | {
+      type: 'tool_response';
+      id: string;
+      toolCallId: string;
+      content: string | object;
+      startTimestamp?: number;
+      endTimestamp?: number;
+    }
+  | {
+      type: 'retrieval';
+      id: string;
+      documents: RetrievedDocument[];
+      startTimestamp?: number;
+      endTimestamp?: number;
+    }
+  | {
+      type: 'generation';
+      id: string;
+      content: string;
+      startTimestamp?: number;
+      endTimestamp?: number;
+    };
+
 // --- Task output ---
 
 // Typed union of what a model can produce. 'text' covers RAG, generation, and
@@ -226,6 +274,9 @@ export interface Task {
   readonly contexts?: { readonly documentId: string }[];
   readonly input: any;
   readonly targets?: TaskTarget[];
+  // Available tool definitions for this task (OpenAI format).
+  // Only present for tool_calling and agentic tasks.
+  readonly tools?: ToolDefinition[];
   flagged?: boolean;
   comments?: TaskComment[];
   // TODO: task.annotations is used in RAG/QA to store per-document context quality
@@ -255,6 +306,9 @@ export interface ModelResult {
     [key: string]: { [key: string]: Annotation };
   };
   readonly contexts?: RetrievedDocument[];
+  // Per-model execution trace. Optional — views degrade gracefully when absent.
+  // When auto-constructed from a message thread, the UI shows a caveat.
+  readonly modelSteps?: Step[];
   // Evaluation-level comments (e.g. noting an acceptable-but-different tool call).
   // Distinct from task.comments which are task-level observations shared across models.
   comments?: TaskComment[];

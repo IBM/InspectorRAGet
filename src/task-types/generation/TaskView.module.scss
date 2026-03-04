@@ -19,29 +19,76 @@
 @use '@carbon/react/scss/spacing' as *;
 @use '@carbon/colors' as *;
 
+// --- Layout ---
+
+.layout {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+// --- Left / right columns ---
+
 .inputContainer {
-  width: 60%;
+  flex: 0 0 60%;
+  max-width: 60%;
   height: 100%;
   margin-left: $spacing-03;
   display: flex;
   flex-direction: column;
   row-gap: $spacing-03;
+  overflow-y: auto;
 }
 
 .separator {
   width: 1px;
+  flex-shrink: 0;
   margin: 0 $spacing-03;
   border-left: dashed 1px var(--cds-border-inverse);
 }
 
 .resultsContainer {
-  width: 40%;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 40%;
   height: 100%;
-  margin-left: auto;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
 }
+
+// --- Left column internals ---
+
+.inputSection {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.inputContent {
+  overflow-y: auto;
+  line-height: 1.4em;
+  padding-block: $spacing-03;
+}
+
+.overlapDisclaimer {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: var(--cds-text-secondary);
+  padding-block: $spacing-02;
+}
+
+.legendCopiedText {
+  color: #f1c21b;
+  mix-blend-mode: hard-light;
+}
+
+// --- Right column internals ---
 
 .tabContainer {
   display: flex;
@@ -50,49 +97,18 @@
   overflow-y: auto;
 }
 
-.header {
-  display: flex;
-  align-items: center;
+// Remove Carbon's default horizontal padding on inner tab panels so tables
+// and step cards span the full width of the column.
+.flushTabPanel {
+  padding-inline: 0;
 }
 
-.headerActions {
-  align-self: flex-end;
-  margin-left: auto;
-  display: flex;
-}
-
-.inputTextContainer {
-  height: 100%;
-  border: $gray-30 solid 1px;
-  padding: $spacing-03 $spacing-05;
-  display: flex;
-  flex-direction: column;
-  row-gap: $spacing-05;
-  overflow-y: auto;
-}
-
-.disclaimers {
-  display: flex;
-  flex-direction: column;
-  row-gap: $spacing-02;
-  margin-bottom: $spacing-03;
-}
-
-.overlapDisclaimer {
-  display: flex;
-  align-items: center;
-  font-size: 14px;
-}
-
-.legendCopiedText {
-  color: #f1c21b;
-  mix-blend-mode: hard-light;
-}
-
-.tabContentHeader {
-  display: flex;
-  column-gap: $spacing-02;
-  align-items: baseline;
+// Visual break between the Target section and the Evaluations/Steps tabs.
+// Matches the vertical column separator: dashed, same token, same weight.
+.sectionDivider {
+  border: none;
+  border-top: dashed 1px var(--cds-border-inverse);
+  margin: 0;
 }
 
 .responseContainer {
