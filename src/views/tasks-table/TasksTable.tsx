@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import { isEmpty } from 'lodash';
 import {
   DataTable,
@@ -45,42 +45,38 @@ import { SimpleBarChart } from '@carbon/charts-react';
 import { ScaleTypes } from '@carbon/charts';
 
 import { useTheme } from '@/src/theme';
-import { Metric, Model, Task, TaskEvaluation } from '@/src/types';
+import { Metric, Model, Task, ModelResult } from '@/src/types';
 import { extractMetricDisplayValue } from '@/src/utilities/metrics';
 import { truncate } from '@/src/utilities/strings';
 import { useDataStore } from '@/src/store';
 import { useNotification } from '@/src/components/notification/Notification';
-import { exportData } from '@/src/processor';
+import { exportData } from '@/src/exporter';
 
 import classes from './TasksTable.module.scss';
 
-// ===================================================================================
-//                                TYPES
-// ===================================================================================
+// --- Types ---
 type EvaluationRow = {
   id: string;
   taskId: string;
 };
 interface Props {
   metrics: Metric[];
-  evaluations: TaskEvaluation[];
+  results: ModelResult[];
   models: Model[];
   filters: { [key: string]: string[] };
   annotator?: string;
   onClick: Function;
 }
 
-// ===================================================================================
-//                               COMPUTE FUNCTIONS
-// ===================================================================================
+// --- Compute functions ---
 /**
  * Helper function to compute evaluation table headers and rows
- * @param evaluations full set of evaluations
+ * @param results full set of results
  * @param metric metric under consideration
  * @returns
  */
 function populateTable(
-  evaluations: TaskEvaluation[],
+  results: ModelResult[],
   metrics: Metric[],
   models: Model[],
   taskInputMap: { [key: string]: any },
@@ -97,12 +93,12 @@ function populateTable(
   ];
   const rows: EvaluationRow[] = [];
 
-  // Step 1: Build evaluations map combining different model evaluations
-  const evaluationsMap = new Map<string, any>();
-  evaluations.forEach((evaluation) => {
-    const entry = evaluationsMap.get(evaluation.taskId) || {};
+  // Combine results across models into a single map keyed by taskId
+  const resultsMap = new Map<string, any>();
+  results.forEach((evaluation) => {
+    const entry = resultsMap.get(evaluation.taskId) || {};
 
-    // Step 1.a: Add filter value, if exists in evaluation and not already added
+    // Only populate filter values on the first evaluation for this task
     if (isEmpty(entry) && !isEmpty(filters)) {
       for (const filter of Object.keys(filters)) {
         if (evaluation.hasOwnProperty(filter)) {
@@ -134,14 +130,10 @@ function populateTable(
       }
     });
 
-    // Step 1.b: Save updated entry into evaluations map
-    evaluationsMap.set(evaluation.taskId, entry);
-
-    // Step 1.c: Add model id to set of model ids
+    resultsMap.set(evaluation.taskId, entry);
     modelIds.add(evaluation.modelId);
   });
 
-  // Step 2: Update evaluation table header based on filters
   applicableFilters.forEach((filter) => {
     const header = filter.split('_').join(' ');
     headers.push({
@@ -150,7 +142,6 @@ function populateTable(
     });
   });
 
-  // Step 3: Update evaluation table headers based on model ids
   modelIds.forEach((modelId) => {
     headers.push({
       key: `${modelId}::value`,
@@ -159,18 +150,14 @@ function populateTable(
     });
   });
 
-  // Step 4: Populate evaluation table rows
-  evaluationsMap.forEach((record, taskId) => {
+  resultsMap.forEach((record, taskId) => {
     rows.push({ id: taskId, task: taskInputMap[taskId] || taskId, ...record });
   });
 
-  // Step 3: Populate evaluation table rows
   return [headers, rows];
 }
 
-// ===================================================================================
-//                               RENDER FUNCTIONS
-// ===================================================================================
+// --- Render functions ---
 /**
  * Build sparkline graph
  */
@@ -266,70 +253,54 @@ function sparkline(
   return null;
 }
 
-// ===================================================================================
-//                               MAIN FUNCTION
-// ===================================================================================
+// --- Main component ---
 export default function TasksTable({
   metrics,
-  evaluations,
+  results,
   models,
   filters,
   annotator,
   onClick,
 }: Props) {
-  // Step 1: Initialize state and necessary variables
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [visibleRows, setVisibleRows] = useState<EvaluationRow[]>([]);
 
-  // Step 2: Run effects
-  // Step 2.a: Fetch theme
   const { theme } = useTheme();
-
-  // Step 2.b: Fetch data from data store
   const { item, taskMap, updateTask: updateTask } = useDataStore();
-
-  // Step 2.c: Notification hook
   const { createNotification } = useNotification();
 
-  // Step 2.d: Build evaluations map
-  const evaluationsMap = useMemo(() => {
+  const resultsMap = useMemo(() => {
     return Object.fromEntries(
-      evaluations.map((evaluation) => [
+      results.map((evaluation) => [
         `${evaluation.taskId}:${evaluation.modelId}`,
         Object.fromEntries(
           metrics.map((metric) => [metric.name, evaluation[metric.name]]),
         ),
       ]),
     );
-  }, [evaluations, metrics]);
+  }, [results, metrics]);
 
-  // Step 2.e: Build tasks map
   const taskInputMap = useMemo(() => {
     return Object.fromEntries(
-      evaluations.map((evaluation) => [
-        `${evaluation.taskId}`,
-        evaluation.query,
-      ]),
+      results.map((evaluation) => [`${evaluation.taskId}`, evaluation.query]),
     );
-  }, [evaluations]);
+  }, [results]);
 
-  // Step 2.f: Populate table header and rows
   var [headers, rows]: [{ key: string; header: string }[], EvaluationRow[]] =
     useMemo(
       () =>
         populateTable(
-          evaluations,
+          results,
           metrics,
           models,
           taskInputMap,
           filters,
           annotator,
         ),
-      [evaluations, metrics, models, filters, taskInputMap, annotator],
+      [results, metrics, models, filters, taskInputMap, annotator],
     );
 
-  // Step 2.g: Identify visible rows
   useEffect(() => {
     // Set visible rows
     setVisibleRows(() => {
@@ -343,7 +314,6 @@ export default function TasksTable({
     });
   }, [rows, page, pageSize]);
 
-  // Step 3: Render
   return (
     <>
       {headers && rows && (
@@ -353,15 +323,12 @@ export default function TasksTable({
             headers={headers}
             isSortable
             sortRow={(cellA, cellB, { sortDirection, sortStates }) => {
-              // Step 1: Check if cell values are objects
               if (typeof cellA === 'object' && typeof cellB === 'object') {
-                // Step 1.a: Get first value for each cell object
                 const valueA = Object.values(cellA)[0];
                 const valueB = Object.values(cellB)[0];
 
-                // Step 1.b: Check if both values are of "string" type
                 if (typeof valueA === 'string' && typeof valueB === 'string') {
-                  // Step 1.b.i: Check if both values are purely numeric
+                  // Numeric strings should sort numerically, not lexicographically
                   if (
                     !isNaN(parseFloat(valueA)) &&
                     !isNaN(parseFloat(valueB))
@@ -377,9 +344,7 @@ export default function TasksTable({
 
                     return valueB.localeCompare(valueA);
                   }
-                }
-                // Step 1.c: Check if both values are of "number" type
-                else if (
+                } else if (
                   typeof valueA === 'number' &&
                   typeof valueB === 'number'
                 ) {
@@ -389,9 +354,7 @@ export default function TasksTable({
 
                   return valueB - valueA;
                 }
-              }
-              // Step 2: cell values are assumed to be of "string" type
-              else {
+              } else {
                 if (sortDirection === sortStates.DESC) {
                   return cellA.localeCompare(cellB);
                 }
@@ -505,177 +468,181 @@ export default function TasksTable({
                     <TableHead>
                       <TableRow>
                         <TableSelectAll {...getSelectionProps()} />
-                        {headers.map((header, index) => (
-                          <TableHeader
-                            key={'header--' + index}
-                            {...getHeaderProps({ header })}
-                          >
-                            {header.header}
-                          </TableHeader>
-                        ))}
+                        {headers.map((header, index) => {
+                          const { key: _key, ...headerProps } = getHeaderProps({
+                            header,
+                          });
+                          return (
+                            <TableHeader
+                              key={'header--' + index}
+                              {...headerProps}
+                            >
+                              {header.header}
+                            </TableHeader>
+                          );
+                        })}
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {rows.map((row, index) => (
-                        <TableRow
-                          key={'row--' + index}
-                          {...getRowProps({ row })}
-                        >
-                          <TableSelectRow
-                            {...getSelectionProps({
-                              row,
-                            })}
-                          />
-                          {row.cells.map((cell) =>
-                            cell.info.header === 'task' ? (
-                              <TableCell key={cell.id}>
-                                <div className={classes.taskCell}>
-                                  <span
-                                    className={classes.link}
-                                    onClick={() => {
-                                      onClick(row.id);
-                                    }}
-                                  >
-                                    {truncate(cell.value, 80)}
-                                  </span>
-                                  <div className={classes.taskCellDetails}>
-                                    {taskMap?.get(cell.id.split(':task')[0])
-                                      ?.comments && (
+                      {rows.map((row, index) => {
+                        const { key: _key, ...rowProps } = getRowProps({ row });
+                        const { key: _selKey, ...selectionProps } =
+                          getSelectionProps({ row });
+                        return (
+                          <TableRow key={'row--' + index} {...rowProps}>
+                            <TableSelectRow {...selectionProps} />
+                            {row.cells.map((cell) =>
+                              cell.info.header === 'task' ? (
+                                <TableCell key={cell.id}>
+                                  <div className={classes.taskCell}>
+                                    <span
+                                      className={classes.link}
+                                      onClick={() => {
+                                        onClick(row.id);
+                                      }}
+                                    >
+                                      {truncate(cell.value, 80)}
+                                    </span>
+                                    <div className={classes.taskCellDetails}>
+                                      {taskMap?.get(cell.id.split(':task')[0])
+                                        ?.comments && (
+                                        <Tooltip
+                                          align={'bottom'}
+                                          label={
+                                            'Click to view task with comments'
+                                          }
+                                        >
+                                          <Button
+                                            id="comments-btn"
+                                            className={classes.ViewCommentsBtn}
+                                            kind={'ghost'}
+                                            onClick={() => {
+                                              onClick(row.id);
+                                            }}
+                                          >
+                                            <Chat />
+                                            {
+                                              taskMap?.get(
+                                                cell.id.split(':task')[0],
+                                              )?.comments?.length
+                                            }
+                                          </Button>
+                                        </Tooltip>
+                                      )}
                                       <Tooltip
-                                        align={'bottom'}
-                                        label={
-                                          'Click to view task with comments'
-                                        }
+                                        align={'bottom-right'}
+                                        label={'Click to flag task'}
                                       >
                                         <Button
-                                          id="comments-btn"
-                                          className={classes.ViewCommentsBtn}
+                                          key={`${cell.value}__flag-btn`}
+                                          className={classes.flagTaskBtn}
                                           kind={'ghost'}
                                           onClick={() => {
-                                            onClick(row.id);
+                                            const taskId =
+                                              cell.id.split(':task')[0];
+
+                                            const task: Task | undefined =
+                                              taskMap?.get(taskId);
+
+                                            if (task) {
+                                              updateTask(taskId, {
+                                                flagged: !task?.flagged,
+                                              });
+                                            }
                                           }}
                                         >
-                                          <Chat />
-                                          {
-                                            taskMap?.get(
-                                              cell.id.split(':task')[0],
-                                            )?.comments?.length
-                                          }
+                                          {taskMap?.get(
+                                            cell.id.split(':task')[0],
+                                          )?.flagged ? (
+                                            <FlagFilled />
+                                          ) : (
+                                            <Flag />
+                                          )}
                                         </Button>
                                       </Tooltip>
-                                    )}
-                                    <Tooltip
-                                      align={'bottom-right'}
-                                      label={'Click to flag task'}
-                                    >
-                                      <Button
-                                        key={`${cell.value}__flag-btn`}
-                                        className={classes.flagTaskBtn}
-                                        kind={'ghost'}
-                                        onClick={() => {
-                                          const taskId =
-                                            cell.id.split(':task')[0];
-
-                                          // Step 0: Fetch task to update
-                                          const task: Task | undefined =
-                                            taskMap?.get(taskId);
-
-                                          // Step 1: Update, if possible
-                                          if (task) {
-                                            // Step 1.a: Update global copy
-                                            updateTask(taskId, {
-                                              flagged: !task?.flagged,
-                                            });
-                                          }
-                                        }}
-                                      >
-                                        {taskMap?.get(cell.id.split(':task')[0])
-                                          ?.flagged ? (
-                                          <FlagFilled />
-                                        ) : (
-                                          <Flag />
-                                        )}
-                                      </Button>
-                                    </Tooltip>
+                                    </div>
                                   </div>
-                                </div>
-                              </TableCell>
-                            ) : (
-                              <TableCell key={cell.id}>
-                                <div className={classes.tableCell}>
-                                  <>
-                                    {cell.value ? (
-                                      typeof cell.value === 'object' ? (
-                                        <>
-                                          {Array.isArray(cell.value)
-                                            ? !isEmpty(cell.value)
-                                              ? cell.value.join(', ')
-                                              : '-'
-                                            : metrics.map((metric) => {
-                                                return (
-                                                  <>
-                                                    <div
-                                                      className={
-                                                        classes.tableCellValue
-                                                      }
+                                </TableCell>
+                              ) : (
+                                <TableCell key={cell.id}>
+                                  <div className={classes.tableCell}>
+                                    <>
+                                      {cell.value ? (
+                                        typeof cell.value === 'object' ? (
+                                          <>
+                                            {Array.isArray(cell.value)
+                                              ? !isEmpty(cell.value)
+                                                ? cell.value.join(', ')
+                                                : '-'
+                                              : metrics.map((metric) => {
+                                                  return (
+                                                    <Fragment
                                                       key={`${cell.id}::${metric.name}`}
                                                     >
                                                       <div
                                                         className={
-                                                          classes.majorityValue
+                                                          classes.tableCellValue
                                                         }
                                                       >
-                                                        {
-                                                          cell.value[
-                                                            metric.name
-                                                          ]
-                                                        }
+                                                        <div
+                                                          className={
+                                                            classes.majorityValue
+                                                          }
+                                                        >
+                                                          {
+                                                            cell.value[
+                                                              metric.name
+                                                            ]
+                                                          }
+                                                        </div>
+                                                        {!annotator &&
+                                                        resultsMap[
+                                                          cell.id.split(
+                                                            '::value',
+                                                            1,
+                                                          )[0]
+                                                        ]
+                                                          ? sparkline(
+                                                              resultsMap[
+                                                                cell.id.split(
+                                                                  '::value',
+                                                                  1,
+                                                                )[0]
+                                                              ][metric.name],
+                                                              metric,
+                                                              cell.id,
+                                                              theme,
+                                                            )
+                                                          : null}
                                                       </div>
-                                                      {!annotator &&
-                                                      evaluationsMap[
-                                                        cell.id.split(
-                                                          '::value',
-                                                          1,
-                                                        )[0]
-                                                      ]
-                                                        ? sparkline(
-                                                            evaluationsMap[
-                                                              cell.id.split(
-                                                                '::value',
-                                                                1,
-                                                              )[0]
-                                                            ][metric.name],
-                                                            metric,
-                                                            cell.id,
-                                                            theme,
-                                                          )
-                                                        : null}
-                                                    </div>
-                                                  </>
-                                                );
-                                              })}
-                                        </>
+                                                    </Fragment>
+                                                  );
+                                                })}
+                                          </>
+                                        ) : (
+                                          <div
+                                            className={classes.majorityValue}
+                                          >
+                                            {Array.isArray(cell.value)
+                                              ? !isEmpty(cell.value)
+                                                ? cell.value.join(', ')
+                                                : '-'
+                                              : cell.value}
+                                          </div>
+                                        )
                                       ) : (
                                         <div className={classes.majorityValue}>
-                                          {Array.isArray(cell.value)
-                                            ? !isEmpty(cell.value)
-                                              ? cell.value.join(', ')
-                                              : '-'
-                                            : cell.value}
+                                          -
                                         </div>
-                                      )
-                                    ) : (
-                                      <div className={classes.majorityValue}>
-                                        -
-                                      </div>
-                                    )}
-                                  </>
-                                </div>
-                              </TableCell>
-                            ),
-                          )}
-                        </TableRow>
-                      ))}
+                                      )}
+                                    </>
+                                  </div>
+                                </TableCell>
+                              ),
+                            )}
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </TableContainer>
@@ -686,9 +653,7 @@ export default function TasksTable({
             pageSizes={[10, 25, 50]}
             totalItems={rows.length}
             onChange={(event: any) => {
-              // Step 1: Update page size
               setPageSize(event.pageSize);
-              // Step 2: Update page
               setPage(event.page);
             }}
           ></Pagination>

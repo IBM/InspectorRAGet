@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,8 +52,10 @@
 .filters {
   padding: $spacing-05;
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   column-gap: $spacing-09;
+  row-gap: $spacing-05;
 }
 
 .visible {
@@ -73,7 +75,12 @@
 }
 
 .filterSelector {
+  min-width: 200px;
   max-width: 25%;
+
+  :global(.cds--tag) {
+    margin: $spacing-01;
+  }
 }
 
 .filterSelector label {

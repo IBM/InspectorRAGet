@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,10 +33,7 @@ export default function VisualizationView() {
       {onboarding ? (
         <Onboard
           onVisualize={(data: Data) => {
-            // Step 1: Set data
             setData(data);
-
-            // Step 2: Disable on-boarding flow
             setOnboarding(false);
           }}
         />

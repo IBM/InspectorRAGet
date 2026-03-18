@@ -5,59 +5,68 @@
   "description": "An Introspection Platform for RAG Evaluation",
   "author": "kpfadnis@us.ibm.com",
   "license": "ISC",
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "scripts": {
-    "postinstall": "husky init",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint && stylelint \"**/*.{css,scss}\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src/ && stylelint \"src/**/*.{css,scss}\"",
     "format": "prettier --write .",
     "prepare": "husky"
   },
-  "husky": {
-    "hooks": {
-      "pre-commit": "yarn build"
-    }
-  },
   "devDependencies": {
-    "@next/eslint-plugin-next": "^15.2.1",
-    "@types/node": "^22.13.10",
+    "@next/eslint-plugin-next": "^16.1.6",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@tony.ganchev/eslint-plugin-header": "^3.2.4",
+    "@types/node": "^25.2.3",
+    "@vitejs/plugin-react": "^5.1.4",
     "cross-env": "^7.0.3",
-    "eslint": "^9.22.0",
-    "eslint-config-next": "^15.2.1",
+    "eslint": "^9.39.3",
+    "eslint-config-next": "^16.1.6",
     "eslint-config-prettier": "^10.1.1",
     "husky": "^9.1.7",
-    "prettier": "^3.5.3",
-    "sass": "^1.85.1",
-    "typescript": "^5.8.2",
-    "stylelint": "^16.15.0",
-    "stylelint-config-standard-scss": "^14.0.0"
+    "jsdom": "^28.1.0",
+    "lint-staged": "^16.3.1",
+    "prettier": "^3.8.1",
+    "sass": "^1.97.3",
+    "stylelint": "^17.2.0",
+    "stylelint-config-standard-scss": "^17.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   },
   "dependencies": {
-    "@carbon/colors": "^11.30.0",
-    "@carbon/themes": "^11.47.0",
-    "@carbon/icons-react": "^11.56.0",
+    "@carbon/charts": "^1.27.2",
+    "@carbon/charts-react": "^1.27.2",
+    "@carbon/colors": "^11.46.0",
+    "@carbon/icons-react": "^11.74.0",
     "@carbon/pictograms-react": "^11.73.0",
-    "@carbon/charts": "^1.23.0",
-    "@carbon/charts-react": "^1.23.0",
-    "@carbon/react": "1.75.0",
-    "d3": "^7.8.4",
+    "@carbon/react": "^1.100.0",
+    "@carbon/themes": "^11.67.0",
+    "d3": "^7.9.0",
     "date-fns": "^2.30.0",
     "dompurify": "3.2.4",
     "html-react-parser": "^5.1.1",
-    "lodash": "^4.17.21",
-    "next": "^14.2.25",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-intl": "^6.1.0",
-    "react-markdown": "^10.0.0",
+    "lodash": "^4.17.23",
+    "next": "^16.1.6",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-intl": "^6.8.0",
+    "react-markdown": "^10.1.0",
+    "react-wrap-balancer": "^1.1.1",
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.1",
     "statistics.js": "^1.0.0",
-    "uuid": "^9.0.1",
-    "react-wrap-balancer": "^1.1.1"
+    "uuid": "^9.0.1"
   },
-  "resolutions": {
-    "@carbon/styles": "1.75.0"
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json,scss,css,md}": "prettier --write"
+  },
+  "overrides": {
+    "@carbon/styles": "^1.100.0"
   }
 }

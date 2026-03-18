@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,124 +40,18 @@
   background-color: var(--cds-background);
   margin: $spacing-03 0;
   display: flex;
+  flex-direction: row;
   column-gap: $spacing-02;
+  overflow: hidden;
 }
 
-.inputContainer {
-  width: 60%;
+// Wraps the TaskView component; always rendered so it reliably fills remaining space.
+// commentsContainer sits before this in the flex row and only takes space when visible.
+.taskViewWrapper {
+  flex: 1;
+  min-width: 0;
   height: 100%;
-  margin-left: $spacing-03;
-  display: flex;
-  flex-direction: column;
-  row-gap: $spacing-03;
-}
-
-.evaluationsContainer {
-  width: 40%;
-  height: 100%;
-  margin-left: auto;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-}
-
-.tabContainer {
-  display: flex;
-  flex-direction: column;
-  row-gap: $spacing-03;
-  overflow-y: auto;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-}
-
-.headerActions {
-  align-self: flex-end;
-  margin-left: auto;
-  display: flex;
-}
-
-.questionContainer {
-  height: 15%;
-  display: flex;
-  flex-direction: column;
-  row-gap: $spacing-03;
-}
-
-.questionTextContainer {
-  padding: $spacing-05;
-  border: $gray-30 solid 1px;
-  overflow-y: auto;
-}
-
-.conversationContainer {
-  height: 40%;
-  display: flex;
-  flex-direction: column;
-  row-gap: $spacing-03;
-}
-
-.conversationUtteranceContainer {
-  height: 100%;
-  border: $gray-30 solid 1px;
-  padding: $spacing-03 $spacing-05;
-  display: flex;
-  flex-direction: column;
-  row-gap: $spacing-05;
-  overflow-y: auto;
-}
-
-.inputTextContainer {
-  height: 100%;
-  border: $gray-30 solid 1px;
-  padding: $spacing-03 $spacing-05;
-  display: flex;
-  flex-direction: column;
-  row-gap: $spacing-05;
-  overflow-y: auto;
-}
-
-.contextContainer {
-  height: 60%;
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  overflow: scroll;
-}
-
-.contextDisclaimers {
-  display: flex;
-  flex-direction: column;
-  row-gap: $spacing-02;
-  margin-bottom: $spacing-03;
-}
-
-.contextOverlapDisclaimer {
-  display: flex;
-  align-items: center;
-  font-size: 14px;
-  color: #6f6f6f;
-}
-
-.tabContentHeader {
-  display: flex;
-  column-gap: $spacing-02;
-  align-items: baseline;
-}
-
-.documentInformation {
-  margin: $spacing-05;
-  display: flex;
-  column-gap: $spacing-02;
-  font-size: 16px;
-  line-height: 20px;
-  align-items: center;
-}
-
-.responseContainer {
-  line-height: 1.4em;
+  overflow: hidden;
 }
 
 .addCommentBtn {
@@ -183,7 +77,7 @@
 
 .commentsContainer {
   height: 100%;
-  width: 20%;
+  width: clamp(180px, 20vw, 280px);
   border-right: 1px dotted var(--cds-border-inverse);
   padding: 0 $spacing-03;
   overflow-y: auto;

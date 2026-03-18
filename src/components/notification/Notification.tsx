@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,7 +42,6 @@ const NotificationComponent = ({
   <ToastNotification
     hideCloseButton={true}
     className={styles.notification}
-    closeOnEscape={false}
     title={title}
     kind={kind}
     subtitle={subtitle}
@@ -50,11 +49,15 @@ const NotificationComponent = ({
   />
 );
 
-export const NotificationProvider = ({ children }: { children: any }) => {
+export const NotificationProvider = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
   const [notification, setNotification] = useState<
     NotificationType | undefined
   >();
-  const timeoutId = useRef<NodeJS.Timeout | undefined>();
+  const timeoutId = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const createNotification = (
     notification: NotificationType,

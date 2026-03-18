@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,21 +18,19 @@
 
 'use client';
 
-import { isEmpty } from 'lodash';
 import { useMemo, useState, useEffect } from 'react';
 import { Tag, Tooltip } from '@carbon/react';
 import { AddComment } from '@carbon/icons-react';
 
-import { Model, TaskCommentProvenance, TaskEvaluation } from '@/src/types';
+import { Model, TaskCommentProvenance, CommentFinding } from '@/src/types';
 import { useDataStore } from '@/src/store';
 import { extractMouseSelection } from '@/src/utilities/selectors';
 import { useNotification } from '@/src/components/notification/Notification';
 import TaskTile from '@/src/components/task-tile/TaskTile';
 import AddCommentModal from '@/src/components/comments/AddCommentModal';
 import ViewComments from '@/src/components/comments/CommentsViewer';
-import RAGTask from '@/src/views/task/RAGTask';
-import TextGenerationTask from '@/src/views/task/TextGenerationTask';
-import ChatTask from '@/src/views/task/ChatTask';
+import SelectionCommentButton from '@/src/components/comments/SelectionCommentButton';
+import { taskTypeRegistry } from '@/src/task-types';
 
 import classes from './Task.module.scss';
 
@@ -47,11 +45,20 @@ interface Props {
 // ===================================================================================
 //                               HELPER FUNCTIONS
 // ===================================================================================
+
+// A component string contains '::' when the selection comes from a model-specific
+// area (e.g. "model123::evaluation::prediction"). Task-level areas use plain names.
+function isModelScoped(component: string): boolean {
+  return component.includes('::');
+}
+
+function modelIdFromComponent(component: string): string {
+  return component.split('::')[0];
+}
+
 /**
- * Update existing provenance
- * @param component reference location
- * @param setCommentProvenance function to update state variable
- * @param createNotification function to notify user of any issues with selection
+ * Reads the current window selection and, if non-empty, updates provenance state.
+ * Notifies the user if the selection spans incompatible DOM nodes.
  */
 function updateCommentProvenance(
   component: string,
@@ -68,14 +75,11 @@ function updateCommentProvenance(
       });
     }
   } catch (err) {
-    // Notify user
     createNotification({
       kind: 'error',
       title: 'Invalid selection',
       subtitle: 'cannot select text from different part of the page.',
     });
-
-    // Reset selection
     setCommentProvenance(undefined);
   }
 }
@@ -84,7 +88,6 @@ function updateCommentProvenance(
 //                               MAIN FUNCTION
 // ===================================================================================
 export default function Task({ taskId, onClose }: Props) {
-  // Step 1: Initialize state and necessary variables
   const [addCommentModalOpen, setAddCommentModalOpen] =
     useState<boolean>(false);
   const [taskCopierModalOpen, setTaskCopierModalOpen] =
@@ -92,20 +95,18 @@ export default function Task({ taskId, onClose }: Props) {
   const [commentProvenance, setCommentProvenance] = useState<
     TaskCommentProvenance | undefined
   >(undefined);
+  // Viewport coords from the mouseup event — used to position the floating button.
+  const [selectionCoords, setSelectionCoords] = useState<
+    { x: number; y: number } | undefined
+  >(undefined);
 
-  // Step 2: Run effects
-  // Step 2.a: Notification hook
   const { createNotification } = useNotification();
 
-  // Step 2.b: Handle task close event
+  // Close task view on Escape key press
   useEffect(() => {
     const handleEsc = (event) => {
-      // If "Escape" key is pressed
       if (event.key === 'Escape') {
-        // Step 1: Close task view
         onClose();
-
-        // Step 2: Stop event propogation
         event.preventDefault();
       }
     };
@@ -114,15 +115,19 @@ export default function Task({ taskId, onClose }: Props) {
     return () => {
       window.removeEventListener('keydown', handleEsc);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally register once; onClose is stable for the lifetime of the overlay
   }, []);
 
-  // Step 2.c: Fetch data from data store
-  const { item: data, taskMap, updateTask } = useDataStore();
+  const {
+    item: data,
+    taskMap,
+    updateTask,
+    resultsMap,
+    updateResult,
+  } = useDataStore();
 
-  // Step 2.d: Configure model's map and metrics
   const [models, metrics] = useMemo(() => {
     if (data) {
-      // Step 2.d.i: Make model_id -> model_name map
       const modelsMap = new Map<string, Model>(
         data.models.map((model) => [model.modelId, model]),
       );
@@ -130,76 +135,113 @@ export default function Task({ taskId, onClose }: Props) {
       return [modelsMap, data.metrics];
     }
 
-    // Default return
     return [undefined, undefined];
-  }, [data?.models, data?.metrics]);
+  }, [data]);
 
-  // Step 2.e: Fetch task
   const task = useMemo(() => {
     if (taskMap && taskId) {
       return taskMap.get(taskId);
     }
   }, [taskId, taskMap]);
 
-  // Step 2.f: Initialize comment viewer status
   const [showComments, setShowComments] = useState<boolean>(
     (task?.comments?.length && task.comments.length > 0) || false,
   );
 
-  // Step 2.g: Fetch evaluations for the current task
-  const evaluations = useMemo(() => {
-    let taskEvaluations: TaskEvaluation[] | undefined = undefined;
-    if (data) {
-      taskEvaluations = data.evaluations.filter(
-        (evaluation) => evaluation.taskId === taskId,
-      );
-    }
+  // Merge live resultsMap entries so model-level comment updates are reactive.
+  const results = useMemo(() => {
+    if (!data || !resultsMap) return undefined;
+    return data.results
+      .filter((r) => r.taskId === taskId)
+      .map((r) => resultsMap.get(`${r.taskId}::${r.modelId}`) ?? r);
+  }, [taskId, data, resultsMap]);
 
-    return taskEvaluations;
-  }, [taskId, task?.contexts, data?.documents, data?.evaluations]);
+  // Show the panel toggle only when there's something to show.
+  const hasAnyComments = useMemo(
+    () =>
+      (task?.comments?.length ?? 0) > 0 ||
+      (results?.some((r) => (r.comments?.length ?? 0) > 0) ?? false),
+    [task, results],
+  );
 
-  // Step 3: Render
+  // Look up the task-type-specific view component from the registry.
+  // Falls back to null for unknown or future task types not yet in registry.
+  const TaskView = task?.taskType
+    ? taskTypeRegistry[task.taskType]?.TaskView
+    : null;
+
+  // Build the resultComments prop for CommentsViewer once per render.
+  const resultComments = useMemo(() => {
+    if (!results || !models) return [];
+    return results
+      .filter((r) => (r.comments?.length ?? 0) > 0)
+      .map((r) => ({
+        modelId: r.modelId,
+        modelName: models.get(r.modelId)?.name ?? r.modelId,
+        comments: r.comments!,
+      }));
+  }, [results, models]);
+
   return (
-    <div className={classes.page}>
+    // Dismiss the floating button on any mousedown outside it.
+    // The button itself calls stopPropagation so clicks on it don't land here.
+    <div
+      className={classes.page}
+      onMouseDown={(e) => {
+        const target = e.target as HTMLElement;
+        if (!target.closest('[data-selection-comment-btn]')) {
+          setSelectionCoords(undefined);
+        }
+      }}
+    >
       <AddCommentModal
         open={addCommentModalOpen}
         selectedText={commentProvenance ? commentProvenance.text : undefined}
-        onSubmit={(comment: string, author: string) => {
-          // Step 1: Create comment to add
+        onSubmit={(
+          comment: string,
+          author: string,
+          finding?: CommentFinding,
+        ) => {
           const commentToAdd = {
-            comment: comment,
-            author: author,
+            comment,
+            author,
             created: Date.now(),
             updated: Date.now(),
             provenance: commentProvenance,
+            finding,
           };
 
-          // Step 2: Add comment to task
-          updateTask(taskId, {
-            comments: task?.comments
-              ? [...task?.comments, commentToAdd]
-              : [commentToAdd],
-          });
+          if (commentProvenance && isModelScoped(commentProvenance.component)) {
+            // Route model-scoped comments (e.g. prediction area) to ModelResult.
+            const modelId = modelIdFromComponent(commentProvenance.component);
+            const result = results?.find((r) => r.modelId === modelId);
+            updateResult(taskId, modelId, {
+              comments: result?.comments
+                ? [...result.comments, commentToAdd]
+                : [commentToAdd],
+            });
+          } else {
+            updateTask(taskId, {
+              comments: task?.comments
+                ? [...task.comments, commentToAdd]
+                : [commentToAdd],
+            });
+          }
 
-          // Step 3: Clear provenance
           setCommentProvenance(undefined);
-
-          // Step 4: Close modal
+          setSelectionCoords(undefined);
           setAddCommentModalOpen(false);
-
-          // Step 5: Open comments viewer
           setShowComments(true);
         }}
         onClose={() => {
-          // Clear provenance
           setCommentProvenance(undefined);
-
-          // Close modal
+          setSelectionCoords(undefined);
           setAddCommentModalOpen(false);
         }}
         provenance={commentProvenance}
         models={models}
-      ></AddCommentModal>
+        task={task}
+      />
       <div className={classes.pageHint}>
         <Tag
           type={'outline'}
@@ -210,14 +252,13 @@ export default function Task({ taskId, onClose }: Props) {
           Press 'Escape' to close
         </Tag>
       </div>
-      {task && evaluations && (
+      {task && results && (
         <div>
           <TaskTile
             task={task}
-            evaluations={evaluations}
+            results={results}
             expanded={false}
             onClickFlagIcon={() => {
-              // Step 1.a: Update global copy
               updateTask(task.taskId, {
                 flagged: !task?.flagged,
               });
@@ -228,70 +269,50 @@ export default function Task({ taskId, onClose }: Props) {
             onClickCopyToClipboardIcon={() => {
               setTaskCopierModalOpen(true);
             }}
-          ></TaskTile>
+          />
         </div>
       )}
-      {task && models && evaluations && (
+      {task && models && results && (
         <div className={classes.taskContainer}>
-          {task.comments && !isEmpty(task.comments) && showComments && (
+          {hasAnyComments && showComments && (
             <div className={classes.commentsContainer}>
               <ViewComments
-                comments={task.comments}
-                onUpdate={(updatedComments) => {
-                  updateTask(taskId, {
-                    comments: updatedComments,
-                  });
+                taskComments={task.comments}
+                resultComments={resultComments}
+                onUpdateTaskComments={(updated) => {
+                  updateTask(taskId, { comments: updated });
+                }}
+                onUpdateResultComments={(modelId, updated) => {
+                  updateResult(taskId, modelId, { comments: updated });
                 }}
                 models={models}
-              ></ViewComments>
+              />
             </div>
           )}
-          {task.taskType === 'rag' ? (
-            <RAGTask
-              task={task}
-              models={models}
-              metrics={metrics}
-              taskCopierModalOpen={taskCopierModalOpen}
-              setTaskCopierModalOpen={setTaskCopierModalOpen}
-              updateCommentProvenance={(provenance: string) => {
-                updateCommentProvenance(
-                  provenance,
-                  setCommentProvenance,
-                  createNotification,
-                );
-              }}
-            />
-          ) : task.taskType === 'text_generation' ? (
-            <TextGenerationTask
-              task={task}
-              models={models}
-              metrics={metrics}
-              taskCopierModalOpen={taskCopierModalOpen}
-              setTaskCopierModalOpen={setTaskCopierModalOpen}
-              updateCommentProvenance={(provenance: string) => {
-                updateCommentProvenance(
-                  provenance,
-                  setCommentProvenance,
-                  createNotification,
-                );
-              }}
-            />
-          ) : task.taskType === 'chat' ? (
-            <ChatTask
-              task={task}
-              models={models}
-              metrics={metrics}
-              taskCopierModalOpen={taskCopierModalOpen}
-              setTaskCopierModalOpen={setTaskCopierModalOpen}
-              updateCommentProvenance={(provenance: string) => {
-                updateCommentProvenance(
-                  provenance,
-                  setCommentProvenance,
-                  createNotification,
-                );
-              }}
-            />
-          ) : null}
+          {/* Capture mouseup coords so the floating button can be positioned */}
+          <div
+            className={classes.taskViewWrapper}
+            onMouseUp={(e) =>
+              setSelectionCoords({ x: e.clientX, y: e.clientY })
+            }
+          >
+            {TaskView ? (
+              <TaskView
+                task={task}
+                models={models}
+                metrics={metrics}
+                taskCopierModalOpen={taskCopierModalOpen}
+                setTaskCopierModalOpen={setTaskCopierModalOpen}
+                updateCommentProvenance={(provenance: string) => {
+                  updateCommentProvenance(
+                    provenance,
+                    setCommentProvenance,
+                    createNotification,
+                  );
+                }}
+              />
+            ) : null}
+          </div>
           <div
             key={'add-comment-btn'}
             tabIndex={0}
@@ -306,8 +327,19 @@ export default function Task({ taskId, onClose }: Props) {
             }}
           >
             <Tooltip align={'top-right'} label={'Click to add comment'}>
-              <AddComment size={20}></AddComment>
+              <AddComment size={20} />
             </Tooltip>
+          </div>
+          {/* Floating contextual button — appears near cursor after text selection */}
+          <div data-selection-comment-btn>
+            <SelectionCommentButton
+              provenance={commentProvenance}
+              coords={selectionCoords}
+              onOpen={() => {
+                setSelectionCoords(undefined);
+                setAddCommentModalOpen(true);
+              }}
+            />
           </div>
         </div>
       )}

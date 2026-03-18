@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,28 @@
  * limitations under the License.
  *
  **/
+
+// Task-type-specific types live in their respective task-types/ slices.
+// Re-exported here so existing consumers don't need to update import paths yet.
+export type {
+  RetrievedDocument,
+  RetrievedDocumentAnnotation,
+} from '@/src/task-types/qa/types';
+export type {
+  Message,
+  MessageRetry,
+  SystemMessage,
+  DeveloperMessage,
+  UserMessage,
+  ToolMessageDocument,
+  ToolMessage,
+  AssistantMessage,
+} from '@/src/task-types/rag/types';
+export type { ToolDefinition } from '@/src/task-types/tool_calling/types';
+
+import type { RetrievedDocument } from '@/src/task-types/qa/types';
+import type { Message } from '@/src/task-types/rag/types';
+import type { ToolDefinition } from '@/src/task-types/tool_calling/types';
 
 export interface Notification {
   title: string;
@@ -62,9 +84,8 @@ export interface HomePageAttributes {
   cards: ComponentHomeCard[];
 }
 
-// ===================================================================================
-//                                  MODEL
-// ===================================================================================
+// --- Model ---
+
 export interface Model {
   modelId: string;
   name: string;
@@ -76,9 +97,8 @@ export interface Model {
   trainingDetails?: any;
 }
 
-// ===================================================================================
-//                                  METRIC
-// ===================================================================================
+// --- Metric ---
+
 export interface MetricValue {
   value: string | number;
   numericValue?: number;
@@ -131,93 +151,126 @@ export interface Aggregator {
   readonly apply: Function;
 }
 
-// ===================================================================================
-//                                RAG TASK REQUIREMENTS
-// ===================================================================================
-export interface RetrievedDocumentAnnotation {
-  text: string;
-  authors: string[];
-  color?: string;
-}
+// --- Tool call record ---
 
-export interface RetrievedDocument {
-  documentId: string;
-  text: string;
-  formattedText?: string;
-  url?: string;
-  title?: string;
-  score?: number;
-  query?: {};
-  annotations?: RetrievedDocumentAnnotation[];
-}
-
-// ===================================================================================
-//                                CHAT TASK REQUIREMENTS
-// ===================================================================================
-interface FunctionTool {
+// Represents a single tool call made by a model. Used in Message.tool_calls
+// (what the model actually called) and TaskTarget (ground-truth expected calls).
+// dependsOn references another ToolCallRecord.id for nested/compositional calls
+// (e.g. f(g(x)) where the outer call depends on the inner result).
+export interface ToolCallRecord {
+  id: string;
   name: string;
-  arguments: object | any[];
+  arguments: object;
+  dependsOn?: string;
 }
 
-export interface ToolCall {
-  id: string;
-  type: 'function';
-  function: FunctionTool;
-  parents?: string[];
-  children?: string[];
+// --- Step ---
+
+// A single observable step in a model's execution trace.
+// Discriminated by 'type' so renderers can handle each case without casting.
+// tool_response is always paired with a tool_call via toolCallId.
+// Timestamps are optional — present when the researcher captured timing.
+export type Step =
+  | {
+      type: 'thinking';
+      id: string;
+      content: string;
+      startTimestamp?: number;
+      endTimestamp?: number;
+    }
+  | {
+      type: 'tool_call';
+      id: string;
+      toolCallId: string;
+      name: string;
+      arguments: object;
+      startTimestamp?: number;
+      endTimestamp?: number;
+    }
+  | {
+      type: 'tool_response';
+      id: string;
+      toolCallId: string;
+      content: string | object;
+      startTimestamp?: number;
+      endTimestamp?: number;
+    }
+  | {
+      type: 'retrieval';
+      id: string;
+      documents: RetrievedDocument[];
+      startTimestamp?: number;
+      endTimestamp?: number;
+    }
+  | {
+      type: 'generation';
+      id: string;
+      content: string;
+      startTimestamp?: number;
+      endTimestamp?: number;
+    };
+
+// --- Output helper ---
+
+// Returns the text content of a model output as a trimmed string.
+// For Message[] output (current schema), reads the content of the first message.
+// For plain string output (legacy, pre-migration), trims and returns as-is.
+// The cast-to-any guard handles v2 files authored before the Message[] migration
+// that still carry {type:'text',value} — the migrator skips them because their
+// schema_version is already 2, so they arrive here with the old shape at runtime.
+// Call sites that render HTML should additionally pass the result through DOMPurify.sanitize().
+export function outputAsText(output: Message[] | string): string {
+  if (typeof output === 'string') return output.trim();
+  // Runtime guard for old v2 {type:'text',value} shape
+  const first = output[0] as any;
+  if (first?.type === 'text' && typeof first.value === 'string')
+    return first.value.trim();
+  const content = first?.content;
+  if (typeof content === 'string') return content.trim();
+  return '';
 }
 
-export interface MessageStep {
-  id: string;
-  input: any;
-  output: any;
-  parents?: string[];
-  children?: string[];
-}
+// --- Task target ---
 
-export interface Message {
-  role: 'system' | 'developer' | 'user' | 'tool' | 'assistant';
-  utterance_id?: string;
-  content?: any;
-  name?: string;
-  timestamp?: number;
-}
+// Discriminated union of expected outputs. 'text' covers most task types.
+// 'tool_calls' is the ground-truth for tool-calling evaluation.
+// 'state' and 'image' are reserved for future agentic and multimodal support.
+//
+// For 'tool_calls', the two levels of variance are:
+//   - Which function(s) to call: represented as separate TaskTarget entries in
+//     the outer targets[] array. Each entry is a complete, self-contained correct
+//     answer (AND semantics: all calls in `calls` are required).
+//   - How to call a function (argument variance only, same function name): captured
+//     in `alternatives`, keyed by ToolCallRecord.id. Each entry is a list of
+//     ToolCallRecords with the same function name but different acceptable argument
+//     values. `alternatives` does NOT represent different function choices — use a
+//     separate TaskTarget for that.
+export type TaskTarget =
+  | { type: 'text'; value: string }
+  | {
+      type: 'tool_calls';
+      calls: ToolCallRecord[];
+      alternatives?: Record<string, ToolCallRecord[]>;
+    }
+  | { type: 'state'; description: string } // agentic, future
+  | { type: 'image'; url: string }; // multimodal, future
 
-interface SystemMessage extends Message {
-  role: 'system';
-}
+// --- Comment finding ---
 
-interface DeveloperMessage extends Message {
-  role: 'developer';
-}
+// Optional structured annotation on a TaskComment that makes the comment
+// machine-readable and searchable. One finding per comment.
+// 'tool_call' — points to the correct function name/args (tool calling tasks).
+// 'query'     — records what the correct retrieval query should have been (RAG).
+// 'output'    — records a corrected or reference output (generation tasks).
+// 'note'      — free-form structured note for agentic or other task types.
+export type CommentFinding =
+  | { type: 'tool_call'; functionName: string; arguments?: object }
+  | { type: 'query'; query: string }
+  | { type: 'output'; output: string; format?: string }
+  | { type: 'note'; text: string };
 
-interface UserMessage extends Message {
-  role: 'user';
-}
+// --- Task ---
 
-export interface ToolMessageDocument {
-  text: string;
-  url?: string;
-  title?: string;
-  score?: number;
-}
-export interface ToolMessage extends Message {
-  role: 'tool';
-  tool_call_id: string;
-  type?: 'text' | 'documents' | 'json';
-  content: string | object | ToolMessageDocument[];
-}
-
-export interface AssistantMessage extends Message {
-  role: 'assistant';
-  refusal?: string;
-  tool_calls?: ToolCall[];
-  steps?: MessageStep[];
-}
-
-// ===================================================================================
-//                                        TASK
-// ===================================================================================
 export interface TaskCommentProvenance {
   component: string;
   text?: string;
@@ -229,65 +282,68 @@ export interface TaskComment {
   created: number;
   updated: number;
   provenance?: TaskCommentProvenance;
+  // Structured finding attached to this comment. Optional — plain-text comments
+  // remain valid. When present, enables structured search and export.
+  finding?: CommentFinding;
 }
 
 export interface Task {
   readonly taskId: string;
-  readonly taskType: 'rag' | 'text_generation' | 'json_generation' | 'chat';
+  readonly taskType: 'qa' | 'generation' | 'rag' | 'tool_calling' | 'agentic';
   readonly contexts?: { readonly documentId: string }[];
-  readonly input:
-    | { text: string; speaker: string }[]
-    | string
-    | (
-        | SystemMessage
-        | DeveloperMessage
-        | UserMessage
-        | ToolMessage
-        | AssistantMessage
-      )[];
-  readonly targets?: {
-    readonly text?: string;
-  }[];
+  readonly input: any;
+  readonly targets?: TaskTarget[];
+  // Available tool definitions for this task (OpenAI format).
+  // Only present for tool_calling and agentic tasks.
+  readonly tools?: ToolDefinition[];
   flagged?: boolean;
   comments?: TaskComment[];
+  // TODO: task.annotations is used in RAG/QA to store per-document context quality
+  // scores (e.g. context_relevance). The name 'annotations' is ambiguous — revisit
+  // and consider renaming to something like 'contextScores' or 'documentScores'.
   readonly annotations?: {
     [key: string]: { [key: string]: any };
   };
   [key: string]: any;
 }
 
-// ===================================================================================
-//                                  TASK EVALUATIONS
-// ===================================================================================
+// --- Model result (previously TaskEvaluation) ---
+
 export interface Annotation {
   readonly value: string | number;
   readonly timestamp?: number;
   readonly duration?: number;
 }
 
-export interface TaskEvaluation {
+export interface ModelResult {
   readonly taskId: string;
   readonly modelId: string;
-  readonly modelResponse: string;
-  readonly annotations: {
+  // Model output as a Message array. For all current task types this is a
+  // single-element array; multiple messages are reserved for the agentic task type.
+  // Steps for the output live on output[0].steps rather than as a top-level field.
+  readonly output: Message[];
+  // Metric scores keyed by metric name, then by evaluator/annotator id.
+  readonly scores: {
     [key: string]: { [key: string]: Annotation };
   };
   readonly contexts?: RetrievedDocument[];
-  readonly steps?: MessageStep[];
+  // Evaluation-level comments (e.g. noting an acceptable-but-different tool call).
+  // Distinct from task.comments which are task-level observations shared across models.
+  comments?: TaskComment[];
   [key: string]: any;
 }
 
-// ===================================================================================
-//                                  INPUT FILE
-// ===================================================================================
+// --- Input file ---
+
 export interface RawData {
+  readonly schema_version?: number;
   readonly name?: string;
   readonly models: Model[];
   readonly metrics: Metric[];
   readonly filters?: string[];
   readonly documents?: RetrievedDocument[];
   readonly tasks: Task[];
-  readonly evaluations: TaskEvaluation[];
+  readonly results: ModelResult[];
 }
 
 export interface DisqualificationReason {
@@ -298,13 +354,12 @@ export interface DisqualificationReason {
 export interface DisqualifiedTasks {
   [Key: string]: {
     reasons: DisqualificationReason[];
-    evaluations: TaskEvaluation[];
+    results: ModelResult[];
   };
 }
 
-// ===================================================================================
-//                                  DATA TILE
-// ===================================================================================
+// --- Data tile ---
+
 export interface TileData {
   readonly name: string;
   readonly exampleId: string;
@@ -316,21 +371,22 @@ export interface TileData {
   readonly endTimestamp?: number;
 }
 
-// ===================================================================================
-//                                  PROCESSED DATA
-// ===================================================================================
+// --- Processed data ---
+
 export interface Data extends TileData {
   readonly documents?: RetrievedDocument[];
   readonly filters?: string[];
   tasks: Task[];
-  readonly evaluations: TaskEvaluation[];
+  readonly results: ModelResult[];
+  // True when the source file was silently upgraded to the current schema on load.
+  // exportData uses this to show a one-time toast informing the researcher.
+  readonly migrated?: boolean;
 }
 
-// ===================================================================================
-//                          FILTERATION WORKER
-// ===================================================================================
+// --- Filtration worker ---
+
 export interface FilterationRequest {
-  evaluationsPerMetric: { [key: string]: TaskEvaluation[] };
+  resultsPerMetric: { [key: string]: ModelResult[] };
   filters: { [key: string]: string[] };
   models: Model[];
   expression?: object;
@@ -346,5 +402,5 @@ export interface FilterationResponse {
     modelName: string;
     [key: string]: string | number;
   }[];
-  evaluations: TaskEvaluation[];
+  results: ModelResult[];
 }

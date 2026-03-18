@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,8 +24,11 @@
   row-gap: $spacing-02;
 }
 
-.commentProvenanceTag {
-  max-width: 8rem;
+.provenanceTags {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: $spacing-02;
 }
 
 .commentBox {
@@ -41,4 +44,15 @@
   font-weight: 400;
   line-height: 1rem;
   letter-spacing: 0.32px;
+}
+
+.findingSection {
+  margin-top: $spacing-03;
+
+  summary {
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 600;
+    user-select: none;
+  }
 }

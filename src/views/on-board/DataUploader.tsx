@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import { Button, FileUploader, CodeSnippet } from '@carbon/react';
 import { ArrowLeft, ArrowRight } from '@carbon/icons-react';
 
 import { RawData } from '@/src/types';
+import { migrateData } from '@/src/migrator';
 import { camelCaseKeys } from '@/src/utilities/objects';
 import { validateInputData } from '@/src/validators';
 import { useNotification } from '@/src/components/notification/Notification';
@@ -36,6 +37,7 @@ interface Props {
 
 export default function DataUploaderView({ onNext, onPrev }: Props) {
   const [data, setData] = useState<RawData | undefined>(undefined);
+  const [migrated, setMigrated] = useState<boolean>(false);
 
   const { createNotification } = useNotification();
 
@@ -54,7 +56,6 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
         iconDescription="Delete file"
         name=""
         onChange={async (event) => {
-          // Step 1: Define a filereader and configure parsing
           const fileReader = new FileReader();
           fileReader.onload = (e) => {
             if (
@@ -62,13 +63,12 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
               e.target.result &&
               typeof e.target.result === 'string'
             ) {
-              // Step 1.a: Parse JSON and convert certain keys to camel case
               try {
-                const fileData = camelCaseKeys(JSON.parse(e.target.result));
-                // Step 1.b: Validate input data
+                const { data: migratedRaw, migrated: wasMigrated } =
+                  migrateData(JSON.parse(e.target.result));
+                const fileData = camelCaseKeys(migratedRaw);
                 const status = validateInputData(fileData);
 
-                // Step 1.c: Store data, if valid
                 if (status.valid) {
                   createNotification(
                     {
@@ -80,8 +80,8 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
                   );
 
                   setData(fileData);
+                  setMigrated(wasMigrated);
                 } else {
-                  // Step 1.c: Generate notifications
                   status.reasons.forEach((reason) => {
                     createNotification({
                       kind: 'error',
@@ -90,7 +90,6 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
                     });
                   }, 10000);
 
-                  // Step 1.d: Remove previously uploaded data
                   setData(undefined);
                 }
               } catch (error) {
@@ -110,7 +109,6 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
             return undefined;
           };
 
-          // Step 2: Read uploaded file
           fileReader.readAsText(event.target.files[0]);
         }}
       />
@@ -122,6 +120,7 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
           feedback="Copied to clipboard"
         >
           {`{
+              "schema_version": 2,
               "name": "Example",
               "models": [
                   {
@@ -195,7 +194,7 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
               "tasks": [
                 {
                   "task_id": "task_1",
-                  "task_type": "rag",
+                  "task_type": "qa",
                   "category": "grounded",
                   "ncf_classes": ["answer"]
                   "contexts": [
@@ -204,13 +203,11 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
                     }
                   ],
                   "input": [{"speaker": "user", "text": "What it the document number?"}],
-                  "targets": [{
-                    "text": "The document number is 1."
-                  }]
+                  "targets": [{"type": "text", "value": "The document number is 1."}]
                 },
                 {
                   "task_id": "task_2",
-                  "task_type": "rag",
+                  "task_type": "qa",
                   "category": "random",
                   "ncf_classes": ["chit-chat"]
                   "contexts": [
@@ -219,17 +216,15 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
                     }
                   ],
                   "input": [{"speaker": "user", "text": "Hello"}],
-                  "targets": [{
-                    "text": "How can I help you?"
-                  }]
+                  "targets": [{"type": "text", "value": "How can I help you?"}]
                 }
               ],
-              "evaluations": [
+              "results": [
                 {
                   "task_id": "task_1",
                   "model_id": "model_a",
-                  "model_response": "Document number is 1.",
-                  "annotations": {
+                  "output": {"type": "text", "value": "Document number is 1."},
+                  "scores": {
                     "faithfulness": {
                       "annotator_a": {
                         "timestamp": 1694615234,
@@ -252,7 +247,7 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
                         "value": 82.5,
                         "duration": 0
                       }
-                    }
+                    },
                     "comments": {
                       "annotator_b": {
                         "timestamp": 1694615234,
@@ -265,8 +260,8 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
                 {
                   "task_id": "task_1",
                   "model_id": "model_b",
-                  "model_response": "This is document number 2.",
-                  "annotations": {
+                  "output": {"type": "text", "value": "This is document number 2."},
+                  "scores": {
                     "faithfulness": {
                       "annotator_a": {
                         "timestamp": 1694615234,
@@ -312,7 +307,7 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
           renderIcon={ArrowRight}
           iconDescription="Verify data"
           onClick={() => {
-            onNext(data);
+            onNext(data, migrated);
           }}
         >
           Verify data

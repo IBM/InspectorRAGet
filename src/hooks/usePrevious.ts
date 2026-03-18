@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,11 +26,12 @@ import { useEffect, useRef } from 'react';
  * @param value Value to yield on next render
  */
 export default function usePrevious<T>(value?: T): T | undefined {
-  const prev = useRef<T>();
+  const prev = useRef<T>(undefined);
 
   useEffect(() => {
     prev.current = value;
   });
 
+  // eslint-disable-next-line react-hooks/refs -- reading a ref during render is the correct pattern for usePrevious
   return prev.current;
 }

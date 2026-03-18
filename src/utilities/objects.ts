@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ export function camelCaseKeys(
   keys: string[] = [
     'task_id',
     'model_id',
-    'model_response',
     'display_value',
     'numeric_value',
     'min_value',
@@ -34,6 +33,7 @@ export function camelCaseKeys(
     'end_timestamp',
     'document_id',
     'display_name',
+    'depends_on',
   ],
 ) {
   if (isArray(obj)) {
@@ -57,7 +57,6 @@ export function snakeCaseKeys(
   keys: string[] = [
     'taskId',
     'modelId',
-    'modelResponse',
     'displayValue',
     'numericValue',
     'minValue',
@@ -65,6 +64,7 @@ export function snakeCaseKeys(
     'taskType',
     'documentId',
     'displayName',
+    'dependsOn',
   ],
 ) {
   if (isArray(obj)) {
@@ -87,11 +87,11 @@ function areArraysIntersecting(
   a: string | string[],
   b: string | string[],
 ): boolean {
-  const arrayA: any[] = Array.isArray(a) ? a : [a];
-  const arrayB: any[] = Array.isArray(b) ? b : [b];
-
-  for (var i = 0; i < arrayA.length; i++) {
-    if (arrayB.includes(arrayA[i])) {
+  const arrayA = Array.isArray(a) ? a : [a];
+  // Convert to Set for O(1) per-element lookup instead of O(m) Array.includes
+  const setB = new Set(Array.isArray(b) ? b : [b]);
+  for (const item of arrayA) {
+    if (setB.has(item)) {
       return true;
     }
   }
@@ -126,46 +126,3 @@ export function areObjectsIntersecting(
   }
   return Object.values(intersection).reduce((acc, ele) => acc && ele);
 }
-
-// ===================================================================================
-//                               LEGACY FUNCTIONS
-// ===================================================================================
-// function areObjectsIntersecting(
-//   a: { [key: string]: string | string[] },
-//   b: { [key: string]: string | string[] },
-// ): boolean {
-//   var intersection: { [key: string]: boolean } = {};
-//   for (const [keyA, valuesA] of Object.entries(a)) {
-//     if (valuesA === 'all') {
-//       intersection[keyA] = true;
-//     } else {
-//       var isBempty: boolean =
-//         !b || !Object.keys(b).includes(keyA) || isEmpty(b[keyA]);
-//       if (valuesA.includes(missingValue) && isBempty) {
-//         intersection[keyA] = true;
-//       } else {
-//         intersection[keyA] = isBempty
-//           ? false
-//           : areArraysIntersecting(valuesA, b[keyA]);
-//       }
-//     }
-//   }
-//   return Object.values(intersection).reduce((acc, ele) => acc && ele);
-// }
-
-// function areArraysIntersecting(
-//   a: string | string[],
-//   b: string | string[],
-// ): boolean {
-//   const arrayA: any[] = Array.isArray(a) ? a : [a];
-//   const arrayB: any[] = Array.isArray(b) ? b : [b];
-
-//   for (var i = 0; i < arrayA.length; i++) {
-//     if (arrayB.includes(arrayA[i])) {
-//       return true;
-//     }
-//   }
-//   return false;
-// }
-
-// ===================================================================================

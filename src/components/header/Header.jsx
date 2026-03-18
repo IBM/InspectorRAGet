@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ import {
 import { useTheme } from '@/src/theme';
 import { useDataStore } from '@/src/store';
 import { useNotification } from '@/src/components/notification/Notification';
-import { exportData } from '@/src/processor';
+import { exportData } from '@/src/exporter';
 
 import classes from './Header.module.scss';
 

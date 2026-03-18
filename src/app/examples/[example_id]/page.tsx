@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,13 +20,12 @@ import { Data } from '@/src/types';
 import { load } from '@/src/dataloader';
 import Example from '@/src/views/example/Example';
 
-export default async function Page({
-  params,
-}: {
-  params: { example_id: string };
+export default async function Page(props: {
+  params: Promise<{ example_id: string }>;
 }) {
+  const { example_id } = await props.params;
   const example: Data | undefined = (await load()).find(
-    (entry) => entry.exampleId === params.example_id,
+    (entry) => entry.exampleId === example_id,
   );
 
   return <>{example ? <Example data={example} /> : null}</>;

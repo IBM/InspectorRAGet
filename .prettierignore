@@ -1,9 +1,6 @@
 node_modules/
 .vscode/
 .next/
-.yarn/
 public/
-yarn.lock
 package-lock.json
-.pnp.*
-*.md
+next-env.d.ts

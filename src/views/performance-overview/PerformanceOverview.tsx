@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ import {
   Aggregator,
   Metric,
   Model,
-  TaskEvaluation,
+  ModelResult,
 } from '@/src/types';
 import {
   extractMetricDisplayName,
@@ -66,20 +66,16 @@ import HidePanel from '@/src/views/performance-overview/Hide';
 import '@carbon/charts-react/styles.css';
 import classes from './PerformanceOverview.module.scss';
 
-// ===================================================================================
-//                                TYPES
-// ===================================================================================
+// --- Types ---
 interface Props {
-  evaluationsPerMetric: { [key: string]: TaskEvaluation[] };
+  resultsPerMetric: { [key: string]: ModelResult[] };
   models: Model[];
   metrics: Metric[];
   filters: { [key: string]: string[] };
   numTasks: number;
 }
 
-// ===================================================================================
-//                               COMPUTE FUNCTIONS
-// ===================================================================================
+// --- Compute functions ---
 function calculateRanks(
   data: {
     model: string;
@@ -91,7 +87,7 @@ function calculateRanks(
     levels: { low: number; medium: number; high: number };
   }[],
 ) {
-  const peformancePerMetric: {
+  const performancePerMetric: {
     [key: string]: {
       model: string;
       score: number;
@@ -101,19 +97,19 @@ function calculateRanks(
   } = {};
   const order: { [key: string]: 'ascending' | 'descending' } = {};
   for (const entry of data) {
-    if (peformancePerMetric.hasOwnProperty(entry.metric)) {
-      peformancePerMetric[entry.metric].push(entry);
+    if (performancePerMetric.hasOwnProperty(entry.metric)) {
+      performancePerMetric[entry.metric].push(entry);
     } else {
-      peformancePerMetric[entry.metric] = [entry];
+      performancePerMetric[entry.metric] = [entry];
     }
 
     if (!order.hasOwnProperty(entry.metric)) {
       order[entry.metric] = entry.order ? entry.order : 'ascending';
     }
   }
-  for (const [metric, performance] of Object.entries(peformancePerMetric)) {
+  for (const [metric, performance] of Object.entries(performancePerMetric)) {
     performance.sort((a, b) => {
-      if (order[metric] == 'ascending') {
+      if (order[metric] === 'ascending') {
         return a.score > b.score ? -1 : 1;
       } else {
         return a.score > b.score ? 1 : -1;
@@ -131,9 +127,16 @@ function calculateRanks(
   }
 }
 
-// ===================================================================================
-//                               RENDER FUNCTIONS
-// ===================================================================================
+/** Build the initial { low, medium, high } count object for a single evaluation's confidence level. */
+function confidenceLevelCounts(confidence: AggregationConfidenceLevels) {
+  return {
+    low: confidence === AggregationConfidenceLevels.LOW ? 1 : 0,
+    medium: confidence === AggregationConfidenceLevels.MEDIUM ? 1 : 0,
+    high: confidence === AggregationConfidenceLevels.HIGH ? 1 : 0,
+  };
+}
+
+// --- Render functions ---
 function sparkline(
   distribution: { [key: string]: number } | undefined,
   theme?: string,
@@ -198,7 +201,6 @@ function drawTable(
   plot: boolean = false,
   theme?: string,
 ) {
-  // Step 1: Define headers
   const headers = [
     { key: 'model', header: 'Model' },
     ...metrics.map((metric) => {
@@ -207,7 +209,6 @@ function drawTable(
     { key: 'rank', header: 'Rank' },
   ];
 
-  // Step 2: Group data per model
   const dataPerModel: {
     [key: string]: {
       model: string;
@@ -218,24 +219,20 @@ function drawTable(
     }[];
   } = groupBy(data, (entry) => entry.model);
 
-  // Step 3: Compute overall rank
   const overallRank: [string, number][] = Object.entries(dataPerModel).map(
     ([model, entry]) => [model, entry.reduce((n, { rank }) => n + rank, 0)],
   );
 
-  // Step 4: Sort based on overall rank, if necessary
   if (overallRank.length > 1) {
     overallRank.sort((a, b) => {
       return a[1] - b[1];
     });
   }
 
-  // Step 5: Define distribution map
   const distributions = new Map(
     data.map((entry) => [`${entry.model}:${entry.metric}`, entry.levels]),
   );
 
-  // Step 5: Define rows
   const rows: { [key: string]: string }[] = [];
   overallRank.forEach(([model, sum], index) => {
     rows.push({
@@ -253,7 +250,6 @@ function drawTable(
     });
   });
 
-  // Step 6: Draw table
   return (
     <DataTable rows={rows} headers={headers} isSortable>
       {({ rows, headers, getTableProps, getHeaderProps, getRowProps }) => (
@@ -261,43 +257,48 @@ function drawTable(
           <Table {...getTableProps()}>
             <TableHead>
               <TableRow>
-                {headers.map((header, index) => (
-                  <TableHeader
-                    key={'header--' + index}
-                    {...getHeaderProps({ header })}
-                  >
-                    {header.key === 'rank' ? (
-                      <span>&Sigma;&nbsp;{header.header}</span>
-                    ) : (
-                      header.header
-                    )}
-                  </TableHeader>
-                ))}
+                {headers.map((header, index) => {
+                  const { key: _key, ...headerProps } = getHeaderProps({
+                    header,
+                  });
+                  return (
+                    <TableHeader key={'header--' + index} {...headerProps}>
+                      {header.key === 'rank' ? (
+                        <span>&Sigma;&nbsp;{header.header}</span>
+                      ) : (
+                        header.header
+                      )}
+                    </TableHeader>
+                  );
+                })}
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.map((row, index) => (
-                <TableRow key={'row--' + index} {...getRowProps({ row })}>
-                  {row.cells.map((cell) => (
-                    <TableCell key={cell.id}>
-                      <div className={classes.tableCell}>
-                        {cell.value ? (
-                          cell.value.includes('(1)') ? (
-                            <strong>{cell.value}</strong>
+              {rows.map((row, index) => {
+                const { key: _key, ...rowProps } = getRowProps({ row });
+                return (
+                  <TableRow key={'row--' + index} {...rowProps}>
+                    {row.cells.map((cell) => (
+                      <TableCell key={cell.id}>
+                        <div className={classes.tableCell}>
+                          {cell.value ? (
+                            cell.value.includes('(1)') ? (
+                              <strong>{cell.value}</strong>
+                            ) : (
+                              cell.value
+                            )
                           ) : (
-                            cell.value
-                          )
-                        ) : (
-                          '-'
-                        )}
-                        {plot && metrics.includes(cell.info.header)
-                          ? sparkline(distributions.get(cell.id), theme)
-                          : null}
-                      </div>
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
+                            '-'
+                          )}
+                          {plot && metrics.includes(cell.info.header)
+                            ? sparkline(distributions.get(cell.id), theme)
+                            : null}
+                        </div>
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>
@@ -308,11 +309,11 @@ function drawTable(
 
 function disclaimers({
   std = false,
-  spakline = false,
+  sparkline: showSparkline = false,
   theme,
 }: {
   std?: boolean;
-  spakline?: boolean;
+  sparkline?: boolean;
   theme?: string;
 }) {
   return (
@@ -329,7 +330,7 @@ function disclaimers({
           standard deviation across all tasks
         </span>
       )}
-      {spakline && (
+      {showSparkline && (
         <div className={classes.disclaimerSparkline}>
           <span>
             <sup>*</sup>&nbsp;
@@ -338,40 +339,35 @@ function disclaimers({
           <span>reflects confidence level on the aggregate values.&nbsp;</span>
           <div className={classes.legendLow}>&#9632;</div>
           <span>
-            &nbsp;# of tasks where where minority rating is far from majority
+            &nbsp;# of tasks where minority rating is far from majority
             rating,&nbsp;
           </span>
           <div className={classes.legendMedium}>&#9632;</div>
           <span>
-            &nbsp;# of tasks where where minority rating is similar to majority
-            rating and&nbsp;
+            &nbsp;# of tasks where minority rating is similar to majority rating
+            and&nbsp;
           </span>
           <div className={classes.legendHigh}>&#9632;</div>
-          <span>
-            &nbsp;# of tasks where where all annotators chose same rating
-          </span>
+          <span>&nbsp;# of tasks where all annotators chose same rating</span>
         </div>
       )}
     </div>
   );
 }
 
-// ===================================================================================
-//                               MAIN FUNCTION
-// ===================================================================================
+// --- Main component ---
 export default function PerformanceOverview({
-  evaluationsPerMetric,
+  resultsPerMetric,
   models,
   metrics,
   filters,
   numTasks,
 }: Props) {
-  // Step 1: Initialize state and necessary variables
-  const [WindowWidth, setWindowWidth] = useState<number>(
-    global?.window && window.innerWidth,
+  const [windowWidth, setWindowWidth] = useState<number>(
+    global?.window ? window.innerWidth : 0,
   );
-  const [WindowHeight, setWindowHeight] = useState<number>(
-    global?.window && window.innerHeight,
+  const [windowHeight, setWindowHeight] = useState<number>(
+    global?.window ? window.innerHeight : 0,
   );
   const aggregators: Aggregator[] = [
     meanAggregator,
@@ -401,32 +397,29 @@ export default function PerformanceOverview({
   const [hiddenModels, setHiddenModels] = useState<Model[]>([]);
   const [hiddenMetrics, setHiddenMetrics] = useState<Metric[]>([]);
 
-  // Step 2: Run effects
-  // Step 2.a: Adjust graph width & heigh based on window size
   useEffect(() => {
     const handleWindowResize = () => {
       setWindowWidth(window.innerWidth);
       setWindowHeight(window.innerHeight);
     };
 
-    // Step: Add event listener
     window.addEventListener('resize', handleWindowResize);
 
-    // Step: Cleanup to remove event listener
     return () => {
       window.removeEventListener('resize', handleWindowResize);
     };
   }, []);
 
-  // Step 2.a: Fetch theme
   const { theme } = useTheme();
 
-  // Step 2.c: Generate performance data for human and algorithmic metrics
   const [humanMetricsData, algorithmicMetricsData, numSelectedTasks] =
     useMemo(() => {
-      // Eligible metrics
       const eligibleMetrics = Object.fromEntries(
         metrics.map((metric) => [metric.name, metric]),
+      );
+      // Pre-index model name by ID to avoid repeated .find() inside the results loop
+      const modelNameById = new Map(
+        models.map((model) => [model.modelId, model.name || model.modelId]),
       );
 
       let hData: {
@@ -459,37 +452,33 @@ export default function PerformanceOverview({
           };
         };
       } = {};
-      const eligibleEvaluationsPerModel: {
+      const eligibleResultsPerModel: {
         [key: string]: { [key: string]: number };
       } = {};
 
-      // Step 1: Calculate model performance across entire dataset
       let selectedTasksCount;
-      for (const [metric, evaluations] of Object.entries(
-        evaluationsPerMetric,
-      )) {
+      for (const [metric, results] of Object.entries(resultsPerMetric)) {
         const aggregator = selectedAggregators[metric] || meanAggregator;
 
-        // Select evaluations based on selected filters
-        const selectedEvaluations = !isEmpty(selectedFilters)
-          ? evaluations.filter((e) => {
+        // Select results based on selected filters
+        const selectedResults = !isEmpty(selectedFilters)
+          ? results.filter((e) => {
               return areObjectsIntersecting(selectedFilters, e);
             })
-          : evaluations;
+          : results;
 
         // Calculate selected tasks count
-        selectedTasksCount = selectedEvaluations.length / models.length;
+        selectedTasksCount = selectedResults.length / models.length;
 
-        selectedEvaluations.forEach((evaluation) => {
-          // Step 1.a: Calcuate aggregated value
+        selectedResults.forEach((evaluation) => {
           const aggregateStatistics: AggregationStatistics = aggregator.apply(
-            Object.values(evaluation.annotations[`${metric}`]).map(
+            Object.values(evaluation.scores[`${metric}`]).map(
               (entry) => entry.value,
             ),
             eligibleMetrics[metric].values,
           );
 
-          // Step 1.b: Skip evaluations, if no majority aggrement exist
+          // Skip indeterminate majority results — no consensus exists
           if (
             aggregator.name === 'majority' &&
             aggregateStatistics.value === 'Indeterminate'
@@ -497,37 +486,33 @@ export default function PerformanceOverview({
             return;
           }
 
-          // Step 1.c: Cast to numeric value for further processing
+          // Cast to numeric for accumulation below
           const aggregateValue = castToNumber(
             aggregateStatistics.value,
             eligibleMetrics[metric].values,
           );
 
-          // Step 1.d: Translate model id to model name
           const modelName =
-            models.find((model) => model.modelId === evaluation.modelId)
-              ?.name || evaluation.modelId;
+            modelNameById.get(evaluation.modelId) ?? evaluation.modelId;
 
-          // Step 1.d: Update performance per model object
           if (performancePerModel.hasOwnProperty(modelName)) {
             if (performancePerModel[modelName].hasOwnProperty(metric)) {
               performancePerModel[modelName][metric].value += aggregateValue;
               performancePerModel[modelName][metric].std +=
                 aggregateStatistics.std;
 
+              // Confidence levels are mutually exclusive — only one branch fires
               if (
                 aggregateStatistics.confidence ===
                 AggregationConfidenceLevels.LOW
               ) {
                 performancePerModel[modelName][metric].levels.low += 1;
-              }
-              if (
+              } else if (
                 aggregateStatistics.confidence ===
                 AggregationConfidenceLevels.MEDIUM
               ) {
                 performancePerModel[modelName][metric].levels.medium += 1;
-              }
-              if (
+              } else if (
                 aggregateStatistics.confidence ===
                 AggregationConfidenceLevels.HIGH
               ) {
@@ -537,23 +522,7 @@ export default function PerformanceOverview({
               performancePerModel[modelName][metric] = {
                 value: aggregateValue,
                 std: aggregateStatistics.std,
-                levels: {
-                  low:
-                    aggregateStatistics.confidence ===
-                    AggregationConfidenceLevels.LOW
-                      ? 1
-                      : 0,
-                  medium:
-                    aggregateStatistics.confidence ===
-                    AggregationConfidenceLevels.MEDIUM
-                      ? 1
-                      : 0,
-                  high:
-                    aggregateStatistics.confidence ===
-                    AggregationConfidenceLevels.HIGH
-                      ? 1
-                      : 0,
-                },
+                levels: confidenceLevelCounts(aggregateStatistics.confidence),
               };
             }
           } else {
@@ -561,43 +530,25 @@ export default function PerformanceOverview({
               [metric]: {
                 value: aggregateValue,
                 std: aggregateStatistics.std,
-                levels: {
-                  low:
-                    aggregateStatistics.confidence ===
-                    AggregationConfidenceLevels.LOW
-                      ? 1
-                      : 0,
-                  medium:
-                    aggregateStatistics.confidence ===
-                    AggregationConfidenceLevels.MEDIUM
-                      ? 1
-                      : 0,
-                  high:
-                    aggregateStatistics.confidence ===
-                    AggregationConfidenceLevels.HIGH
-                      ? 1
-                      : 0,
-                },
+                levels: confidenceLevelCounts(aggregateStatistics.confidence),
               },
             };
           }
 
-          // Step 1.e: Update eligible evaluations per model object
-          if (eligibleEvaluationsPerModel.hasOwnProperty(modelName)) {
-            if (eligibleEvaluationsPerModel[modelName].hasOwnProperty(metric)) {
-              eligibleEvaluationsPerModel[modelName][metric] += 1;
+          if (eligibleResultsPerModel.hasOwnProperty(modelName)) {
+            if (eligibleResultsPerModel[modelName].hasOwnProperty(metric)) {
+              eligibleResultsPerModel[modelName][metric] += 1;
             } else {
-              eligibleEvaluationsPerModel[modelName][metric] = 1;
+              eligibleResultsPerModel[modelName][metric] = 1;
             }
           } else {
-            eligibleEvaluationsPerModel[modelName] = {
+            eligibleResultsPerModel[modelName] = {
               [metric]: 1,
             };
           }
         });
       }
 
-      // Step 2: Add raw performance data
       for (const [model, performance] of Object.entries(performancePerModel)) {
         for (const [metric, statistics] of Object.entries(performance)) {
           if (eligibleMetrics.hasOwnProperty(metric)) {
@@ -609,7 +560,7 @@ export default function PerformanceOverview({
                   (statistics.value / selectedTasksCount).toFixed(2),
                 ),
                 rank: -1,
-                size: eligibleEvaluationsPerModel[model][metric],
+                size: eligibleResultsPerModel[model][metric],
                 std: parseFloat(
                   (statistics.std / selectedTasksCount).toFixed(2),
                 ),
@@ -626,7 +577,7 @@ export default function PerformanceOverview({
                   (statistics.value / selectedTasksCount).toFixed(2),
                 ),
                 rank: -1,
-                size: eligibleEvaluationsPerModel[model][metric],
+                size: eligibleResultsPerModel[model][metric],
                 std: parseFloat(
                   (statistics.std / selectedTasksCount).toFixed(2),
                 ),
@@ -640,54 +591,28 @@ export default function PerformanceOverview({
         }
       }
 
-      // Step 3: Filter hidden metrics data
       const hiddenMetricNames = hiddenMetrics.map((metric) =>
         extractMetricDisplayName(metric),
       );
-      // Step 3.a: Human metrics
-      if (Array.isArray(hData)) {
-        hData = hData.filter(
-          (entry) => !hiddenMetricNames.includes(entry.metric),
-        );
-      }
-      // Step 3.b: Algorithmic metrics
-      if (Array.isArray(aData)) {
-        aData = aData.filter(
-          (entry) => !hiddenMetricNames.includes(entry.metric),
-        );
-      }
+      hData = hData.filter(
+        (entry) => !hiddenMetricNames.includes(entry.metric),
+      );
+      aData = aData.filter(
+        (entry) => !hiddenMetricNames.includes(entry.metric),
+      );
 
-      // Step 4: Filter hidden models data
       const hiddenModelNames = hiddenModels.map((model) =>
         model.name ? model.name : model.modelId,
       );
-      // Step 4.a: Human metrics
-      if (Array.isArray(hData)) {
-        hData = hData.filter(
-          (entry) => !hiddenModelNames.includes(entry.model),
-        );
-      }
-      // Step 4.b: Algorithmic metrics
-      if (Array.isArray(aData)) {
-        aData = aData.filter(
-          (entry) => !hiddenModelNames.includes(entry.model),
-        );
-      }
+      hData = hData.filter((entry) => !hiddenModelNames.includes(entry.model));
+      aData = aData.filter((entry) => !hiddenModelNames.includes(entry.model));
 
-      // Step 5: Generate add rank information
-      // Step 5.a: Human metrics
-      if (Array.isArray(hData)) {
-        calculateRanks(hData);
-      }
-
-      // Step 5.b: Algorithmic metrics
-      if (Array.isArray(aData)) {
-        calculateRanks(aData);
-      }
+      calculateRanks(hData);
+      calculateRanks(aData);
 
       return [hData, aData, selectedTasksCount];
     }, [
-      evaluationsPerMetric,
+      resultsPerMetric,
       metrics,
       models,
       selectedAggregators,
@@ -699,11 +624,10 @@ export default function PerformanceOverview({
   const humanMetricsInData = new Set(
     humanMetricsData.map((entry) => entry.metric),
   );
-  const algorithmicmetricsInData = new Set(
+  const algorithmicMetricsInData = new Set(
     algorithmicMetricsData.map((entry) => entry.metric),
   );
 
-  // Step 3: Render
   return (
     <div className={classes.page}>
       <div className={classes.selectors}>
@@ -762,7 +686,7 @@ export default function PerformanceOverview({
       <div
         className={cx(
           classes.row,
-          humanMetricsInData.size == 0 || algorithmicmetricsInData.size == 0
+          humanMetricsInData.size === 0 || algorithmicMetricsInData.size === 0
             ? classes.center
             : null,
         )}
@@ -771,7 +695,7 @@ export default function PerformanceOverview({
           <div
             className={cx(
               classes.column,
-              algorithmicmetricsInData.size === 0 ? classes.expand : null,
+              algorithmicMetricsInData.size === 0 ? classes.expand : null,
             )}
           >
             <h4>
@@ -785,7 +709,7 @@ export default function PerformanceOverview({
                 true,
                 theme,
               )}
-              {disclaimers({ std: true, spakline: true, theme: theme })}
+              {disclaimers({ std: true, sparkline: true, theme: theme })}
             </div>
 
             <div className={classes.row}>
@@ -811,8 +735,8 @@ export default function PerformanceOverview({
                           scaleType: ScaleTypes.LABELS,
                         },
                       },
-                      width: `${Math.round(WindowWidth * 0.45)}px`,
-                      height: `${Math.round(WindowHeight * 0.5)}px`,
+                      width: `${Math.round(windowWidth * 0.45)}px`,
+                      height: `${Math.round(windowHeight * 0.5)}px`,
                       toolbar: {
                         enabled: false,
                       },
@@ -830,18 +754,16 @@ export default function PerformanceOverview({
                 <>
                   <RadarChart
                     data={humanMetricsData.map((entry) => {
-                      // Step 1: Find metric under consideration
                       const metric = metrics.find(
                         (m) => m.displayName === entry.metric,
                       );
 
-                      // Step 2: Calculate normalized score
+                      // Min-max normalize so radar axes share a 0–1 scale
                       let normalizedScore = entry.score;
                       if (
                         metric?.minValue !== undefined &&
                         metric.maxValue !== undefined
                       ) {
-                        // Step 2.a: Fetch minimum value
                         const minValue =
                           typeof metric.minValue === 'number'
                             ? metric.minValue
@@ -850,7 +772,6 @@ export default function PerformanceOverview({
                                 metric.values,
                               );
 
-                        // Step 2.b: Fetch maximum value
                         const maxValue =
                           typeof metric.maxValue === 'number'
                             ? metric.maxValue
@@ -859,7 +780,6 @@ export default function PerformanceOverview({
                                 metric.values,
                               );
 
-                        // Step 2.c: Calculate min-max normalized score
                         normalizedScore =
                           Math.round(
                             ((entry.score - minValue) / (maxValue - minValue)) *
@@ -867,7 +787,6 @@ export default function PerformanceOverview({
                           ) / 100;
                       }
 
-                      // Step 3: Return
                       return {
                         model: entry.model,
                         metric: entry.metric,
@@ -892,8 +811,8 @@ export default function PerformanceOverview({
                         alignment: Alignments.CENTER,
                         order: modelOrder,
                       },
-                      width: `${Math.round(WindowWidth * 0.45)}px`,
-                      height: `${Math.round(WindowHeight * 0.5)}px`,
+                      width: `${Math.round(windowWidth * 0.45)}px`,
+                      height: `${Math.round(windowHeight * 0.5)}px`,
                       toolbar: {
                         enabled: false,
                       },
@@ -905,10 +824,10 @@ export default function PerformanceOverview({
             </div>
           </div>
         ) : null}
-        {humanMetricsInData.size && algorithmicmetricsInData.size ? (
+        {humanMetricsInData.size && algorithmicMetricsInData.size ? (
           <div className={classes.seperator}></div>
         ) : null}
-        {algorithmicmetricsInData.size ? (
+        {algorithmicMetricsInData.size ? (
           <div
             className={cx(
               classes.column,
@@ -921,30 +840,28 @@ export default function PerformanceOverview({
             <div className={classes.performanceTable}>
               {drawTable(
                 algorithmicMetricsData,
-                Array.from(algorithmicmetricsInData),
+                Array.from(algorithmicMetricsInData),
               )}
               {disclaimers({})}
             </div>
             <div className={classes.row}>
-              {algorithmicmetricsInData.size < 3 ? (
+              {algorithmicMetricsInData.size < 3 ? (
                 <>
                   <GroupedBarChart
                     data={algorithmicMetricsData
                       .sort((a, b) => (a.model > b.model ? -1 : 1))
                       .map((entry) => {
-                        // Step 1: Find metric under consideration
                         const metric = metrics.find(
                           (m) => m.displayName === entry.metric,
                         );
 
-                        // Step 2: Calculate normalized score
+                        // Min-max normalize so bar axes share a 0–1 scale
                         let normalizedScore = entry.score;
 
                         if (
                           metric?.minValue !== undefined &&
                           metric.maxValue !== undefined
                         ) {
-                          // Step 2.a: Fetch minimum value
                           const minValue =
                             typeof metric.minValue === 'number'
                               ? metric.minValue
@@ -953,7 +870,6 @@ export default function PerformanceOverview({
                                   metric.values,
                                 );
 
-                          // Step 2.b: Fetch maximum value
                           const maxValue =
                             typeof metric.maxValue === 'number'
                               ? metric.maxValue
@@ -962,7 +878,6 @@ export default function PerformanceOverview({
                                   metric.values,
                                 );
 
-                          // Step 2.c: Calculate min-max normalized score
                           normalizedScore =
                             Math.round(
                               ((entry.score - minValue) /
@@ -971,7 +886,6 @@ export default function PerformanceOverview({
                             ) / 100;
                         }
 
-                        // Step 3: Return
                         return {
                           group: entry.model,
                           key: entry.metric,
@@ -988,8 +902,8 @@ export default function PerformanceOverview({
                           scaleType: ScaleTypes.LABELS,
                         },
                       },
-                      width: `${Math.round(WindowWidth * 0.45)}px`,
-                      height: `${Math.round(WindowHeight * 0.5)}px`,
+                      width: `${Math.round(windowWidth * 0.45)}px`,
+                      height: `${Math.round(windowHeight * 0.5)}px`,
                       toolbar: {
                         enabled: false,
                       },
@@ -1046,8 +960,8 @@ export default function PerformanceOverview({
                         alignment: Alignments.CENTER,
                         order: modelOrder,
                       },
-                      width: `${Math.round(WindowWidth * 0.45)}px`,
-                      height: `${Math.round(WindowHeight * 0.5)}px`,
+                      width: `${Math.round(windowWidth * 0.45)}px`,
+                      height: `${Math.round(windowHeight * 0.5)}px`,
                       toolbar: {
                         enabled: false,
                       },
@@ -1060,7 +974,7 @@ export default function PerformanceOverview({
           </div>
         ) : null}
         {humanMetricsInData.size === 0 &&
-        algorithmicmetricsInData.size === 0 ? (
+        algorithmicMetricsInData.size === 0 ? (
           <div className={classes.warningContainer}>
             <WarningAlt
               height={'32px'}

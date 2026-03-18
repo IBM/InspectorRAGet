@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,14 +18,13 @@
 
 import { isEmpty } from 'lodash';
 
-import { FilterationRequest, TaskEvaluation } from '@/src/types';
+import { FilterationRequest, ModelResult } from '@/src/types';
 import { areObjectsIntersecting } from '@/src/utilities/objects';
 import { evaluate } from '@/src/utilities/expressions';
 
 onmessage = function (event: MessageEvent<FilterationRequest>) {
-  // Step 1: Initialize necessary variables
   const {
-    evaluationsPerMetric,
+    resultsPerMetric,
     filters,
     expression,
     agreementLevels,
@@ -42,57 +41,53 @@ onmessage = function (event: MessageEvent<FilterationRequest>) {
     modelName: string;
     [key: string]: string | number;
   }[] = [];
-  const visibleEvaluations: TaskEvaluation[] = [];
+  const visibleResults: ModelResult[] = [];
 
-  // Step 2: If filters are specified
-  const filteredEvaluationsPerMetric: { [key: string]: TaskEvaluation[] } = {};
-  for (const [metric, evals] of Object.entries(evaluationsPerMetric)) {
-    filteredEvaluationsPerMetric[metric] = !isEmpty(filters)
+  // Apply task-level filters when specified
+  const filteredResultsPerMetric: { [key: string]: ModelResult[] } = {};
+  for (const [metric, evals] of Object.entries(resultsPerMetric)) {
+    filteredResultsPerMetric[metric] = !isEmpty(filters)
       ? evals.filter((e) => areObjectsIntersecting(filters, e))
       : evals;
   }
 
-  // Step 3: If a metric is selected
   if (metric) {
-    // Step 3.a: If an expression is specified
     if (expression && !isEmpty(expression)) {
-      // Step 3.a.ii: Build an object containing evaluations per model for every task
-      const evaluationsPerTaskPerModel: {
-        [key: string]: { [key: string]: TaskEvaluation };
+      // Group results by task and model so the expression can compare across models
+      const resultsPerTaskPerModel: {
+        [key: string]: { [key: string]: ModelResult };
       } = {};
-      filteredEvaluationsPerMetric[metric.name].forEach((evaluation) => {
-        if (evaluationsPerTaskPerModel.hasOwnProperty(evaluation.taskId)) {
-          evaluationsPerTaskPerModel[evaluation.taskId][evaluation.modelId] =
+      filteredResultsPerMetric[metric.name].forEach((evaluation) => {
+        if (resultsPerTaskPerModel.hasOwnProperty(evaluation.taskId)) {
+          resultsPerTaskPerModel[evaluation.taskId][evaluation.modelId] =
             evaluation;
         } else {
-          evaluationsPerTaskPerModel[evaluation.taskId] = {
+          resultsPerTaskPerModel[evaluation.taskId] = {
             [evaluation.modelId]: evaluation,
           };
         }
       });
 
-      // Step 3.a.iii: Find evaluations meeting expression criteria
-      evaluate(
-        evaluationsPerTaskPerModel,
-        expression,
-        metric,
-        annotator,
-      ).forEach((evaluation) => {
-        // Step 3.a.iii.*: Create and add record
-        records.push({
-          taskId: evaluation.taskId,
-          modelName: models[evaluation.modelId].name,
-          [`${metric.name}_value`]: evaluation[`${metric.name}_agg`].value,
-          [`${metric.name}_aggLevel`]: evaluation[`${metric.name}_agg`].level,
-        });
+      evaluate(resultsPerTaskPerModel, expression, metric, annotator).forEach(
+        (evaluation) => {
+          // Skip results whose modelId is not in the current selected models index.
+          // This can happen when evaluate() returns all models for a matching task
+          // and some of those models were deselected by the user.
+          if (!models[evaluation.modelId]) return;
 
-        // Step 3.a.iii.**: Add evaluation
-        visibleEvaluations.push(evaluation);
-      });
+          records.push({
+            taskId: evaluation.taskId,
+            modelName: models[evaluation.modelId].name,
+            [`${metric.name}_value`]: evaluation[`${metric.name}_agg`].value,
+            [`${metric.name}_aggLevel`]: evaluation[`${metric.name}_agg`].level,
+          });
+
+          visibleResults.push(evaluation);
+        },
+      );
     } else {
-      // Step 3.b: Filter evaluations for the selected metric
-      filteredEvaluationsPerMetric[metric.name].forEach((evaluation) => {
-        // Step 3.b.i: If individual annotator is selected, verify against annotator's value
+      // No expression: filter results directly for the selected metric
+      filteredResultsPerMetric[metric.name].forEach((evaluation) => {
         if (annotator) {
           /**
            * Evaluation's model id fall within selected models
@@ -105,7 +100,6 @@ onmessage = function (event: MessageEvent<FilterationRequest>) {
             (!allowedValues ||
               allowedValues.includes(evaluation[metric.name][annotator].value))
           ) {
-            // Step 3.b.i.*: Create and add record
             records.push({
               taskId: evaluation.taskId,
               modelName: models[evaluation.modelId].name,
@@ -113,11 +107,9 @@ onmessage = function (event: MessageEvent<FilterationRequest>) {
                 evaluation[metric.name][annotator].value,
             });
 
-            // Step 3.b.i.**: Add evaluation
-            visibleEvaluations.push(evaluation);
+            visibleResults.push(evaluation);
           }
         } else {
-          // Step 3.b.ii: Verify against aggregate value
           if (
             evaluation.modelId in models &&
             (!agreementLevels ||
@@ -127,7 +119,6 @@ onmessage = function (event: MessageEvent<FilterationRequest>) {
             (!allowedValues ||
               allowedValues.includes(evaluation[`${metric.name}_agg`].value))
           ) {
-            // Step 3.b.ii.*: Create and add record
             records.push({
               taskId: evaluation.taskId,
               modelName: models[evaluation.modelId].name,
@@ -136,19 +127,15 @@ onmessage = function (event: MessageEvent<FilterationRequest>) {
                 evaluation[`${metric.name}_agg`].level,
             });
 
-            // Step 3.b.ii.**: Add evaluation
-            visibleEvaluations.push(evaluation);
+            visibleResults.push(evaluation);
           }
         }
       });
     }
   } else {
-    // Step 3: For every metric
-    for (const [metric, evaluations] of Object.entries(
-      filteredEvaluationsPerMetric,
-    )) {
-      evaluations.forEach((evaluation) => {
-        // Step 3.a: If invidiual annotator is selected, verify against annotator's value
+    // No specific metric selected: iterate all metrics
+    for (const [metric, results] of Object.entries(filteredResultsPerMetric)) {
+      results.forEach((evaluation) => {
         if (annotator) {
           /**
            * Evaluation's model id fall within selected models
@@ -168,7 +155,6 @@ onmessage = function (event: MessageEvent<FilterationRequest>) {
             });
           }
         } else {
-          // Step 3.a: Verify against aggregate value
           if (
             evaluation.modelId in models &&
             (!agreementLevels ||
@@ -190,6 +176,5 @@ onmessage = function (event: MessageEvent<FilterationRequest>) {
     }
   }
 
-  // Step 4: Return results
-  postMessage({ records: records, evaluations: visibleEvaluations });
+  postMessage({ records: records, results: visibleResults });
 };

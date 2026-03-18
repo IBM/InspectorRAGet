@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import path from 'path';
 import { promises as fs } from 'fs';
 
 import { Data } from '@/src/types';
+import { migrateData } from '@/src/migrator';
 import { processData } from '@/src/processor';
 import { camelCaseKeys } from '@/src/utilities/objects';
 
@@ -33,7 +34,10 @@ export async function load() {
     const files = await fs.readdir(dataDirectory);
     for (const file of files) {
       const fileContent = await fs.readFile(`${dataDirectory}/${file}`, 'utf8');
-      const [data] = processData(camelCaseKeys(JSON.parse(fileContent)));
+      const { data: migratedRaw, migrated } = migrateData(
+        JSON.parse(fileContent),
+      );
+      const [data] = processData(camelCaseKeys(migratedRaw), migrated);
       if (data) {
         examples.push(data);
       }

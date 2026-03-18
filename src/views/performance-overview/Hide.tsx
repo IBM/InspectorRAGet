@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,9 +29,7 @@ import { extractMetricDisplayName } from '@/src/utilities/metrics';
 
 import classes from './Hide.module.scss';
 
-// ===================================================================================
-//                                TYPES
-// ===================================================================================
+// --- Types ---
 interface Props {
   models: Model[];
   metrics: Metric[];
@@ -49,10 +47,8 @@ export default function HidePanel({
   setHiddenModels: setIgnoredModels,
   setHiddenMetrics: setIgnoredMetrics,
 }: Props) {
-  // Step 1: Initialize state and necessary variables
   const [show, setShow] = useState<boolean>(true);
 
-  // Step 2: Render
   return (
     <>
       <Tooltip
@@ -80,10 +76,7 @@ export default function HidePanel({
       </Tooltip>
       {show ? (
         <div className={cx(classes.container, show && classes.visible)}>
-          <div
-            key={'models-limiter--' + `${ignoredModels === models}`}
-            className={classes.selector}
-          >
+          <div key={'models-limiter'} className={classes.selector}>
             <FilterableMultiSelect
               id={'model--limiter'}
               titleText={
@@ -99,8 +92,8 @@ export default function HidePanel({
                 </div>
               }
               items={models}
-              initialSelectedItems={ignoredModels}
-              itemToString={(item) => (item.name ? item.name : item.modelId)}
+              selectedItems={ignoredModels}
+              itemToString={(item) => (item ? item.name || item.modelId : '')}
               onChange={(event) => {
                 setIgnoredModels(event.selectedItems);
               }}
@@ -118,10 +111,7 @@ export default function HidePanel({
               })}
             </div>
           </div>
-          <div
-            key={'metrics-limiter--' + `${ignoredMetrics === metrics}`}
-            className={classes.selector}
-          >
+          <div key={'metrics-limiter'} className={classes.selector}>
             <FilterableMultiSelect
               id={'metrics--limiter'}
               titleText={
@@ -137,9 +127,9 @@ export default function HidePanel({
                 </div>
               }
               items={metrics}
-              initialSelectedItems={ignoredMetrics}
+              selectedItems={ignoredMetrics}
               itemToString={(item) =>
-                item.displayName ? item.displayName : item.name
+                item ? item.displayName || item.name : ''
               }
               onChange={(event) => {
                 setIgnoredMetrics(event.selectedItems);

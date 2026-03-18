@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,7 +65,7 @@
   align-items: baseline;
 }
 
-.artifactEvaluations {
+.artifactResults {
   flex-direction: column;
 }
 
@@ -99,6 +99,11 @@
   font-size: 14px;
   line-height: 16px;
   margin-top: $spacing-02;
+
+  // Give Carbon Tag pills the same breathing room as .metricTag spans.
+  :global(.cds--tag) {
+    margin: $spacing-01;
+  }
 }
 
 .actions {
@@ -116,4 +121,24 @@
 
 .commentsIndicator:hover {
   color: var(--cds-text-primary);
+}
+
+// Pill wrapper for metric tags that contain a DefinitionTooltip.
+// Carbon's Tag renders as a <button>, which would create a nested <button>
+// when wrapping DefinitionTooltip (which also renders a <button> trigger).
+// This span replicates the cool-gray Tag appearance using Carbon's CSS custom
+// properties so it updates correctly on light/dark theme switches.
+.metricTag {
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--cds-tag-background-cool-gray);
+  color: var(--cds-tag-color-cool-gray);
+  border-radius: 1rem;
+  min-block-size: 1.5rem;
+  padding-inline: $spacing-03;
+  margin: $spacing-01;
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-weight: var(--cds-label-01-font-weight, 400);
+  line-height: var(--cds-label-01-line-height, 1.33333);
+  vertical-align: middle;
 }

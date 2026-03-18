@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,11 @@
  * limitations under the License.
  *
  **/
+
+/* Carbon's @font-face rules use the "~" prefix which Turbopack can't resolve */
+@use '@carbon/styles/scss/config' with (
+  $css--font-face: false
+);
 
 @use '@carbon/react' as *;
 
@@ -41,4 +46,11 @@ body {
 
 .cds--tabs--contained ~ .cds--tab-content {
   background: var(--cds-background) !important;
+}
+
+// Carbon adds margin-block-start between adjacent on-page ContainedLists.
+// Our task views use row-gap on the parent flex container instead,
+// so this sibling margin would double-space the sections.
+.cds--contained-list--on-page + .cds--contained-list--on-page {
+  margin-block-start: 0;
 }

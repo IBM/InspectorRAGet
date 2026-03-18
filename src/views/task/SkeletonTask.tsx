@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ export default function SkeletonTask() {
             </>
           </div>
         </div>
-        <div className={styles.evaluationsContainer}>
+        <div className={styles.resultsContainer}>
           <Accordion>
             {[
               { modelId: 'Model A' },
@@ -55,15 +55,12 @@ export default function SkeletonTask() {
               <AccordionItem
                 key={'model-' + evaluation.modelId}
                 title={'Model: ' + evaluation.modelId}
-                className={styles.evaluationContainer}
+                className={styles.resultContainer}
                 open={true}
               >
                 <div className={styles.evaluationHeader}>
                   <h5>Response:</h5>
-                  <SkeletonText
-                    paragraph={true}
-                    lineCount={Math.floor(Math.random() * (3 - 1) + 1)}
-                  ></SkeletonText>
+                  <SkeletonText paragraph={true} lineCount={2}></SkeletonText>
                 </div>
                 <SkeletonAnnotationsTable />
               </AccordionItem>

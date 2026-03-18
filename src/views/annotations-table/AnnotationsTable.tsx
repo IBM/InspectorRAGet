@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,24 +38,16 @@ import {
 
 import classes from './AnnotationsTable.module.scss';
 
-// ===================================================================================
-//                               COMPUTE FUNCTIONS
-// ===================================================================================
-/**
- * Helper function to compute annotations table headers and rows
- * @param annotations full set of annotations
- * @returns
- */
+// --- Compute functions ---
+
+/** Build table headers and rows from per-metric annotation bags, keyed by annotator. */
 function populateTable(
   annotations: {
     [key: string]: { [key: string]: Annotation };
   },
   metrics: Metric[],
 ) {
-  // Step 0: Metric names
   const metricNames = metrics.map((metric) => metric.name);
-
-  // Step 1: Identify headers
   const headers: { key: string; header: string }[] = [
     {
       key: 'annotator',
@@ -70,26 +62,23 @@ function populateTable(
     });
   });
 
-  // Step 2: Build rows
-  // Step 2.a: Collect metrics per annotator
-  const MetricsPerAnnotator: {
+  const metricsPerAnnotator: {
     [key: string]: { [key: string]: string | number };
   } = {};
   for (const [metricName, annotators] of Object.entries(annotations)) {
     if (metricNames.includes(metricName)) {
       for (const [annotator, entry] of Object.entries(annotators)) {
-        if (MetricsPerAnnotator.hasOwnProperty(annotator)) {
-          MetricsPerAnnotator[annotator][metricName] = entry.value;
+        if (metricsPerAnnotator.hasOwnProperty(annotator)) {
+          metricsPerAnnotator[annotator][metricName] = entry.value;
         } else {
-          MetricsPerAnnotator[annotator] = { [metricName]: entry.value };
+          metricsPerAnnotator[annotator] = { [metricName]: entry.value };
         }
       }
     }
   }
 
-  // Step 2.a: Formulate rows
   const rows: { [key: string]: any }[] = [];
-  for (const [annotator, metricNames] of Object.entries(MetricsPerAnnotator)) {
+  for (const [annotator, metricNames] of Object.entries(metricsPerAnnotator)) {
     const row = { id: annotator, annotator: annotator };
     for (const [metricName, value] of Object.entries(metricNames)) {
       row[metricName] = extractMetricDisplayValue(
@@ -103,66 +92,72 @@ function populateTable(
   return [headers, rows];
 }
 
-// ===================================================================================
-//                               MAIN FUNCTION
-// ===================================================================================
+// --- Main component ---
+
 export default function AnnotationsTable({
   annotations,
   metrics,
+  onCellMouseDown,
 }: {
   annotations: {
     [key: string]: { [key: string]: Annotation };
   };
   metrics: Metric[];
+  onCellMouseDown?: (metricName: string, annotator: string) => void;
 }) {
-  // Step 1: Run effects
-  // Step 1.a: Populate table header and rows
   const [headers, rows] = useMemo(
     () => populateTable(annotations, metrics),
     [annotations, metrics],
   );
 
+  if (!headers || !rows) {
+    return null;
+  }
+
   return (
-    <>
-      {headers && rows && (
-        <div>
-          <DataTable rows={rows} headers={headers}>
-            {({
-              rows,
-              headers,
-              getTableProps,
-              getHeaderProps,
-              getRowProps,
-            }) => (
-              <TableContainer className={classes.table}>
-                <Table {...getTableProps()}>
-                  <TableHead>
-                    <TableRow>
-                      {headers.map((header, index) => (
-                        <TableHeader
-                          key={'header--' + index}
-                          {...getHeaderProps({ header })}
-                        >
-                          {header.header}
-                        </TableHeader>
-                      ))}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {rows.map((row, index) => (
-                      <TableRow key={'row--' + index} {...getRowProps({ row })}>
-                        {row.cells.map((cell) => (
-                          <TableCell key={cell.id}>{cell.value}</TableCell>
-                        ))}
-                      </TableRow>
+    <DataTable rows={rows} headers={headers}>
+      {({ rows, headers, getTableProps, getHeaderProps, getRowProps }) => (
+        <TableContainer className={classes.table}>
+          <Table {...getTableProps()}>
+            <TableHead>
+              <TableRow>
+                {headers.map((header, index) => {
+                  const { key: _key, ...headerProps } = getHeaderProps({
+                    header,
+                  });
+                  return (
+                    <TableHeader key={'header--' + index} {...headerProps}>
+                      {header.header}
+                    </TableHeader>
+                  );
+                })}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rows.map((row, index) => {
+                const { key: _key, ...rowProps } = getRowProps({ row });
+                return (
+                  <TableRow key={'row--' + index} {...rowProps}>
+                    {row.cells.map((cell) => (
+                      <TableCell
+                        key={cell.id}
+                        onMouseDown={
+                          // Annotator column is not a score — skip it
+                          onCellMouseDown && cell.info.header !== 'annotator'
+                            ? () => onCellMouseDown(cell.info.header, row.id)
+                            : undefined
+                        }
+                      >
+                        {cell.value}
+                      </TableCell>
                     ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-          </DataTable>
-        </div>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
-    </>
+    </DataTable>
   );
 }

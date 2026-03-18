@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,10 +50,30 @@
   width: 15%;
 }
 
-.tagContainer {
-  display: flex;
-  row-gap: $spacing-02;
-  align-items: baseline;
+.tagList {
+  :global(.cds--tag) {
+    margin: $spacing-01;
+  }
+}
+
+.agreementTag {
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--cds-tag-background-cool-gray);
+  color: var(--cds-tag-color-cool-gray);
+  border-radius: 1rem;
+  min-block-size: 1.5rem;
+  padding-inline: $spacing-03;
+  margin: $spacing-01;
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-weight: var(--cds-label-01-font-weight, 400);
+  line-height: var(--cds-label-01-line-height, 1.33333);
+  vertical-align: middle;
+}
+
+.agreementTagDisabled {
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 .filtersBtnTooltip {

@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,16 +55,14 @@ export default memo(function HomePage({ page }: Props) {
             {page.subtitleLink != null && (
               <>
                 {' '}
-                <Link href={page.subtitleLink.href} passHref legacyBehavior>
-                  <CarbonLink
-                    inline
-                    target={
-                      page.subtitleLink.openInNewTab ? '_blank' : undefined
-                    }
-                  >
-                    {page.subtitleLink.content}
-                  </CarbonLink>
-                </Link>
+                <CarbonLink
+                  as={Link}
+                  href={page.subtitleLink.href}
+                  inline
+                  target={page.subtitleLink.openInNewTab ? '_blank' : undefined}
+                >
+                  {page.subtitleLink.content}
+                </CarbonLink>
               </>
             )}
           </p>

@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,13 +17,13 @@
  **/
 
 import { isEmpty, intersectionWith, unionWith, isEqual } from 'lodash';
-import { Metric, TaskEvaluation } from '@/src/types';
+import { Metric, ModelResult } from '@/src/types';
 import { castToNumber } from '@/src/utilities/metrics';
 
 // ===================================================================================
 //                                CONSTANTS
 // ===================================================================================
-export const PLACHOLDER_EXPRESSION_TEXT = '{}';
+export const PLACEHOLDER_EXPRESSION_TEXT = '{}';
 export enum EXPRESSION_OPERATORS {
   // Logical operators
   AND = '$and',
@@ -44,10 +44,8 @@ export function validate(
   values?: (string | number)[],
   parent?: string,
 ): string | null {
-  // Step 1: Identify all the keys
   const keys = Object.keys(expression);
 
-  // Step 2: In case of operator presence
   const operators = keys.filter((key) => key.startsWith('$'));
   if (operators.length > 1) {
     return `More than one operator [${operators.join(', ')}] on the same level in the expression`;
@@ -113,9 +111,7 @@ export function validate(
       }
     }
   } else {
-    // Step 3: In case of operator less expression
     for (let idx = 0; idx < keys.length; idx++) {
-      // Step 3.a: If model IDs are provided, make sure key is one of those model IDs
       if (modelIds && !modelIds.includes(keys[idx])) {
         return `Model ("${keys[idx]}") does not exists. Please use one for the following models: ${modelIds.join(', ')}`;
       }
@@ -151,40 +147,32 @@ export function validate(
 }
 
 export function evaluate(
-  evaluationsPerTaskPerModel: {
-    [key: string]: { [key: string]: TaskEvaluation };
+  resultsPerTaskPerModel: {
+    [key: string]: { [key: string]: ModelResult };
   },
   expression: object,
   metric: Metric,
   annotator?: string,
-): TaskEvaluation[] {
-  // Step 1: Initialize necessary variables
-  const eligibleEvaluations: TaskEvaluation[] = [];
-
-  // Step 2: Identify all the keys
+): ModelResult[] {
+  const eligibleResults: ModelResult[] = [];
   const keys = Object.keys(expression);
 
-  // Step 3: In case of operator presence
   const operators = keys.filter((key) => key.startsWith('$'));
   if (operators.length === 1) {
     const operator = operators[0];
 
-    // Step 3.a: In case of a logical operator
     if (
       operator === EXPRESSION_OPERATORS.AND ||
       operator === EXPRESSION_OPERATORS.OR
     ) {
-      // Step 3.a.i: Initialize necessary variables
-      const results: TaskEvaluation[][] = [];
+      const results: ModelResult[][] = [];
 
-      // Step 3.a.ii: Identify evaluations meeting nested expression
       expression[operator].forEach((condition) => {
         results.push(
-          evaluate(evaluationsPerTaskPerModel, condition, metric, annotator),
+          evaluate(resultsPerTaskPerModel, condition, metric, annotator),
         );
       });
 
-      // Step 3.a.iii: Apply intersection ('$and') or union ('$or') logic based on the logical operator
       if (operator === EXPRESSION_OPERATORS.AND) {
         return intersectionWith(...results, isEqual);
       } else {
@@ -192,29 +180,19 @@ export function evaluate(
       }
     }
   } else {
-    // Step 3: In case of expression without logical operators
-    // Step 3.a: Iterate over evaluations for each task
-    Object.values(evaluationsPerTaskPerModel).forEach((evaluationPerModel) => {
-      // Step 3.a.i: Initialize necessary variables
+    // No logical operator: check each task's results against per-model conditions
+    Object.values(resultsPerTaskPerModel).forEach((evaluationPerModel) => {
       let satisfy: boolean = true;
 
-      // Step 3.a.ii: Iterate over conditions for each model in the expression
       for (let idx = 0; idx < keys.length; idx++) {
-        // Step 3.a.ii.*: Check if evaluation exists
         if (!evaluationPerModel.hasOwnProperty(keys[idx])) {
           satisfy = false;
           break;
         }
 
-        // Step 3.a.ii.**: Fetch evaluation, value and expected value condition
         const evaluation = evaluationPerModel[keys[idx]];
 
-        // Step 3.a.ii.***: Calculate value
-        /**
-         * annotator specific value if annotator is specified
-         * OR
-         * aggregate value
-         */
+        // Use annotator-specific value when available, otherwise aggregate
         let value: string | number;
         if (annotator) {
           if (!evaluation[metric.name].hasOwnProperty(annotator)) {
@@ -232,47 +210,60 @@ export function evaluate(
           );
         }
 
-        // Step 3.a.ii.*****: Extract expection from expression
         const expectation = expression[keys[idx]];
 
-        // Step 3.a.ii.******: In case of expectation is an expression
         if (typeof expectation === 'object') {
           // Extract comparison operator from expectation expression
           const operator = Object.keys(expectation).filter((key) =>
             key.startsWith('$'),
           )[0];
 
-          // If comparison operator is "$gt" OR "$gte"
+          // Unknown operator (e.g. typo like "GT" instead of "$gt") — fail the task
+          // rather than silently passing it through.
+          if (!operator) {
+            satisfy = false;
+            break;
+          }
+
+          const threshold = castToNumber(
+            expectation[operator],
+            metric.values,
+            typeof expectation[operator] === 'string'
+              ? 'displayValue'
+              : 'value',
+          );
+
+          // If comparison operator is "$gt"
           if (
-            (operator === EXPRESSION_OPERATORS.GTE ||
-              operator === EXPRESSION_OPERATORS.GT) &&
-            (isNaN(value) ||
-              value <
-                castToNumber(
-                  expectation[operator],
-                  metric.values,
-                  typeof expectation[operator] === 'string'
-                    ? 'displayValue'
-                    : 'value',
-                ))
+            operator === EXPRESSION_OPERATORS.GT &&
+            (isNaN(value) || value <= threshold)
           ) {
             satisfy = false;
             break;
           }
 
-          // If comparison operator is "$lt" OR "$lte"
+          // If comparison operator is "$gte"
           if (
-            (operator === EXPRESSION_OPERATORS.LTE ||
-              operator === EXPRESSION_OPERATORS.LT) &&
-            (isNaN(value) ||
-              value >
-                castToNumber(
-                  expectation[operator],
-                  metric.values,
-                  typeof expectation[operator] === 'string'
-                    ? 'displayValue'
-                    : 'value',
-                ))
+            operator === EXPRESSION_OPERATORS.GTE &&
+            (isNaN(value) || value < threshold)
+          ) {
+            satisfy = false;
+            break;
+          }
+
+          // If comparison operator is "$lt"
+          if (
+            operator === EXPRESSION_OPERATORS.LT &&
+            (isNaN(value) || value >= threshold)
+          ) {
+            satisfy = false;
+            break;
+          }
+
+          // If comparison operator is "$lte"
+          if (
+            operator === EXPRESSION_OPERATORS.LTE &&
+            (isNaN(value) || value > threshold)
           ) {
             satisfy = false;
             break;
@@ -281,15 +272,7 @@ export function evaluate(
           // If comparison operator is "$eq"
           if (
             operator === EXPRESSION_OPERATORS.EQ &&
-            (isNaN(value) ||
-              value !==
-                castToNumber(
-                  expectation[operator],
-                  metric.values,
-                  typeof expectation[operator] === 'string'
-                    ? 'displayValue'
-                    : 'value',
-                ))
+            (isNaN(value) || value !== threshold)
           ) {
             satisfy = false;
             break;
@@ -298,21 +281,13 @@ export function evaluate(
           // If comparison operator is "$neq"
           if (
             operator === EXPRESSION_OPERATORS.NEQ &&
-            (isNaN(value) ||
-              value ===
-                castToNumber(
-                  expectation[operator],
-                  metric.values,
-                  typeof expectation[operator] === 'string'
-                    ? 'displayValue'
-                    : 'value',
-                ))
+            (isNaN(value) || value === threshold)
           ) {
             satisfy = false;
             break;
           }
         } else {
-          // 3.a.ii.******: In case of expectation is a primitive type ("string"/"number") value
+          // Primitive expectation: direct equality check
           if (
             isNaN(value) ||
             value !==
@@ -328,13 +303,11 @@ export function evaluate(
         }
       }
 
-      // Step 3.a.iii: If satisfy expression requirments, add all evaluations for the current task to eligible evaluations list
       if (satisfy) {
-        eligibleEvaluations.push(...Object.values(evaluationPerModel));
+        eligibleResults.push(...Object.values(evaluationPerModel));
       }
     });
   }
 
-  // Step 4: Return
-  return eligibleEvaluations;
+  return eligibleResults;
 }

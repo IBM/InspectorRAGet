@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,13 +19,21 @@
 'use client';
 
 import { isEmpty } from 'lodash';
-import { useState, useEffect } from 'react';
-import { TextArea, Button } from '@carbon/react';
-import { WarningAlt } from '@carbon/icons-react';
+import { useState } from 'react';
+import {
+  TextArea,
+  Button,
+  Toggletip,
+  ToggletipButton,
+  ToggletipContent,
+  UnorderedList,
+  ListItem,
+} from '@carbon/react';
+import { WarningAlt, Information } from '@carbon/icons-react';
 
 import { Model, Metric } from '@/src/types';
 import {
-  PLACHOLDER_EXPRESSION_TEXT,
+  PLACEHOLDER_EXPRESSION_TEXT,
   validate,
 } from '@/src/utilities/expressions';
 
@@ -50,38 +58,71 @@ export default function ExpressionBuilder({
   metric,
   setExpression,
 }: Props) {
-  // Step 1: Initialize state and necessary variables
   const [updatedExpressionText, setUpdatedExpressionText] = useState<string>(
-    expression ? JSON.stringify(expression) : PLACHOLDER_EXPRESSION_TEXT,
+    expression ? JSON.stringify(expression) : PLACEHOLDER_EXPRESSION_TEXT,
   );
-  const [errorMessage, setErrorMessage] = useState<string>();
 
-  // Step 2: Run effects
-  // Step 2.a: Validate expression when updated
-  useEffect(() => {
+  // Derive validation error directly during render — no need for separate state
+  const errorMessage = (() => {
     try {
-      // Step 2.a: Check JSON validity
-      const updatedExpression = JSON.parse(updatedExpressionText);
-
-      // Step 2.b: Check expression validity
-      const errorMessage = validate(
-        updatedExpression,
+      return validate(
+        JSON.parse(updatedExpressionText),
         models?.map((model) => model.modelId),
       );
-      if (errorMessage) {
-        setErrorMessage(errorMessage);
-      } else {
-        setErrorMessage(undefined);
-      }
-    } catch (err) {
-      setErrorMessage('Invalid JSON');
+    } catch {
+      return 'Invalid JSON';
     }
-  }, [updatedExpressionText]);
+  })();
 
   return (
     <div className={classes.page}>
       <TextArea
-        labelText="Expression"
+        labelText={
+          <div className={classes.labelWithTooltip}>
+            <span>Expression</span>
+            <Toggletip align={'bottom-left'}>
+              <ToggletipButton label="Syntax reference">
+                <Information />
+              </ToggletipButton>
+              <ToggletipContent className={classes.syntaxReference}>
+                <p>
+                  <strong>Operators</strong>
+                </p>
+                <p>
+                  Comparison: $eq &nbsp;$neq &nbsp;$gt &nbsp;$gte &nbsp;$lt
+                  &nbsp;$lte
+                </p>
+                <p>Logical: $and &nbsp;$or</p>
+                <p>
+                  <strong>Examples</strong>
+                </p>
+                <UnorderedList>
+                  <ListItem>
+                    Single model: {`{ "model-id": { "$gt": 0.8 } }`}
+                  </ListItem>
+                  <ListItem>
+                    Multi-model:{' '}
+                    {`{ "model-a": { "$gte": 3 }, "model-b": { "$lt": 2 } }`}
+                  </ListItem>
+                  <ListItem>
+                    AND:{' '}
+                    {`{ "$and": [{ "model-a": { "$gt": 0.8 } }, { "model-b": { "$gt": 0.7 } }] }`}
+                  </ListItem>
+                  <ListItem>
+                    OR:{' '}
+                    {`{ "$or": [{ "model-a": { "$eq": "good" } }, { "model-b": { "$eq": "good" } }] }`}
+                  </ListItem>
+                </UnorderedList>
+                {models && (
+                  <p>
+                    <strong>Available model IDs: </strong>
+                    {models.map((m) => m.modelId).join(', ')}
+                  </p>
+                )}
+              </ToggletipContent>
+            </Toggletip>
+          </div>
+        }
         placeholder={JSON.stringify(expression)}
         value={updatedExpressionText}
         disabled={
@@ -119,10 +160,7 @@ export default function ExpressionBuilder({
           kind="secondary"
           disabled={expression === undefined || isEmpty(expression)}
           onClick={() => {
-            // Step 1: Reset updated expression text
             setUpdatedExpressionText('{}');
-
-            // Step 2: Reset expression
             if (setExpression) {
               setExpression({});
             }

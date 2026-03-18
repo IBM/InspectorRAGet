@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,13 @@ import {
 } from '@carbon/react';
 import { WarningAlt, WarningAltFilled } from '@carbon/icons-react';
 
-import { Task, Model, TaskEvaluation } from '@/src/types';
+import {
+  Task,
+  Model,
+  ModelResult,
+  ToolCallRecord,
+  outputAsText,
+} from '@/src/types';
 import { truncate } from '@/src/utilities/strings';
 import { areObjectsIntersecting } from '@/src/utilities/objects';
 import Filters from '@/src/components/filters/Filters';
@@ -47,107 +53,106 @@ import classes from './PredictionsTable.module.scss';
 
 const MAX_NUM_ROWS = 150;
 
-// ===================================================================================
-//                               COMPUTE FUNCTIONS
-// ===================================================================================
-/**
- * Helper function to compute evaluations table headers and rows
- * @param tasks eligible tasks
- * @param evaluations full set of evaluations
- * @returns
- */
+// --- Helpers ---
+
+// Renders a tool call as a compact readable signature: get_weather(city="Boston")
+function formatCallSignature(call: ToolCallRecord): string {
+  const args = Object.entries(call.arguments)
+    .map(([k, v]) => `${k}=${JSON.stringify(v)}`)
+    .join(', ');
+  return `${call.name}(${args})`;
+}
+
+// --- Compute functions ---
+
+/** Build table rows from the task list, attaching model predictions for each eligible task. */
 function populateTableRows(
   tasks: Task[],
-  evaluations: TaskEvaluation[],
+  results: ModelResult[],
   eligibleTaskIDs: Set<string>,
 ) {
-  // Step 1: Collate predictions per task
-  const evaluationsPerTask = new Map<string, TaskEvaluation[]>();
-  evaluations.forEach((evaluation) => {
-    if (eligibleTaskIDs.has(evaluation.taskId)) {
-      const evaluationsForTask = evaluationsPerTask.get(evaluation.taskId);
-      if (evaluationsForTask) {
-        evaluationsPerTask.set(evaluation.taskId, [
-          ...evaluationsForTask,
-          evaluation,
-        ]);
+  // Collate results per task
+  const resultsPerTask = new Map<string, ModelResult[]>();
+  results.forEach((result) => {
+    if (eligibleTaskIDs.has(result.taskId)) {
+      const existingResults = resultsPerTask.get(result.taskId);
+      if (existingResults) {
+        resultsPerTask.set(result.taskId, [...existingResults, result]);
       } else {
-        evaluationsPerTask.set(evaluation.taskId, [evaluation]);
+        resultsPerTask.set(result.taskId, [result]);
       }
     }
   });
 
-  // Step 2: Formulate rows
   const rows: { [key: string]: string }[] = [];
   tasks.forEach((task) => {
     if (eligibleTaskIDs.has(task.taskId)) {
-      // Step 2.a: Add query string
       const row = { id: task.taskId, task: task.taskId };
       if (typeof task.input === 'string') {
         row['task'] = truncate(task.input, 80);
-      } else if (
-        Array.isArray(task.input) &&
-        task.input[task.input.length - 1].hasOwnProperty('text') &&
-        task.input[task.input.length - 1]['text']
-      ) {
-        row['task'] = truncate(task.input[task.input.length - 1]['text'], 80);
-      } else if (
-        Array.isArray(task.input) &&
-        task.input[task.input.length - 1].hasOwnProperty('role') &&
-        (task.input[task.input.length - 1]['role'] === 'system' ||
-          task.input[task.input.length - 1]['role'] === 'developer' ||
-          task.input[task.input.length - 1]['role'] === 'user' ||
-          task.input[task.input.length - 1]['role'] === 'assistant') &&
-        task.input[task.input.length - 1].hasOwnProperty('content') &&
-        task.input[task.input.length - 1]['content']
-      ) {
-        row['task'] = truncate(
-          task.input[task.input.length - 1]['content'],
-          80,
-        );
+      } else if (Array.isArray(task.input)) {
+        if (task.input[task.input.length - 1].hasOwnProperty('text')) {
+          // Legacy utterance format { speaker, text }
+          row['task'] = truncate(task.input[task.input.length - 1]['text'], 80);
+        } else {
+          // OpenAI message format — show the last user message so tool/assistant
+          // turns at the end of the thread don't obscure the actual question.
+          const lastUserMsg = [...task.input]
+            .reverse()
+            .find((m) => m.role === 'user');
+          if (lastUserMsg?.content) {
+            row['task'] = truncate(lastUserMsg['content'], 80);
+          }
+        }
       }
 
-      // Step 2.b: Add first target, if present
+      // Add first target, if present. Render text targets as strings and
+      // tool_calls targets as compact function signatures.
       if (task.targets && !isEmpty(task.targets)) {
         row['targets'] = task.targets
-          .map((target) => [target.text])
-          .filter((entry) => entry !== undefined);
+          .map((target) => {
+            if (target.type === 'text') return [target.value];
+            if (target.type === 'tool_calls')
+              return [target.calls.map(formatCallSignature).join(', ')];
+            return [];
+          })
+          .filter((entry) => entry.length > 0);
       }
-      // Step 3.b: Add model responses
-      const taskEvaluations = evaluationsPerTask.get(task.taskId);
-      if (taskEvaluations) {
-        taskEvaluations.forEach((evaluation) => {
-          row[evaluation.modelId] = evaluation.modelResponse;
+
+      // Add model responses — render tool_calls output as function signatures.
+      const taskResults = resultsPerTask.get(task.taskId);
+      if (taskResults) {
+        taskResults.forEach((result) => {
+          const msg = result.output[0];
+          row[result.modelId] =
+            msg?.tool_calls && msg.tool_calls.length > 0
+              ? msg.tool_calls.map(formatCallSignature).join(', ')
+              : outputAsText(result.output);
         });
       }
 
-      // Step 2.c: Add formulated row
       rows.push(row);
     }
   });
 
-  // Step 3: Return
   return rows;
 }
 
-// ===================================================================================
-//                               MAIN FUNCTION
-// ===================================================================================
+// --- Main component ---
+
 export default function PredictionsTable({
   tasks,
   models,
-  evaluations,
+  results,
   filters,
 }: {
   tasks: Task[];
   models: Model[];
-  evaluations: TaskEvaluation[];
+  results: ModelResult[];
   filters: { [key: string]: string[] };
 }) {
-  // Step 1: Initialize state and necessary variables
   const [selectedModels, setSelectedModels] = useState<Model[]>(models);
   const [showTargets, setShowTargets] = useState<boolean>(true);
-  const [showWarning, setShowWarning] = useState<boolean>(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedFilters, setSelectedFilters] = useState<{
@@ -157,8 +162,7 @@ export default function PredictionsTable({
     [],
   );
 
-  // Step 2: Run effects
-  // Step 2.a: Identify eligible task IDs based on selected filters
+  // Identify eligible task IDs based on selected filters
   const eligibleTaskIDs = useMemo(() => {
     if (!isEmpty(selectedFilters)) {
       const taskIds: Set<string> = new Set<string>();
@@ -174,28 +178,17 @@ export default function PredictionsTable({
     }
   }, [tasks, selectedFilters]);
 
-  // Step 2.b: Populate table rows
+  // Populate table rows, sampling if the total exceeds MAX_NUM_ROWS
   const rows = useMemo(() => {
-    const tableRows = populateTableRows(tasks, evaluations, eligibleTaskIDs);
-    if (tableRows.length > MAX_NUM_ROWS) {
-      // Add warning to indicate that only limited rows are shown, if not visible already
-      if (!showWarning) {
-        setShowWarning(true);
-      }
+    const tableRows = populateTableRows(tasks, results, eligibleTaskIDs);
+    return tableRows.length > MAX_NUM_ROWS
+      ? sampleSize(tableRows, MAX_NUM_ROWS)
+      : tableRows;
+  }, [tasks, results, eligibleTaskIDs]);
 
-      // Limit number of rows
-      return sampleSize(tableRows, MAX_NUM_ROWS);
-    } else {
-      // Remove previsouly set warning, if necessary
-      if (showWarning) {
-        setShowWarning(false);
-      }
+  const showWarning = rows.length === MAX_NUM_ROWS;
 
-      return tableRows;
-    }
-  }, [tasks, evaluations, showWarning, eligibleTaskIDs]);
-
-  // Step 2.c: Adjust headers based on selectedModels and show target flat
+  // Adjust headers based on selected models and show-targets toggle
   const headers = useMemo(() => {
     return [
       {
@@ -214,15 +207,12 @@ export default function PredictionsTable({
     ].filter(Boolean);
   }, [showTargets, selectedModels]);
 
-  // Step 2.d: Set visble rows
   useEffect(() => {
-    // Set visible rows
     setVisibleRows(
       rows.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize),
     );
   }, [rows, page, pageSize]);
 
-  // Step 3: Render
   return (
     <>
       {headers && rows && (
@@ -230,11 +220,11 @@ export default function PredictionsTable({
           <div className={classes.selectors}>
             <div className={classes.modelSelector}>
               <FilterableMultiSelect
-                id={'model-selector'}
+                id={'predictions-model-selector'}
                 titleText="Choose models"
                 items={models}
-                initialSelectedItems={selectedModels}
-                itemToString={(item) => item.name}
+                selectedItems={selectedModels}
+                itemToString={(item) => (item ? item.name : '')}
                 onChange={(event) => {
                   setSelectedModels(event.selectedItems);
                 }}
@@ -299,50 +289,54 @@ export default function PredictionsTable({
                     <Table {...getTableProps()}>
                       <TableHead>
                         <TableRow>
-                          {headers.map((header, index) => (
-                            <TableHeader
-                              key={'header--' + index}
-                              {...getHeaderProps({ header })}
-                            >
-                              {header.header}
-                            </TableHeader>
-                          ))}
+                          {headers.map((header, index) => {
+                            const { key: _key, ...headerProps } =
+                              getHeaderProps({ header });
+                            return (
+                              <TableHeader
+                                key={'header--' + index}
+                                {...headerProps}
+                              >
+                                {header.header}
+                              </TableHeader>
+                            );
+                          })}
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {rows.map((row, index) => (
-                          <TableRow
-                            key={'row--' + index}
-                            {...getRowProps({ row })}
-                          >
-                            {row.cells.map((cell) => (
-                              <TableCell key={cell.id}>
-                                {cell.info.header === 'targets' && cell.value
-                                  ? cell.value.length > 1
-                                    ? cell.value.map(
-                                        (targetText, targetIdx) => (
-                                          <>
-                                            <span>
+                        {rows.map((row, index) => {
+                          const { key: _key, ...rowProps } = getRowProps({
+                            row,
+                          });
+                          return (
+                            <TableRow key={'row--' + index} {...rowProps}>
+                              {row.cells.map((cell) => (
+                                <TableCell key={cell.id}>
+                                  {cell.info.header === 'targets' && cell.value
+                                    ? cell.value.length > 1
+                                      ? cell.value.map(
+                                          (targetText, targetIdx) => (
+                                            <span key={targetIdx}>
                                               Target {targetIdx + 1}
                                               :&nbsp;
                                               {parse(
                                                 DOMPurify.sanitize(targetText),
                                               )}
+                                              <div
+                                                className={
+                                                  classes.targetSeparator
+                                                }
+                                              />
                                             </span>
-                                            <div
-                                              className={
-                                                classes.targetSeparator
-                                              }
-                                            />
-                                          </>
-                                        ),
-                                      )
-                                    : parse(DOMPurify.sanitize(cell.value[0]))
-                                  : parse(DOMPurify.sanitize(cell.value))}
-                              </TableCell>
-                            ))}
-                          </TableRow>
-                        ))}
+                                          ),
+                                        )
+                                      : parse(DOMPurify.sanitize(cell.value[0]))
+                                    : parse(DOMPurify.sanitize(cell.value))}
+                                </TableCell>
+                              ))}
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </TableContainer>
@@ -353,9 +347,7 @@ export default function PredictionsTable({
                 pageSizes={[10, 25, 50, 100, 200]}
                 totalItems={rows.length}
                 onChange={(event: any) => {
-                  // Step 1: Update page size
                   setPageSize(event.pageSize);
-                  // Step 2: Update page
                   setPage(event.page);
                 }}
               ></Pagination>

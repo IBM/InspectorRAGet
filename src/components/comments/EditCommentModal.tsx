@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import { useState, useMemo } from 'react';
 import { Modal, TextArea, TextInput, Tag } from '@carbon/react';
 
 import { Model, TaskComment } from '@/src/types';
+import { provenanceTag } from '@/src/components/comments/provenanceTag';
 import classes from './AddCommentModal.module.scss';
 
 // ===================================================================================
@@ -29,8 +30,8 @@ import classes from './AddCommentModal.module.scss';
 // ===================================================================================
 interface Props {
   comment: TaskComment;
-  onSubmit: Function;
-  onClose: Function;
+  onSubmit: (updated: TaskComment) => void;
+  onClose: () => void;
   open: boolean;
   models: Map<string, Model> | undefined;
 }
@@ -45,26 +46,21 @@ export default function EditCommentModal({
   open = false,
   models,
 }: Props) {
+  // Pre-populate from the existing comment so editing author alone enables Save.
   const [commentText, setCommentText] = useState<string>(comment.comment);
-  const [author, setAuthor] = useState<string>('');
-  const [tag, tagType] = useMemo(() => {
-    if (comment.provenance) {
-      if (comment.provenance.component.includes('input')) {
-        return ['Input', 'purple'];
-      } else if (comment.provenance.component.includes('document_')) {
-        return ['Contexts', 'cyan'];
-      } else if (
-        comment.provenance.component.includes('::evaluation::response')
-      ) {
-        const modelId = comment.provenance.component.split('::')[0];
-        return [`${models?.get(modelId)?.name || modelId}`, 'green'];
-      } else {
-        return ['Generic', 'gray'];
-      }
-    } else {
-      return ['Generic', 'gray'];
-    }
-  }, [comment.provenance, models]);
+  const [author, setAuthor] = useState<string>(comment.author);
+
+  const {
+    primary: [tag, tagType],
+    detail,
+  } = useMemo(
+    () => provenanceTag(comment.provenance, models),
+    [comment.provenance, models],
+  );
+
+  // Enable Save when either text or author changed, as long as neither is empty.
+  const unchanged =
+    commentText === comment.comment && author === comment.author;
 
   return (
     <Modal
@@ -74,18 +70,29 @@ export default function EditCommentModal({
       primaryButtonText="Save"
       secondaryButtonText="Cancel"
       onRequestSubmit={() => {
-        onSubmit({ ...comment, comment: commentText, author: author });
+        onSubmit({
+          ...comment,
+          comment: commentText,
+          author,
+          updated: Date.now(),
+        });
       }}
       onRequestClose={() => {
         onClose();
       }}
-      primaryButtonDisabled={commentText === comment.comment || author === ''}
+      primaryButtonDisabled={unchanged || commentText === '' || author === ''}
     >
       <div className={classes.commentProvenance}>
         <span className={classes.label}>Provenance</span>
-        <Tag className={classes.commentProvenanceTag} type={tagType}>
-          {tag}
-        </Tag>
+        <div className={classes.provenanceTags}>
+          <Tag type={tagType}>{tag}</Tag>
+          {detail && (
+            <>
+              <Tag type="teal">{detail[0]}</Tag>
+              <Tag type="cool-gray">{detail[1]}</Tag>
+            </>
+          )}
+        </div>
       </div>
 
       <TextArea
@@ -114,13 +121,26 @@ export default function EditCommentModal({
         id="author-input"
         type="text"
         labelText="Author"
-        defaultValue={author}
+        value={author}
         invalid={author === ''}
         invalidText={'author cannot be empty'}
         onChange={(event) => {
           setAuthor(event.target.value);
         }}
       />
+
+      {/* Read-only finding display — editing findings is out of scope */}
+      {comment.finding && (
+        <div
+          className={classes.commentProvenance}
+          style={{ marginTop: '1rem' }}
+        >
+          <span className={classes.label}>Structured finding</span>
+          <Tag type="teal" size="sm">
+            {comment.finding.type}
+          </Tag>
+        </div>
+      )}
     </Modal>
   );
 }

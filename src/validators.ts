@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,11 +30,16 @@ function isValidModel(model): boolean {
   return true;
 }
 
-function isValidMetricValue(mval): boolean {
+// categorical is passed as true when validating values on a categorical metric,
+// which requires each entry to also carry a numericValue for aggregation/sorting.
+function isValidMetricValue(mval, categorical = false): boolean {
   if (
     !mval.hasOwnProperty('value') ||
     (typeof mval.value !== 'string' && typeof mval.value !== 'number')
   ) {
+    return false;
+  }
+  if (categorical && typeof mval.numericValue !== 'number') {
     return false;
   }
   return true;
@@ -75,7 +80,9 @@ function isValidMetric(metric): boolean {
   }
   if (
     metric.hasOwnProperty('values') &&
-    !metric.values.every((v) => isValidMetricValue(v))
+    !metric.values.every((v) =>
+      isValidMetricValue(v, metric.type === 'categorical'),
+    )
   ) {
     return false;
   }
@@ -91,6 +98,39 @@ function isValidDocument(document): boolean {
   return true;
 }
 
+// Current task types. Legacy types (rag, text_generation, json_generation, chat)
+// are auto-migrated by migrator.ts before validation of loaded data, but we
+// still accept them here so files can be validated before migration runs.
+const VALID_TASK_TYPES = new Set([
+  'qa',
+  'generation',
+  'rag',
+  'tool_calling',
+  'agentic',
+  // Legacy names — accepted during validation; processor.ts migrates them on load
+  'text_generation',
+  'json_generation',
+  'chat',
+]);
+
+// Task types that require a `contexts` field.
+// Only 'qa' (single-turn retrieval) requires contexts.
+// The new 'rag' type is multi-turn conversation and does not need contexts at the task level.
+const CONTEXTS_REQUIRED_TYPES = new Set(['qa']);
+
+function isValidToolDefinition(tool): boolean {
+  if (typeof tool.name !== 'string') {
+    return false;
+  }
+  if (
+    tool.hasOwnProperty('parameters') &&
+    typeof tool.parameters !== 'object'
+  ) {
+    return false;
+  }
+  return true;
+}
+
 function isValidTask(task): boolean {
   if (!task.hasOwnProperty('taskId')) {
     return false;
@@ -98,19 +138,27 @@ function isValidTask(task): boolean {
 
   if (
     !task.hasOwnProperty('taskType') ||
-    (task.taskType !== 'rag' &&
-      task.taskType !== 'text_generation' &&
-      task.taskType !== 'json_generation' &&
-      task.taskType !== 'chat')
+    !VALID_TASK_TYPES.has(task.taskType)
   ) {
     return false;
   }
 
-  if (task.taskType === 'rag' && !task.hasOwnProperty('contexts')) {
+  if (
+    CONTEXTS_REQUIRED_TYPES.has(task.taskType) &&
+    !task.hasOwnProperty('contexts')
+  ) {
     return false;
   }
 
   if (!task.hasOwnProperty('input')) {
+    return false;
+  }
+
+  if (
+    task.hasOwnProperty('tools') &&
+    (!Array.isArray(task.tools) ||
+      !task.tools.every((tool) => isValidToolDefinition(tool)))
+  ) {
     return false;
   }
 
@@ -121,7 +169,7 @@ export function validateInputData(data): { valid: boolean; reasons: string[] } {
   let valid: boolean = true;
   const reasons: string[] = [];
 
-  // Step : Validate models releated requirements
+  // Validate models
   if (!data.hasOwnProperty('models')) {
     valid = false;
     reasons.push("Missing mandatory 'models' information.");
@@ -136,7 +184,7 @@ export function validateInputData(data): { valid: boolean; reasons: string[] } {
     );
   }
 
-  // Step : Validate metrics releated requirements
+  // Validate metrics
   if (!data.hasOwnProperty('metrics')) {
     valid = false;
     reasons.push("Missing mandatory 'metrics' information.");
@@ -151,7 +199,7 @@ export function validateInputData(data): { valid: boolean; reasons: string[] } {
     );
   }
 
-  // Step : Validate tasks releated requirements
+  // Validate tasks
   if (!data.hasOwnProperty('tasks')) {
     valid = false;
     reasons.push("Missing mandatory 'tasks' information.");
@@ -166,14 +214,15 @@ export function validateInputData(data): { valid: boolean; reasons: string[] } {
     );
   }
 
-  // Step : Validate documents releated requirements
+  // Validate documents: required when any task is type 'qa' or legacy 'rag'
   if (
-    data.tasks.some((task) => task.taskType === 'rag') &&
+    data.hasOwnProperty('tasks') &&
+    data.tasks.some((task) => CONTEXTS_REQUIRED_TYPES.has(task.taskType)) &&
     !data.hasOwnProperty('documents')
   ) {
     valid = false;
     reasons.push(
-      "Missing mandatory 'documents' information when `rag` type tasks are included.",
+      "Missing mandatory 'documents' information when `qa` or `rag` type tasks are included.",
     );
   }
   if (
@@ -186,10 +235,10 @@ export function validateInputData(data): { valid: boolean; reasons: string[] } {
     );
   }
 
-  // Step : Validate evaluations releated requirements
-  if (!data.hasOwnProperty('evaluations')) {
+  // Validate results (post-migration name; 'evaluations' is the legacy v1 name)
+  if (!data.hasOwnProperty('results') && !data.hasOwnProperty('evaluations')) {
     valid = false;
-    reasons.push("Missing mandatory 'evaluations' information.");
+    reasons.push("Missing mandatory 'results' information.");
   }
 
   return { valid: valid, reasons: reasons };

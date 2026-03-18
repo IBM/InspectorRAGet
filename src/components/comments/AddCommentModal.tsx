@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,16 +21,24 @@
 import { useState, useMemo } from 'react';
 import { Modal, TextArea, TextInput, Tag } from '@carbon/react';
 
-import { TaskCommentProvenance, Model } from '@/src/types';
+import {
+  TaskCommentProvenance,
+  CommentFinding,
+  Model,
+  Task,
+} from '@/src/types';
+import CommentFindingEditor from '@/src/components/comments/CommentFindingEditor';
+import { provenanceTag } from '@/src/components/comments/provenanceTag';
 import classes from './AddCommentModal.module.scss';
 
 interface Props {
-  onSubmit: Function;
-  onClose: Function;
+  onSubmit: (comment: string, author: string, finding?: CommentFinding) => void;
+  onClose: () => void;
   open: boolean;
   selectedText?: string;
   provenance: TaskCommentProvenance | undefined;
   models: Map<string, Model> | undefined;
+  task?: Task;
 }
 
 export default function AddCommentModal({
@@ -40,28 +48,28 @@ export default function AddCommentModal({
   open = false,
   provenance,
   models,
+  task,
 }: Props) {
   const [comment, setComment] = useState<string>('');
   const [author, setAuthor] = useState<string>('');
-  const [tag, tagType] = useMemo(() => {
-    if (provenance) {
-      if (
-        provenance.component.includes('input') ||
-        provenance.component.includes('messages')
-      ) {
-        return ['Input', 'purple'];
-      } else if (provenance.component.includes('document_')) {
-        return ['Contexts', 'cyan'];
-      } else if (provenance.component.includes('::evaluation::response')) {
-        const modelId = provenance.component.split('::')[0];
-        return [`${models?.get(modelId)?.name || modelId}`, 'green'];
-      } else {
-        return ['Generic', 'gray'];
-      }
-    } else {
-      return ['Generic', 'gray'];
-    }
-  }, [provenance, models]);
+  const [finding, setFinding] = useState<CommentFinding | undefined>(undefined);
+
+  const {
+    primary: [tag, tagType],
+    detail,
+  } = useMemo(() => provenanceTag(provenance, models), [provenance, models]);
+
+  function handleClose() {
+    setComment('');
+    setFinding(undefined);
+    onClose();
+  }
+
+  function handleSubmit() {
+    onSubmit(comment, author, finding ?? undefined);
+    setComment('');
+    setFinding(undefined);
+  }
 
   return (
     <Modal
@@ -70,27 +78,21 @@ export default function AddCommentModal({
       modalLabel="Comments"
       primaryButtonText="Add"
       secondaryButtonText="Cancel"
-      onRequestSubmit={() => {
-        //Step 1: Clear comment & update default value for author
-        setComment('');
-
-        // Step 2: Register comment and close modal
-        onSubmit(comment, author);
-      }}
-      onRequestClose={() => {
-        //Step 1: Clear comment
-        setComment('');
-
-        // Step 2: Close modal
-        onClose();
-      }}
+      onRequestSubmit={handleSubmit}
+      onRequestClose={handleClose}
       primaryButtonDisabled={comment === '' || author === ''}
     >
       <div className={classes.commentProvenance}>
         <span className={classes.label}>Provenance</span>
-        <Tag className={classes.commentProvenanceTag} type={tagType}>
-          {tag}
-        </Tag>
+        <div className={classes.provenanceTags}>
+          <Tag type={tagType}>{tag}</Tag>
+          {detail && (
+            <>
+              <Tag type="teal">{detail[0]}</Tag>
+              <Tag type="cool-gray">{detail[1]}</Tag>
+            </>
+          )}
+        </div>
       </div>
 
       <TextArea
@@ -126,6 +128,16 @@ export default function AddCommentModal({
           setAuthor(event.target.value);
         }}
       />
+
+      <details className={classes.findingSection}>
+        <summary>Add structured finding (optional)</summary>
+        <CommentFindingEditor
+          taskType={task?.taskType}
+          tools={task?.tools}
+          value={finding}
+          onChange={setFinding}
+        />
+      </details>
     </Modal>
   );
 }

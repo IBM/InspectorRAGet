@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@
 'use client';
 
 import { isEmpty } from 'lodash';
-import Link from 'next/link';
 import cx from 'classnames';
 import { useState, useMemo, useEffect } from 'react';
 import {
@@ -27,23 +26,15 @@ import {
   FilterableMultiSelect,
   Select,
   SelectItem,
-  Toggletip,
-  ToggletipButton,
-  ToggletipContent,
-  ToggletipActions,
+  DefinitionTooltip,
   Loading,
 } from '@carbon/react';
-import { Information, WarningAlt } from '@carbon/icons-react';
+import { WarningAlt } from '@carbon/icons-react';
 import { GroupedBarChart } from '@carbon/charts-react';
 import { ScaleTypes } from '@carbon/charts';
 
 import { useTheme } from '@/src/theme';
-import {
-  TaskEvaluation,
-  Model,
-  Metric,
-  FilterationResponse,
-} from '@/src/types';
+import { ModelResult, Model, Metric, FilterationResponse } from '@/src/types';
 import {
   AgreementLevels,
   AgreementLevelDefinitions,
@@ -60,25 +51,23 @@ import Filters from '@/src/components/filters/Filters';
 import '@carbon/charts-react/styles.css';
 import classes from './ModelBehavior.module.scss';
 
-// ===================================================================================
-//                                TYPES
-// ===================================================================================
+// --- Types ---
+
 type record = {
   taskId: string;
   modelName: string;
 };
 
 interface Props {
-  evaluationsPerMetric: { [key: string]: TaskEvaluation[] };
+  resultsPerMetric: { [key: string]: ModelResult[] };
   models: Model[];
   metrics: Metric[];
   filters: { [key: string]: string[] };
   onTaskSelection: Function;
 }
 
-// ===================================================================================
-//                               COMPUTE FUNCTIONS
-// ===================================================================================
+// --- Compute functions ---
+
 function compareChartData(
   a: { group: string; key: string | number; value: number },
   b: { group: string; key: string | number; value: number },
@@ -148,19 +137,17 @@ function prepareGroupBarChartData(
     });
 }
 
-// ===================================================================================
-//                               MAIN FUNCTION
-// ===================================================================================
+// --- Main component ---
+
 export default function ModelBehavior({
-  evaluationsPerMetric,
+  resultsPerMetric,
   models,
   metrics,
   filters,
   onTaskSelection,
 }: Props) {
-  // Step 1: Initialize state and necessary variables
   const [loading, setLoading] = useState<boolean>(false);
-  const [WindowWidth, setWindowWidth] = useState<number>(
+  const [windowWidth, setWindowWidth] = useState<number>(
     global?.window && window.innerWidth,
   );
   const agreementLevels: {
@@ -193,68 +180,50 @@ export default function ModelBehavior({
   const [graphRecords, setGraphRecords] = useState<
     (record & { [key: string]: string | number })[]
   >([]);
-  const [visibleEvaluations, setVisibleEvaluations] = useState<
-    TaskEvaluation[]
-  >([]);
+  const [visibleResults, setVisibleResults] = useState<ModelResult[]>([]);
   const [filterationWorker, setFilterationWorker] = useState<Worker>();
 
-  // Step 2: Run effects
-  // Step 2.a: Adjust graph width & heigh based on window size
   useEffect(() => {
-    // Step 1: Define window resize function
     const handleWindowResize = () => {
       setWindowWidth(window.innerWidth);
     };
 
-    // Step 2: Add event listener
     window.addEventListener('resize', handleWindowResize);
 
-    // Step 3: Cleanup to remove event listener
     return () => {
       window.removeEventListener('resize', handleWindowResize);
     };
   }, []);
 
-  // Step 2.b: Fetch theme
   const { theme } = useTheme();
 
-  // Step 2.c: Set up a worker to perform data filtering
+  // Initialize a Web Worker for background data filtering
   useEffect(() => {
-    // Step 2.c.i: Create a new web worker
     const worker = new Worker(
       new URL('../../workers/filter.ts', import.meta.url),
     );
 
-    // Step 2.c.ii: Set up event listener for messages from the worker
     worker.onmessage = function (event: MessageEvent<FilterationResponse>) {
-      // Step 2.c.ii.*: Copy over response data
-      const { records, evaluations } = event.data;
-
-      // Step 2.c.ii.**: Update graph records and visible evaluations
+      const { records, results } = event.data;
       setGraphRecords(records);
-      setVisibleEvaluations(evaluations);
-
-      // Step 2.c.ii.***: Set loading to false
+      setVisibleResults(results);
       setLoading(false);
     };
 
-    // Step 2.c.iii: Save the worker instance to state
     setFilterationWorker(worker);
 
-    // Step 2.c.iv: Clean up the worker when the component unmounts
     return () => {
       worker.terminate();
     };
   }, []);
 
-  // Step 2.d: Identify all annotators
   const annotators = useMemo(() => {
     const annotatorsSet = new Set();
     const humanMetricNames = metrics
       .filter((metric) => metric.author === 'human')
       .map((metric) => metric.name);
-    for (const [metric, evaluations] of Object.entries(evaluationsPerMetric)) {
-      evaluations.forEach((evaluation) => {
+    for (const [metric, results] of Object.entries(resultsPerMetric)) {
+      results.forEach((evaluation) => {
         if (humanMetricNames.includes(metric)) {
           Object.keys(evaluation[metric]).forEach((annotator) =>
             annotatorsSet.add(annotator),
@@ -264,20 +233,19 @@ export default function ModelBehavior({
     }
 
     return annotatorsSet;
-  }, [evaluationsPerMetric, metrics]);
+  }, [resultsPerMetric, metrics]);
 
-  // Step 2.e: Reset expression, if selected metric changes
+  // Reset expression when selected metric changes
   useEffect(() => {
     setExpression({});
   }, [selectedMetric]);
 
-  // Step 2.f: Configure available majority values, if metric is selected
   const availableAllowedValues = useMemo(() => {
     if (selectedMetric && selectedMetric.type === 'categorical') {
       if (selectedAnnotator) {
         return Array.from(
           new Set(
-            evaluationsPerMetric[selectedMetric.name]
+            resultsPerMetric[selectedMetric.name]
               .filter(
                 (evaluation) =>
                   evaluation[selectedMetric.name].hasOwnProperty(
@@ -296,7 +264,7 @@ export default function ModelBehavior({
 
       return Array.from(
         new Set(
-          evaluationsPerMetric[selectedMetric.name]
+          resultsPerMetric[selectedMetric.name]
             .filter(
               (evaluation) =>
                 evaluation.hasOwnProperty(`${selectedMetric.name}_agg`) &&
@@ -314,33 +282,30 @@ export default function ModelBehavior({
 
     return undefined;
   }, [
-    evaluationsPerMetric,
+    resultsPerMetric,
     selectedModels,
     selectedMetric,
     selectedAnnotator,
     selectedAgreementLevels,
   ]);
 
-  // Step 2.g: Update selected values list
   useEffect(() => {
     setSelectedAllowedValues(availableAllowedValues);
   }, [availableAllowedValues]);
 
-  // Step 2.h: Calculate graph data and prepare visible evaluations list
   /**
    * Adjust graph records based on selected agreement levels, models and annotator
-   * visibleEvaluations : [{taskId: <>, modelId: <>, [metric]_score: <>}]
+   * visibleResults : [{taskId: <>, modelId: <>, [metric]_score: <>}]
    * NOTE: * [metric]_score field avialable metrics (all OR single)
    *       * score field could be either majority score or individual annotator's score (based on selected annotator)
    */
   useEffect(() => {
-    // Step 1: Set loading to true
     setLoading(true);
 
-    // Step 2: Post message to worker to unblock main thread
+    // Delegate filtering to Web Worker to keep the main thread responsive
     if (filterationWorker) {
       filterationWorker.postMessage({
-        evaluationsPerMetric: evaluationsPerMetric,
+        resultsPerMetric: resultsPerMetric,
         filters: selectedFilters,
         models: selectedModels,
         expression: expression,
@@ -350,8 +315,9 @@ export default function ModelBehavior({
         annotator: selectedAnnotator,
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- filterationWorker is a stable Web Worker instance; including it would not change behavior
   }, [
-    evaluationsPerMetric,
+    resultsPerMetric,
     selectedAgreementLevels,
     selectedModels,
     selectedMetric,
@@ -361,7 +327,6 @@ export default function ModelBehavior({
     expression,
   ]);
 
-  // Step 2.i: Calculate visible tasks per metric
   const visibleTasksPerMetric = useMemo(() => {
     const data = {};
     metrics.forEach((metric) => {
@@ -377,7 +342,6 @@ export default function ModelBehavior({
     return data;
   }, [graphRecords, metrics]);
 
-  // Step 2.j: Buckets human and algoritmic metrics into individual buckets
   const [humanMetrics, algorithmMetrics] = useMemo(() => {
     const hMetrics: Metric[] = [];
     const aMetrics: Metric[] = [];
@@ -392,25 +356,24 @@ export default function ModelBehavior({
     return [hMetrics, aMetrics];
   }, [metrics]);
 
-  // Step 3: Render
   return (
     <div className={classes.page}>
-      {loading ? <Loading /> : null}
+      {loading ? <Loading small withOverlay={false} /> : null}
       <div className={classes.selectors}>
         <div className={classes.modelSelector}>
           <FilterableMultiSelect
-            id={'model-selector'}
+            id={'model-behavior-model-selector'}
             titleText="Choose models"
             items={models}
-            initialSelectedItems={selectedModels}
-            itemToString={(item) => item.name}
+            selectedItems={selectedModels}
+            itemToString={(item) => (item ? item.name : '')}
             onChange={(event) => {
               setSelectedModels(event.selectedItems);
             }}
             invalid={selectedModels.length === 0}
             invalidText={'You must select a model to review.'}
           ></FilterableMultiSelect>
-          <div>
+          <div className={classes.tagList}>
             {selectedModels.map((model) => {
               return (
                 <Tag type={'cool-gray'} key={'model-' + model.modelId}>
@@ -436,7 +399,7 @@ export default function ModelBehavior({
             id={'agreement-level-selector'}
             titleText="Choose agreement level"
             helperText="Applicable to categorical metrics only"
-            initialSelectedItems={selectedAgreementLevels}
+            selectedItems={selectedAgreementLevels}
             items={agreementLevels}
             itemToString={(item) => (item ? item.key : '')}
             onChange={(event) => {
@@ -452,37 +415,25 @@ export default function ModelBehavior({
           ></FilterableMultiSelect>
           <div>
             {selectedAgreementLevels.map((agreementLevel, idx) => {
+              const disabled = selectedAnnotator
+                ? true
+                : selectedMetric && selectedMetric.type != 'categorical';
               return (
-                <Tag
-                  type={'cool-gray'}
+                <span
                   key={'agreementLevel-' + agreementLevel.key}
-                  disabled={
-                    selectedAnnotator
-                      ? true
-                      : selectedMetric && selectedMetric.type != 'categorical'
-                  }
+                  className={cx(classes.agreementTag, {
+                    [classes.agreementTagDisabled]: disabled,
+                  })}
                 >
-                  <div className={classes.tagContainer}>
+                  <DefinitionTooltip
+                    definition={AgreementLevelDefinitions[agreementLevel.key]}
+                    align={'bottom'}
+                    openOnHover={true}
+                    autoAlign={true}
+                  >
                     {agreementLevel.key}
-                    <Toggletip align={'bottom-left'}>
-                      <ToggletipButton label="Additional information">
-                        <Information />
-                      </ToggletipButton>
-                      <ToggletipContent>
-                        <p>{AgreementLevelDefinitions[agreementLevel.key]}</p>
-                        <ToggletipActions>
-                          <Link
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            href="custom-link"
-                          >
-                            Reference
-                          </Link>
-                        </ToggletipActions>
-                      </ToggletipContent>
-                    </Toggletip>
-                  </div>
-                </Tag>
+                  </DefinitionTooltip>
+                </span>
               );
             })}
           </div>
@@ -525,22 +476,16 @@ export default function ModelBehavior({
         selectedAllowedValues ? (
           <div className={classes.allowedValueSelector}>
             <FilterableMultiSelect
-              key={'allowed-value-selector' + selectedAllowedValues.join('::')}
               id={'majority-value-selector'}
               titleText="Choose majority value"
-              initialSelectedItems={selectedAllowedValues}
+              selectedItems={selectedAllowedValues}
               items={availableAllowedValues}
               itemToString={(item) => {
-                if (Array.isArray(item)) {
-                  return item.map((entry) => {
-                    extractMetricDisplayValue(entry, selectedMetric.values);
-                  });
-                } else if (
-                  typeof item === 'string' ||
-                  typeof item === 'number'
-                ) {
+                if (item === null || item === undefined) return '';
+                if (typeof item === 'string' || typeof item === 'number') {
                   return extractMetricDisplayValue(item, selectedMetric.values);
                 }
+                return String(item);
               }}
               onChange={(event) => {
                 setSelectedAllowedValues(event.selectedItems);
@@ -552,7 +497,7 @@ export default function ModelBehavior({
               }
               invalidText={'You must select allowed values.'}
             ></FilterableMultiSelect>
-            <div>
+            <div className={classes.tagList}>
               {selectedAllowedValues.map((value) => {
                 return (
                   <Tag type={'cool-gray'} key={'value-' + value}>
@@ -567,7 +512,7 @@ export default function ModelBehavior({
 
       {!isEmpty(filters) ? (
         <Filters
-          keyPrefix="PerformanceOverview"
+          keyPrefix="ModelBehavior"
           filters={filters}
           selectedFilters={selectedFilters}
           setSelectedFilters={setSelectedFilters}
@@ -604,7 +549,7 @@ export default function ModelBehavior({
                   <h5 className={classes.graphTitle}>
                     <strong>{extractMetricDisplayName(metric)}</strong>
                     <span>{`(${visibleTasksPerMetric[metric.name]}/${
-                      evaluationsPerMetric[metric.name].length / models.length
+                      resultsPerMetric[metric.name].length / models.length
                     })`}</span>
                   </h5>
                   <GroupedBarChart
@@ -629,8 +574,8 @@ export default function ModelBehavior({
                         },
                       },
                       width:
-                        humanMetrics.length == 1
-                          ? `${Math.round(WindowWidth * 0.5)}px`
+                        humanMetrics.length === 1
+                          ? `${Math.round(windowWidth * 0.5)}px`
                           : '500px',
                       height: '500px',
                       toolbar: {
@@ -668,7 +613,7 @@ export default function ModelBehavior({
                   <h5 className={classes.graphTitle}>
                     <strong>{extractMetricDisplayName(metric)}</strong>
                     <span>{`(${visibleTasksPerMetric[metric.name]}/${
-                      evaluationsPerMetric[metric.name].length / models.length
+                      resultsPerMetric[metric.name].length / models.length
                     })`}</span>
                   </h5>
                   <GroupedBarChart
@@ -718,7 +663,7 @@ export default function ModelBehavior({
           <h5 className={classes.graphTitle}>
             <strong>{extractMetricDisplayName(selectedMetric)}</strong>
             <span>{`(${visibleTasksPerMetric[selectedMetric.name]}/${
-              evaluationsPerMetric[selectedMetric.name].length / models.length
+              resultsPerMetric[selectedMetric.name].length / models.length
             })`}</span>
           </h5>
           <GroupedBarChart
@@ -742,7 +687,7 @@ export default function ModelBehavior({
                   mapsTo: 'key',
                 },
               },
-              width: `${Math.round(WindowWidth * 0.8)}px`,
+              width: `${Math.round(windowWidth * 0.8)}px`,
               height: '500px',
               toolbar: {
                 enabled: false,
@@ -759,12 +704,12 @@ export default function ModelBehavior({
         </div>
       ) : null}
 
-      {selectedMetric && !isEmpty(visibleEvaluations) ? (
+      {selectedMetric && !isEmpty(visibleResults) ? (
         <div className={classes.row}>
           <h4>Tasks</h4>
           <TasksTable
             metrics={[selectedMetric]}
-            evaluations={visibleEvaluations}
+            results={visibleResults}
             models={selectedModels}
             filters={filters}
             annotator={selectedAnnotator}

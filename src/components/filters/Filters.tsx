@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 
 import { isEmpty, omit } from 'lodash';
 import cx from 'classnames';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 import {
   FilterableMultiSelect,
@@ -68,18 +68,11 @@ export default function Filters({
   expression,
   setExpression,
 }: Props) {
-  // Step 1: Initialize state and necessary variables
-  const [showFilters, setShowFilters] = useState<boolean>(true);
+  // Hide the filter panel when neither static filters nor expression builder is available
+  const [showFilters, setShowFilters] = useState<boolean>(
+    filters !== undefined || setExpression !== undefined,
+  );
 
-  // Step 2: Run effects
-  // Step 2.a: If no filters are found, set show filters to false
-  useEffect(() => {
-    if (filters === undefined && setExpression === undefined) {
-      setShowFilters(false);
-    }
-  }, [filters]);
-
-  // Step 3: Render
   return (
     <>
       {filters && (
@@ -132,7 +125,7 @@ export default function Filters({
                             `${keyPrefix}-filter` +
                             filterType +
                             '-selector--' +
-                            `${selectedFilters && selectedFilters[filterType] && selectedFilters[filterType] === values}`
+                            ``
                           }
                           className={classes.filterSelector}
                         >
@@ -160,7 +153,7 @@ export default function Filters({
                               </div>
                             }
                             items={values}
-                            initialSelectedItems={
+                            selectedItems={
                               selectedFilters && selectedFilters[filterType]
                                 ? selectedFilters[filterType]
                                 : []
@@ -214,10 +207,7 @@ export default function Filters({
                 return (
                   <div
                     key={
-                      `${keyPrefix}-filter` +
-                      filterType +
-                      '-selector--' +
-                      `${selectedFilters && selectedFilters[filterType] && selectedFilters[filterType] === values}`
+                      `${keyPrefix}-filter` + filterType + '-selector--' + ``
                     }
                     className={classes.filterSelector}
                   >
@@ -243,7 +233,7 @@ export default function Filters({
                         </div>
                       }
                       items={values}
-                      initialSelectedItems={
+                      selectedItems={
                         selectedFilters && selectedFilters[filterType]
                           ? selectedFilters[filterType]
                           : []

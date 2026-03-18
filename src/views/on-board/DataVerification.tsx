@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,6 +44,7 @@ import classes from './DataVerification.module.scss';
 
 interface Props {
   data: RawData;
+  migrated?: boolean;
   onNext: Function;
   onPrev: Function;
 }
@@ -58,19 +59,19 @@ interface disqualifiedTaskRow {
 
 export default memo(function DataVerificationView({
   data,
+  migrated = false,
   onNext,
   onPrev,
 }: Props) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [visibleRows, setVisibleRows] = useState<disqualifiedTaskRow[]>([]);
 
   const { createNotification } = useNotification();
 
-  // Process and validate data
+  // Process and validate data; migrated flag carries through from the upload step
   const [exampleData, disqualifiedTasks, notifications] = useMemo(
-    () => processData(data),
-    [data],
+    () => processData(data, migrated),
+    [data, migrated],
   );
 
   useEffect(() => {
@@ -79,6 +80,7 @@ export default memo(function DataVerificationView({
         createNotification(notification);
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- createNotification is a stable context function; adding it would not change behavior
   }, [notifications]);
 
   // Create headers, rows and visible rows
@@ -127,11 +129,8 @@ export default memo(function DataVerificationView({
     });
   }, [disqualifiedTasks]);
 
-  useEffect(
-    () =>
-      setVisibleRows(
-        rows.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize),
-      ),
+  const visibleRows = useMemo(
+    () => rows.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize),
     [rows, page, pageSize],
   );
 
@@ -165,33 +164,39 @@ export default memo(function DataVerificationView({
                         <Table {...getTableProps()}>
                           <TableHead>
                             <TableRow>
-                              {headers.map((header, index) => (
-                                <TableHeader
-                                  key={'header--' + index}
-                                  {...getHeaderProps({ header })}
-                                >
-                                  {header.header}
-                                </TableHeader>
-                              ))}
+                              {headers.map((header, index) => {
+                                const { key: _key, ...headerProps } =
+                                  getHeaderProps({ header });
+                                return (
+                                  <TableHeader
+                                    key={'header--' + index}
+                                    {...headerProps}
+                                  >
+                                    {header.header}
+                                  </TableHeader>
+                                );
+                              })}
                             </TableRow>
                           </TableHead>
                           <TableBody>
-                            {rows.map((row, index) => (
-                              <TableRow
-                                key={'row--' + index}
-                                {...getRowProps({ row })}
-                              >
-                                {row.cells.map((cell) => (
-                                  <TableCell key={cell.id}>
-                                    {cell.info.header != 'taskId'
-                                      ? !isEmpty(cell.value)
-                                        ? [...cell.value].join(', ')
-                                        : '-'
-                                      : cell.value}
-                                  </TableCell>
-                                ))}
-                              </TableRow>
-                            ))}
+                            {rows.map((row, index) => {
+                              const { key: _key, ...rowProps } = getRowProps({
+                                row,
+                              });
+                              return (
+                                <TableRow key={'row--' + index} {...rowProps}>
+                                  {row.cells.map((cell) => (
+                                    <TableCell key={cell.id}>
+                                      {cell.info.header != 'taskId'
+                                        ? !isEmpty(cell.value)
+                                          ? [...cell.value].join(', ')
+                                          : '-'
+                                        : cell.value}
+                                    </TableCell>
+                                  ))}
+                                </TableRow>
+                              );
+                            })}
                           </TableBody>
                         </Table>
                       </TableContainer>
@@ -201,9 +206,7 @@ export default memo(function DataVerificationView({
                     pageSizes={[10]}
                     totalItems={rows.length}
                     onChange={(event: any) => {
-                      // Step 1: Update page size
                       setPageSize(event.pageSize);
-                      // Step 2: Update page
                       setPage(event.page);
                     }}
                   ></Pagination>

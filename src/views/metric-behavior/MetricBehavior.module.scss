@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2023-2025 InspectorRAGet Team
+ * Copyright 2023-present InspectorRAGet Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,10 +42,10 @@
   width: 15%;
 }
 
-.tagContainer {
-  display: flex;
-  row-gap: $spacing-02;
-  align-items: baseline;
+.tagList {
+  :global(.cds--tag) {
+    margin: $spacing-01;
+  }
 }
 
 .row {
