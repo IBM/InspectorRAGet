@@ -127,6 +127,27 @@ describe('migrateData', () => {
     expect(data.evaluations).toBeUndefined();
   });
 
+  it('migrates model_response to output Message array', () => {
+    const raw = {
+      tasks: [{ task_id: 't1', task_type: 'generation', input: 'hi' }],
+      models: [],
+      metrics: [],
+      evaluations: [
+        {
+          task_id: 't1',
+          model_id: 'm1',
+          model_response: 'hello world',
+          annotations: {},
+        },
+      ],
+    };
+    const { data } = migrateData(raw);
+    expect(data.results[0].output).toEqual([
+      { role: 'assistant', content: 'hello world' },
+    ]);
+    expect(data.results[0].model_response).toBeUndefined();
+  });
+
   it('migrates all tasks in a multi-task file', () => {
     const raw = {
       name: 'Multi',

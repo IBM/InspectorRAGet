@@ -76,10 +76,7 @@ export default function HidePanel({
       </Tooltip>
       {show ? (
         <div className={cx(classes.container, show && classes.visible)}>
-          <div
-            key={'models-limiter--' + `${ignoredModels === models}`}
-            className={classes.selector}
-          >
+          <div key={'models-limiter'} className={classes.selector}>
             <FilterableMultiSelect
               id={'model--limiter'}
               titleText={
@@ -95,7 +92,7 @@ export default function HidePanel({
                 </div>
               }
               items={models}
-              initialSelectedItems={ignoredModels}
+              selectedItems={ignoredModels}
               itemToString={(item) => (item ? item.name || item.modelId : '')}
               onChange={(event) => {
                 setIgnoredModels(event.selectedItems);
@@ -114,10 +111,7 @@ export default function HidePanel({
               })}
             </div>
           </div>
-          <div
-            key={'metrics-limiter--' + `${ignoredMetrics === metrics}`}
-            className={classes.selector}
-          >
+          <div key={'metrics-limiter'} className={classes.selector}>
             <FilterableMultiSelect
               id={'metrics--limiter'}
               titleText={
@@ -133,7 +127,7 @@ export default function HidePanel({
                 </div>
               }
               items={metrics}
-              initialSelectedItems={ignoredMetrics}
+              selectedItems={ignoredMetrics}
               itemToString={(item) =>
                 item ? item.displayName || item.name : ''
               }

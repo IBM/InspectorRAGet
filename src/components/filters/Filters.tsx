@@ -125,7 +125,7 @@ export default function Filters({
                             `${keyPrefix}-filter` +
                             filterType +
                             '-selector--' +
-                            `${selectedFilters && selectedFilters[filterType] && selectedFilters[filterType] === values}`
+                            ``
                           }
                           className={classes.filterSelector}
                         >
@@ -153,7 +153,7 @@ export default function Filters({
                               </div>
                             }
                             items={values}
-                            initialSelectedItems={
+                            selectedItems={
                               selectedFilters && selectedFilters[filterType]
                                 ? selectedFilters[filterType]
                                 : []
@@ -207,10 +207,7 @@ export default function Filters({
                 return (
                   <div
                     key={
-                      `${keyPrefix}-filter` +
-                      filterType +
-                      '-selector--' +
-                      `${selectedFilters && selectedFilters[filterType] && selectedFilters[filterType] === values}`
+                      `${keyPrefix}-filter` + filterType + '-selector--' + ``
                     }
                     className={classes.filterSelector}
                   >
@@ -236,7 +233,7 @@ export default function Filters({
                         </div>
                       }
                       items={values}
-                      initialSelectedItems={
+                      selectedItems={
                         selectedFilters && selectedFilters[filterType]
                           ? selectedFilters[filterType]
                           : []

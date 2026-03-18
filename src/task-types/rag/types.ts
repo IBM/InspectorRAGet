@@ -16,7 +16,16 @@
  *
  **/
 
-import type { ToolCallRecord } from '@/src/types';
+import type { Step, ToolCallRecord } from '@/src/types';
+
+// A retry attempt the model made before arriving at the final output.
+// Captures intermediate content/tool_calls and any error that triggered the retry.
+export interface MessageRetry {
+  content?: string;
+  tool_calls?: ToolCallRecord[];
+  error?: string;
+  steps?: Step[];
+}
 
 export interface Message {
   role: 'system' | 'developer' | 'user' | 'tool' | 'assistant';
@@ -24,6 +33,12 @@ export interface Message {
   content?: any;
   name?: string;
   timestamp?: number;
+  // tool_calls is declared here so that output[0].tool_calls is accessible without
+  // casting when iterating over Message[] output. The concrete type is ToolCallRecord[].
+  tool_calls?: ToolCallRecord[];
+  // Per-message execution trace. Optional — views degrade gracefully when absent.
+  steps?: Step[];
+  retries?: MessageRetry[];
 }
 
 export interface SystemMessage extends Message {

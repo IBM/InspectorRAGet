@@ -70,6 +70,11 @@ onmessage = function (event: MessageEvent<FilterationRequest>) {
 
       evaluate(resultsPerTaskPerModel, expression, metric, annotator).forEach(
         (evaluation) => {
+          // Skip results whose modelId is not in the current selected models index.
+          // This can happen when evaluate() returns all models for a matching task
+          // and some of those models were deselected by the user.
+          if (!models[evaluation.modelId]) return;
+
           records.push({
             taskId: evaluation.taskId,
             modelName: models[evaluation.modelId].name,

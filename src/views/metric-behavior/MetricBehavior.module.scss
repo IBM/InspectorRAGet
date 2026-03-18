@@ -42,10 +42,10 @@
   width: 15%;
 }
 
-.tagContainer {
-  display: flex;
-  row-gap: $spacing-02;
-  align-items: baseline;
+.tagList {
+  :global(.cds--tag) {
+    margin: $spacing-01;
+  }
 }
 
 .row {

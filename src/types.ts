@@ -24,6 +24,7 @@ export type {
 } from '@/src/task-types/qa/types';
 export type {
   Message,
+  MessageRetry,
   SystemMessage,
   DeveloperMessage,
   UserMessage,
@@ -34,6 +35,7 @@ export type {
 export type { ToolDefinition } from '@/src/task-types/tool_calling/types';
 
 import type { RetrievedDocument } from '@/src/task-types/qa/types';
+import type { Message } from '@/src/task-types/rag/types';
 import type { ToolDefinition } from '@/src/task-types/tool_calling/types';
 
 export interface Notification {
@@ -151,7 +153,7 @@ export interface Aggregator {
 
 // --- Tool call record ---
 
-// Represents a single tool call made by a model. Used in both TaskOutput
+// Represents a single tool call made by a model. Used in Message.tool_calls
 // (what the model actually called) and TaskTarget (ground-truth expected calls).
 // dependsOn references another ToolCallRecord.id for nested/compositional calls
 // (e.g. f(g(x)) where the outer call depends on the inner result).
@@ -208,21 +210,24 @@ export type Step =
       endTimestamp?: number;
     };
 
-// --- Task output ---
+// --- Output helper ---
 
-// Typed union of what a model can produce. 'text' covers RAG, generation, and
-// plain chat responses. 'tool_calls' covers tool-calling and agentic turns.
-// Array length on tool_calls encodes cardinality: 1 = single call, >1 = parallel.
-export type TaskOutput =
-  | { type: 'text'; value: string }
-  | { type: 'tool_calls'; calls: ToolCallRecord[] };
-
-// Returns the string value of a TaskOutput, trimmed.
+// Returns the text content of a model output as a trimmed string.
+// For Message[] output (current schema), reads the content of the first message.
+// For plain string output (legacy, pre-migration), trims and returns as-is.
+// The cast-to-any guard handles v2 files authored before the Message[] migration
+// that still carry {type:'text',value} — the migrator skips them because their
+// schema_version is already 2, so they arrive here with the old shape at runtime.
 // Call sites that render HTML should additionally pass the result through DOMPurify.sanitize().
-export function outputAsText(output: TaskOutput | string): string {
-  // Guard for legacy string values that slipped past the migrator (e.g. in tests).
+export function outputAsText(output: Message[] | string): string {
   if (typeof output === 'string') return output.trim();
-  return output.type === 'text' ? output.value.trim() : '';
+  // Runtime guard for old v2 {type:'text',value} shape
+  const first = output[0] as any;
+  if (first?.type === 'text' && typeof first.value === 'string')
+    return first.value.trim();
+  const content = first?.content;
+  if (typeof content === 'string') return content.trim();
+  return '';
 }
 
 // --- Task target ---
@@ -230,9 +235,23 @@ export function outputAsText(output: TaskOutput | string): string {
 // Discriminated union of expected outputs. 'text' covers most task types.
 // 'tool_calls' is the ground-truth for tool-calling evaluation.
 // 'state' and 'image' are reserved for future agentic and multimodal support.
+//
+// For 'tool_calls', the two levels of variance are:
+//   - Which function(s) to call: represented as separate TaskTarget entries in
+//     the outer targets[] array. Each entry is a complete, self-contained correct
+//     answer (AND semantics: all calls in `calls` are required).
+//   - How to call a function (argument variance only, same function name): captured
+//     in `alternatives`, keyed by ToolCallRecord.id. Each entry is a list of
+//     ToolCallRecords with the same function name but different acceptable argument
+//     values. `alternatives` does NOT represent different function choices — use a
+//     separate TaskTarget for that.
 export type TaskTarget =
   | { type: 'text'; value: string }
-  | { type: 'tool_calls'; calls: ToolCallRecord[] }
+  | {
+      type: 'tool_calls';
+      calls: ToolCallRecord[];
+      alternatives?: Record<string, ToolCallRecord[]>;
+    }
   | { type: 'state'; description: string } // agentic, future
   | { type: 'image'; url: string }; // multimodal, future
 
@@ -299,16 +318,15 @@ export interface Annotation {
 export interface ModelResult {
   readonly taskId: string;
   readonly modelId: string;
-  // Typed output union — 'text' for RAG/generation/chat, 'tool_calls' for tool-calling tasks.
-  readonly output: TaskOutput;
+  // Model output as a Message array. For all current task types this is a
+  // single-element array; multiple messages are reserved for the agentic task type.
+  // Steps for the output live on output[0].steps rather than as a top-level field.
+  readonly output: Message[];
   // Metric scores keyed by metric name, then by evaluator/annotator id.
   readonly scores: {
     [key: string]: { [key: string]: Annotation };
   };
   readonly contexts?: RetrievedDocument[];
-  // Per-model execution trace. Optional — views degrade gracefully when absent.
-  // When auto-constructed from a message thread, the UI shows a caveat.
-  readonly modelSteps?: Step[];
   // Evaluation-level comments (e.g. noting an acceptable-but-different tool call).
   // Distinct from task.comments which are task-level observations shared across models.
   comments?: TaskComment[];

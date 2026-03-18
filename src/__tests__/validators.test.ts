@@ -39,11 +39,11 @@ function validData() {
         input: 'Hello world',
       },
     ],
-    evaluations: [
+    results: [
       {
         taskId: 't1',
         modelId: 'm1',
-        output: { type: 'text', value: 'Hi' },
+        output: [{ role: 'assistant', content: 'Hi' }],
         scores: { accuracy: { system: { value: 0.9 } } },
       },
     ],
@@ -70,11 +70,11 @@ function validQAData() {
         contexts: [{ documentId: 'd1' }],
       },
     ],
-    evaluations: [
+    results: [
       {
         taskId: 't1',
         modelId: 'm1',
-        output: { type: 'text', value: 'X is...' },
+        output: [{ role: 'assistant', content: 'X is...' }],
         scores: { faithfulness: { system: { value: 0.8 } } },
       },
     ],
@@ -333,15 +333,15 @@ describe('validateInputData', () => {
     expect(result.valid).toBe(false);
   });
 
-  // --- Evaluations validation ---
+  // --- Results validation ---
 
-  it('rejects data missing evaluations', () => {
+  it('rejects data missing results', () => {
     const data = validData();
-    delete (data as any).evaluations;
+    delete (data as any).results;
     const result = validateInputData(data);
     expect(result.valid).toBe(false);
     expect(result.reasons).toContain(
-      "Missing mandatory 'evaluations' information.",
+      "Missing mandatory 'results' information.",
     );
   });
 

@@ -123,9 +123,10 @@ function populateTableRows(
       const taskResults = resultsPerTask.get(task.taskId);
       if (taskResults) {
         taskResults.forEach((result) => {
+          const msg = result.output[0];
           row[result.modelId] =
-            result.output.type === 'tool_calls'
-              ? result.output.calls.map(formatCallSignature).join(', ')
+            msg?.tool_calls && msg.tool_calls.length > 0
+              ? msg.tool_calls.map(formatCallSignature).join(', ')
               : outputAsText(result.output);
         });
       }

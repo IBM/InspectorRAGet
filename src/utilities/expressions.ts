@@ -23,7 +23,7 @@ import { castToNumber } from '@/src/utilities/metrics';
 // ===================================================================================
 //                                CONSTANTS
 // ===================================================================================
-export const PLACHOLDER_EXPRESSION_TEXT = '{}';
+export const PLACEHOLDER_EXPRESSION_TEXT = '{}';
 export enum EXPRESSION_OPERATORS {
   // Logical operators
   AND = '$and',
@@ -218,37 +218,52 @@ export function evaluate(
             key.startsWith('$'),
           )[0];
 
-          // If comparison operator is "$gt" OR "$gte"
+          // Unknown operator (e.g. typo like "GT" instead of "$gt") — fail the task
+          // rather than silently passing it through.
+          if (!operator) {
+            satisfy = false;
+            break;
+          }
+
+          const threshold = castToNumber(
+            expectation[operator],
+            metric.values,
+            typeof expectation[operator] === 'string'
+              ? 'displayValue'
+              : 'value',
+          );
+
+          // If comparison operator is "$gt"
           if (
-            (operator === EXPRESSION_OPERATORS.GTE ||
-              operator === EXPRESSION_OPERATORS.GT) &&
-            (isNaN(value) ||
-              value <
-                castToNumber(
-                  expectation[operator],
-                  metric.values,
-                  typeof expectation[operator] === 'string'
-                    ? 'displayValue'
-                    : 'value',
-                ))
+            operator === EXPRESSION_OPERATORS.GT &&
+            (isNaN(value) || value <= threshold)
           ) {
             satisfy = false;
             break;
           }
 
-          // If comparison operator is "$lt" OR "$lte"
+          // If comparison operator is "$gte"
           if (
-            (operator === EXPRESSION_OPERATORS.LTE ||
-              operator === EXPRESSION_OPERATORS.LT) &&
-            (isNaN(value) ||
-              value >
-                castToNumber(
-                  expectation[operator],
-                  metric.values,
-                  typeof expectation[operator] === 'string'
-                    ? 'displayValue'
-                    : 'value',
-                ))
+            operator === EXPRESSION_OPERATORS.GTE &&
+            (isNaN(value) || value < threshold)
+          ) {
+            satisfy = false;
+            break;
+          }
+
+          // If comparison operator is "$lt"
+          if (
+            operator === EXPRESSION_OPERATORS.LT &&
+            (isNaN(value) || value >= threshold)
+          ) {
+            satisfy = false;
+            break;
+          }
+
+          // If comparison operator is "$lte"
+          if (
+            operator === EXPRESSION_OPERATORS.LTE &&
+            (isNaN(value) || value > threshold)
           ) {
             satisfy = false;
             break;
@@ -257,15 +272,7 @@ export function evaluate(
           // If comparison operator is "$eq"
           if (
             operator === EXPRESSION_OPERATORS.EQ &&
-            (isNaN(value) ||
-              value !==
-                castToNumber(
-                  expectation[operator],
-                  metric.values,
-                  typeof expectation[operator] === 'string'
-                    ? 'displayValue'
-                    : 'value',
-                ))
+            (isNaN(value) || value !== threshold)
           ) {
             satisfy = false;
             break;
@@ -274,15 +281,7 @@ export function evaluate(
           // If comparison operator is "$neq"
           if (
             operator === EXPRESSION_OPERATORS.NEQ &&
-            (isNaN(value) ||
-              value ===
-                castToNumber(
-                  expectation[operator],
-                  metric.values,
-                  typeof expectation[operator] === 'string'
-                    ? 'displayValue'
-                    : 'value',
-                ))
+            (isNaN(value) || value === threshold)
           ) {
             satisfy = false;
             break;

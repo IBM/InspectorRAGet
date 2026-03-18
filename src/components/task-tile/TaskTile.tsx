@@ -172,44 +172,25 @@ export default memo(function TaskTile({
                 <div className={classes.artifactTitle}>
                   <span>Metrics</span>
                 </div>
-                <Toggletip>
-                  <ToggletipButton label="Additional information">
-                    <Information />
-                  </ToggletipButton>
-                  <ToggletipContent>
-                    <p>Analytics platform supports three kind of metrics</p>
-                    <UnorderedList>
-                      <ListItem className={classes.listItem}>
-                        Go vs No-Go Rubric
-                      </ListItem>
-                      <ListItem className={classes.listItem}>
-                        Intuitive Rubric
-                      </ListItem>
-                      <ListItem className={classes.listItem}>
-                        Detailed Rubric
-                      </ListItem>
-                    </UnorderedList>
-                    <ToggletipActions>
-                      <Link target="_blank" rel="noopener noreferrer" href="">
-                        Reference
-                      </Link>
-                    </ToggletipActions>
-                  </ToggletipContent>
-                </Toggletip>
               </div>
               <div className={classes.artifactValue}>
                 {Array.from(metrics).map((metric, idx) => {
+                  const definition = MetricDefinitions[metric];
                   return (
-                    <Tag type={'cool-gray'} key={'metric-' + idx}>
-                      <DefinitionTooltip
-                        key={'tooltip--metric-' + idx}
-                        definition={MetricDefinitions[metric]}
-                        align={'bottom'}
-                        openOnHover={true}
-                      >
-                        {metric}
-                      </DefinitionTooltip>
-                    </Tag>
+                    <span key={'metric-' + idx} className={classes.metricTag}>
+                      {definition ? (
+                        <DefinitionTooltip
+                          definition={definition}
+                          align={'bottom'}
+                          openOnHover={true}
+                          autoAlign={true}
+                        >
+                          {metric}
+                        </DefinitionTooltip>
+                      ) : (
+                        metric
+                      )}
+                    </span>
                   );
                 })}
               </div>
@@ -269,6 +250,7 @@ export default memo(function TaskTile({
                     )}
                     align={'bottom'}
                     openOnHover={true}
+                    autoAlign={true}
                   >
                     <span>
                       {durationInDays ? durationInDays + ' days ' : ''}

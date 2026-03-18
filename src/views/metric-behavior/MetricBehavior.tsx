@@ -542,7 +542,7 @@ export default memo(function MetricBehavior({
             invalid={selectedModels.length === 0}
             invalidText={'You must select a model to review.'}
           ></FilterableMultiSelect>
-          <div>
+          <div className={classes.tagList}>
             {selectedModels.map((model) => {
               return (
                 <Tag type={'cool-gray'} key={'model-' + model.modelId}>

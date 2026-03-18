@@ -29,8 +29,8 @@
 }
 
 .inputContainer {
-  flex: 0 0 40%;
-  max-width: 40%;
+  flex: 0 0 50%;
+  max-width: 50%;
   height: 100%;
   margin-left: $spacing-03;
   display: flex;
@@ -49,7 +49,7 @@
 .modelsContainer {
   flex: 1 1 0;
   min-width: 0;
-  max-width: 60%;
+  max-width: 50%;
   height: 100%;
   display: flex;
   flex-direction: column;

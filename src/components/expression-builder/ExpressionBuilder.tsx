@@ -20,12 +20,20 @@
 
 import { isEmpty } from 'lodash';
 import { useState } from 'react';
-import { TextArea, Button } from '@carbon/react';
-import { WarningAlt } from '@carbon/icons-react';
+import {
+  TextArea,
+  Button,
+  Toggletip,
+  ToggletipButton,
+  ToggletipContent,
+  UnorderedList,
+  ListItem,
+} from '@carbon/react';
+import { WarningAlt, Information } from '@carbon/icons-react';
 
 import { Model, Metric } from '@/src/types';
 import {
-  PLACHOLDER_EXPRESSION_TEXT,
+  PLACEHOLDER_EXPRESSION_TEXT,
   validate,
 } from '@/src/utilities/expressions';
 
@@ -51,7 +59,7 @@ export default function ExpressionBuilder({
   setExpression,
 }: Props) {
   const [updatedExpressionText, setUpdatedExpressionText] = useState<string>(
-    expression ? JSON.stringify(expression) : PLACHOLDER_EXPRESSION_TEXT,
+    expression ? JSON.stringify(expression) : PLACEHOLDER_EXPRESSION_TEXT,
   );
 
   // Derive validation error directly during render — no need for separate state
@@ -69,7 +77,52 @@ export default function ExpressionBuilder({
   return (
     <div className={classes.page}>
       <TextArea
-        labelText="Expression"
+        labelText={
+          <div className={classes.labelWithTooltip}>
+            <span>Expression</span>
+            <Toggletip align={'bottom-left'}>
+              <ToggletipButton label="Syntax reference">
+                <Information />
+              </ToggletipButton>
+              <ToggletipContent className={classes.syntaxReference}>
+                <p>
+                  <strong>Operators</strong>
+                </p>
+                <p>
+                  Comparison: $eq &nbsp;$neq &nbsp;$gt &nbsp;$gte &nbsp;$lt
+                  &nbsp;$lte
+                </p>
+                <p>Logical: $and &nbsp;$or</p>
+                <p>
+                  <strong>Examples</strong>
+                </p>
+                <UnorderedList>
+                  <ListItem>
+                    Single model: {`{ "model-id": { "$gt": 0.8 } }`}
+                  </ListItem>
+                  <ListItem>
+                    Multi-model:{' '}
+                    {`{ "model-a": { "$gte": 3 }, "model-b": { "$lt": 2 } }`}
+                  </ListItem>
+                  <ListItem>
+                    AND:{' '}
+                    {`{ "$and": [{ "model-a": { "$gt": 0.8 } }, { "model-b": { "$gt": 0.7 } }] }`}
+                  </ListItem>
+                  <ListItem>
+                    OR:{' '}
+                    {`{ "$or": [{ "model-a": { "$eq": "good" } }, { "model-b": { "$eq": "good" } }] }`}
+                  </ListItem>
+                </UnorderedList>
+                {models && (
+                  <p>
+                    <strong>Available model IDs: </strong>
+                    {models.map((m) => m.modelId).join(', ')}
+                  </p>
+                )}
+              </ToggletipContent>
+            </Toggletip>
+          </div>
+        }
         placeholder={JSON.stringify(expression)}
         value={updatedExpressionText}
         disabled={

@@ -19,7 +19,6 @@
 'use client';
 
 import { isEmpty } from 'lodash';
-import Link from 'next/link';
 import cx from 'classnames';
 import { useState, useMemo, useEffect } from 'react';
 import {
@@ -27,13 +26,10 @@ import {
   FilterableMultiSelect,
   Select,
   SelectItem,
-  Toggletip,
-  ToggletipButton,
-  ToggletipContent,
-  ToggletipActions,
+  DefinitionTooltip,
   Loading,
 } from '@carbon/react';
-import { Information, WarningAlt } from '@carbon/icons-react';
+import { WarningAlt } from '@carbon/icons-react';
 import { GroupedBarChart } from '@carbon/charts-react';
 import { ScaleTypes } from '@carbon/charts';
 
@@ -377,7 +373,7 @@ export default function ModelBehavior({
             invalid={selectedModels.length === 0}
             invalidText={'You must select a model to review.'}
           ></FilterableMultiSelect>
-          <div>
+          <div className={classes.tagList}>
             {selectedModels.map((model) => {
               return (
                 <Tag type={'cool-gray'} key={'model-' + model.modelId}>
@@ -403,7 +399,7 @@ export default function ModelBehavior({
             id={'agreement-level-selector'}
             titleText="Choose agreement level"
             helperText="Applicable to categorical metrics only"
-            initialSelectedItems={selectedAgreementLevels}
+            selectedItems={selectedAgreementLevels}
             items={agreementLevels}
             itemToString={(item) => (item ? item.key : '')}
             onChange={(event) => {
@@ -419,37 +415,25 @@ export default function ModelBehavior({
           ></FilterableMultiSelect>
           <div>
             {selectedAgreementLevels.map((agreementLevel, idx) => {
+              const disabled = selectedAnnotator
+                ? true
+                : selectedMetric && selectedMetric.type != 'categorical';
               return (
-                <Tag
-                  type={'cool-gray'}
+                <span
                   key={'agreementLevel-' + agreementLevel.key}
-                  disabled={
-                    selectedAnnotator
-                      ? true
-                      : selectedMetric && selectedMetric.type != 'categorical'
-                  }
+                  className={cx(classes.agreementTag, {
+                    [classes.agreementTagDisabled]: disabled,
+                  })}
                 >
-                  <div className={classes.tagContainer}>
+                  <DefinitionTooltip
+                    definition={AgreementLevelDefinitions[agreementLevel.key]}
+                    align={'bottom'}
+                    openOnHover={true}
+                    autoAlign={true}
+                  >
                     {agreementLevel.key}
-                    <Toggletip align={'bottom-left'}>
-                      <ToggletipButton label="Additional information">
-                        <Information />
-                      </ToggletipButton>
-                      <ToggletipContent>
-                        <p>{AgreementLevelDefinitions[agreementLevel.key]}</p>
-                        <ToggletipActions>
-                          <Link
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            href="https://en.wikipedia.org/wiki/Inter-rater_reliability"
-                          >
-                            Reference
-                          </Link>
-                        </ToggletipActions>
-                      </ToggletipContent>
-                    </Toggletip>
-                  </div>
-                </Tag>
+                  </DefinitionTooltip>
+                </span>
               );
             })}
           </div>
@@ -492,10 +476,9 @@ export default function ModelBehavior({
         selectedAllowedValues ? (
           <div className={classes.allowedValueSelector}>
             <FilterableMultiSelect
-              key={'allowed-value-selector' + selectedAllowedValues.join('::')}
               id={'majority-value-selector'}
               titleText="Choose majority value"
-              initialSelectedItems={selectedAllowedValues}
+              selectedItems={selectedAllowedValues}
               items={availableAllowedValues}
               itemToString={(item) => {
                 if (item === null || item === undefined) return '';
@@ -514,7 +497,7 @@ export default function ModelBehavior({
               }
               invalidText={'You must select allowed values.'}
             ></FilterableMultiSelect>
-            <div>
+            <div className={classes.tagList}>
               {selectedAllowedValues.map((value) => {
                 return (
                   <Tag type={'cool-gray'} key={'value-' + value}>
@@ -529,7 +512,7 @@ export default function ModelBehavior({
 
       {!isEmpty(filters) ? (
         <Filters
-          keyPrefix="PerformanceOverview"
+          keyPrefix="ModelBehavior"
           filters={filters}
           selectedFilters={selectedFilters}
           setSelectedFilters={setSelectedFilters}

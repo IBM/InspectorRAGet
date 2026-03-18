@@ -29,6 +29,12 @@ node_modules
 # Dist files
 dist
 
+# Downloaded benchmark datasets (populated by converters/*/download_dataset.sh)
+converters/*/dataset/
+
+# Local benchmark run outputs for converter testing
+converters/*/runs/
+
 # Development tracking files (local only)
 CLAUDE.md
-PROJECT_TRACKER.md
+.claude

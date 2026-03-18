@@ -303,13 +303,10 @@ export default function ToolCallingTaskView({
               </TabList>
               <TabPanels>
                 {results.map((result) => {
-                  const hasSteps =
-                    Array.isArray(result.modelSteps) &&
-                    result.modelSteps.length > 0;
+                  const steps = result.output[0]?.steps;
+                  const hasSteps = Array.isArray(steps) && steps.length > 0;
                   const hasTimestamps = hasSteps
-                    ? result.modelSteps!.some(
-                        (s) => s.startTimestamp !== undefined,
-                      )
+                    ? steps!.some((s) => s.startTimestamp !== undefined)
                     : false;
 
                   return (
@@ -330,21 +327,22 @@ export default function ToolCallingTaskView({
                         >
                           <ContainedList label="Prediction" kind="on-page">
                             <ContainedListItem>
-                              {result.output.type === 'tool_calls' &&
-                              result.output.calls.length > 0 ? (
+                              {result.output[0]?.tool_calls &&
+                              result.output[0].tool_calls.length > 0 ? (
                                 <div className={classes.callList}>
-                                  {result.output.calls.map((call) => (
+                                  {result.output[0].tool_calls.map((call) => (
                                     <ToolCallCard key={call.id} call={call} />
                                   ))}
                                 </div>
-                              ) : result.output.type === 'text' &&
-                                result.output.value === '' ? (
+                              ) : !result.output[0]?.tool_calls &&
+                                result.output[0]?.content === '' ? (
                                 <span className={classes.noCallBadge}>
                                   No tool call made (correct for irrelevance
                                   tasks)
                                 </span>
-                              ) : result.output.type === 'text' ? (
-                                <p>{result.output.value}</p>
+                              ) : typeof result.output[0]?.content ===
+                                'string' ? (
+                                <p>{result.output[0].content}</p>
                               ) : (
                                 <span className={classes.notProvided}>
                                   No output
@@ -416,7 +414,7 @@ export default function ToolCallingTaskView({
                                     />
                                   )}
                                   <StepGroup
-                                    steps={result.modelSteps!}
+                                    steps={steps!}
                                     onStepMouseDown={(stepId) =>
                                       updateCommentProvenance(
                                         `${result.modelId}::steps::${stepId}`,

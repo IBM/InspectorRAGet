@@ -24,6 +24,25 @@
   flex-direction: column;
 }
 
+.labelWithTooltip {
+  display: inline-flex;
+  align-items: center;
+  column-gap: $spacing-02;
+}
+
+.syntaxReference {
+  :global(.cds--toggletip-content) {
+    min-width: 420px;
+    max-inline-size: unset;
+  }
+
+  li {
+    font-family: monospace;
+    font-size: 0.7rem;
+    color: inherit;
+  }
+}
+
 .actionButtons {
   margin: $spacing-03 0;
   display: flex;

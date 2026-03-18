@@ -25,7 +25,7 @@
 // | 2       | (pending)  | Task type rename: rag→qa/rag, text_generation/            |
 // |         |            | json_generation→generation, chat→rag.                     |
 // |         |            | Evaluation renames: annotations→scores,                   |
-// |         |            | modelResponse→output:{type:'text',value}.                 |
+// |         |            | modelResponse→output:[{role:'assistant',content:value}].  |
 // |         |            | Task targets: {text}→{type:'text',value}.                 |
 // |         |            | Top-level key rename: evaluations→results.                |
 export const CURRENT_SCHEMA_VERSION = 2;
@@ -70,7 +70,7 @@ function migrateV1toV2(raw: Record<string, any>): Record<string, any> {
 
   // Rename evaluation fields.
   // annotations → scores (the old name conflated metric scores with annotation activity).
-  // modelResponse → output:{type:'text', value} (typed union, extensible to tool_calls).
+  // modelResponse → output:[{role:'assistant', content:value}] (Message array).
   // Rename top-level evaluations array to results.
   if (result.evaluations !== undefined && result.results === undefined) {
     result.results = result.evaluations;
@@ -90,7 +90,9 @@ function migrateV1toV2(raw: Record<string, any>): Record<string, any> {
       evaluation.model_response !== undefined &&
       evaluation.output === undefined
     ) {
-      evaluation.output = { type: 'text', value: evaluation.model_response };
+      evaluation.output = [
+        { role: 'assistant', content: evaluation.model_response },
+      ];
       delete evaluation.model_response;
     }
   }

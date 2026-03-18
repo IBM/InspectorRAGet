@@ -235,10 +235,10 @@ export function validateInputData(data): { valid: boolean; reasons: string[] } {
     );
   }
 
-  // Validate evaluations
-  if (!data.hasOwnProperty('evaluations')) {
+  // Validate results (post-migration name; 'evaluations' is the legacy v1 name)
+  if (!data.hasOwnProperty('results') && !data.hasOwnProperty('evaluations')) {
     valid = false;
-    reasons.push("Missing mandatory 'evaluations' information.");
+    reasons.push("Missing mandatory 'results' information.");
   }
 
   return { valid: valid, reasons: reasons };

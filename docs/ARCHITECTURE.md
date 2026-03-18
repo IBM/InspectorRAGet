@@ -150,6 +150,8 @@ InspectorRAGet/
 │   ├── dataloader.ts           # Server-side data/ directory loader
 │   └── theme.tsx               # ThemeProvider (Carbon g10/g90)
 │
+├── converters/                 # Dataset converters
+│   └── bfcl/                   # Berkeley Function Calling Leaderboard (single-turn V3/V4)
 ├── data/                       # Pre-loaded example datasets (JSON, schema v2)
 ├── notebooks/                  # Integration notebooks (Ragas, LM Eval, HuggingFace, BFCL)
 ├── public/                     # Static assets (favicon, license)
@@ -176,16 +178,21 @@ RawData
 │          input, targets?: TaskTarget[], tools?: ToolDefinition[],
 │          flagged?, comments?: TaskComment[], annotations? }
 └── results: ModelResult[]             # Model outputs + metric scores
-    └── { taskId, modelId, output: TaskOutput, scores: { [metric]: { [annotator]: { value } } },
-           contexts?, modelSteps?: Step[], comments?: TaskComment[] }
+    └── { taskId, modelId, output: Message[], scores: { [metric]: { [annotator]: { value } } },
+           contexts?, comments?: TaskComment[] }
 ```
+
+`output` is always a `Message[]`. For single-inference task types (qa, generation, rag, tool_calling) it is a one-element array. The `agentic` task type will produce a full execution thread. Steps live on `output[0].steps`, not at the result level.
 
 ### Key type unions
 
-**`TaskOutput`** — discriminated on `type`:
+**`Message`** — OpenAI-compatible message shape:
 
-- `{ type: 'text'; value: string }` — RAG, generation, plain chat responses
-- `{ type: 'tool_calls'; calls: ToolCallRecord[] }` — tool-calling and agentic turns
+- `role: 'system' | 'user' | 'assistant' | 'tool'`
+- `content?: string` — text response
+- `tool_calls?: ToolCallRecord[]` — tool-calling output (on assistant messages)
+- `steps?: Step[]` — execution trace attached to the message that produced them
+- `retries?: MessageRetry[]` — intermediate retry attempts before final output
 
 **`TaskTarget`** — discriminated on `type`:
 
@@ -204,7 +211,7 @@ RawData
 
 `migrator.ts` runs before `validators.ts` on every load. The migration chain is:
 
-- **v1 → v2:** renames legacy task types (`rag` single-turn → `qa`, `rag` multi-turn → `rag`, `text_generation`/`json_generation` → `generation`, `chat` → `rag`); wraps `model_response` string → `output: { type: 'text', value }`; renames `annotations` → `scores`; renames `evaluations` array → `results`
+- **v1 → v2:** renames legacy task types (`rag` single-turn → `qa`, `rag` multi-turn → `rag`, `text_generation`/`json_generation` → `generation`, `chat` → `rag`); wraps `model_response` string → `output: [{ role: 'assistant', content }]`; renames `annotations` → `scores`; renames `evaluations` array → `results`
 
 Exported files are always stamped with `schema_version: CURRENT_SCHEMA_VERSION`.
 

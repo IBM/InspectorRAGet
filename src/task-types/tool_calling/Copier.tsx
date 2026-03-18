@@ -111,13 +111,14 @@ function prepareText(
       const model = models.find((m) => m.modelId === result.modelId);
       const label = model ? model.name.trim() : result.modelId.trim();
       text += `${label}\n${subsep}`;
-      if (result.output.type === 'tool_calls') {
-        result.output.calls.forEach((call) => {
+      const msg = result.output[0];
+      if (msg?.tool_calls && msg.tool_calls.length > 0) {
+        msg.tool_calls.forEach((call) => {
           text += `${formatCallSignature(call)}\n`;
           if (call.dependsOn) text += `  (depends on: ${call.dependsOn})\n`;
         });
       } else {
-        text += `${result.output.value}\n`;
+        text += `${msg?.content ?? ''}\n`;
       }
       text += `${sep}`;
     });

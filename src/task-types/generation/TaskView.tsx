@@ -258,8 +258,8 @@ export default function GenerationTaskView({
                           <Tab
                             disabled={
                               !(
-                                Array.isArray(result.modelSteps) &&
-                                result.modelSteps.length > 0
+                                Array.isArray(result.output[0]?.steps) &&
+                                result.output[0].steps!.length > 0
                               )
                             }
                           >
@@ -280,10 +280,10 @@ export default function GenerationTaskView({
                             />
                           </TabPanel>
                           <TabPanel className={classes.flushTabPanel}>
-                            {Array.isArray(result.modelSteps) &&
-                              result.modelSteps.length > 0 && (
+                            {Array.isArray(result.output[0]?.steps) &&
+                              result.output[0].steps!.length > 0 && (
                                 <>
-                                  {!result.modelSteps.some(
+                                  {!result.output[0].steps!.some(
                                     (s) => s.startTimestamp !== undefined,
                                   ) && (
                                     <InlineNotification
@@ -295,7 +295,7 @@ export default function GenerationTaskView({
                                     />
                                   )}
                                   <StepGroup
-                                    steps={result.modelSteps}
+                                    steps={result.output[0].steps!}
                                     onStepMouseDown={(stepId) =>
                                       updateCommentProvenance(
                                         `${result.modelId}::steps::${stepId}`,
