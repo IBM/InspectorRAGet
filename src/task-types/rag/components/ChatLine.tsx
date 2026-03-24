@@ -372,9 +372,10 @@ export default function ChatLine({
             ))}
           </Balancer>
         ) : message.role === 'tool' ? (
-          //@ts-ignore
           <ToolResponseContent
             messageId={messageId}
+            // @ts-ignore — message is narrowed to role==='tool' by the condition above,
+            // but the base Message type lacks ToolMessage fields (tool_call_id, type).
             message={message}
             onSelection={onSelection}
           />
