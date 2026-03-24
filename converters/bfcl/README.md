@@ -344,6 +344,14 @@ Both cases produce multiple `step_N` entries under the same turn. The runner cap
 
 The converter treats the last step that produced decoded tool calls or tool responses as the **accepted step** for that turn. The accepted step's output becomes the top-level assistant message in `result.output` (and its tool responses follow as `tool`-role messages). All earlier steps within the turn are written into the trace on that assistant message — they are the intermediate reasoning that led to the accepted output.
 
+#### Why intermediate steps go into the trace, not the execution thread
+
+The execution thread (`result.output`) is intended to answer: "what did the model actually do, and what did the environment respond?" It shows the accepted input/output pairs — the conversation as it would appear to an observer watching the agent work.
+
+Intermediate steps (decode failures, empty responses, coercion retries) are runner mechanics: the BFCL harness re-prompts the model with augmented context until it produces something acceptable. These steps are not part of the agent's committed actions — they were rejected before any environment execution occurred. Putting them inline would bury the real tool calls and tool responses under repeated failed attempts and make the execution thread unreadable.
+
+The trace exists to give researchers access to this intermediate reasoning without cluttering the primary view. If you want to see why a turn took multiple attempts, open the Trace tab for that assistant message. If you just want to understand what the agent did and what happened as a result, the execution thread is sufficient on its own.
+
 The trace on each assistant message is a `TraceEvent[]` with three event types:
 
 | Event type       | When emitted                                                                        |
