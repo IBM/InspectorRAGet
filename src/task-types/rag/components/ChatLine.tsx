@@ -19,12 +19,21 @@
 import cx from 'classnames';
 import Balancer from 'react-wrap-balancer';
 import { useState, useEffect, useRef } from 'react';
+import { Modal, Button, DefinitionTooltip } from '@carbon/react';
+import {
+  CheckmarkFilled,
+  WarningFilled,
+  ErrorFilled,
+  Restart,
+} from '@carbon/icons-react';
 
-import { CodeSnippet } from '@carbon/react';
-
-import { ToolCallRecord } from '@/src/types';
+import {
+  ToolCallCard,
+  ToolResponseCard,
+} from '@/src/components/tools/ToolCards';
 import {
   Message,
+  MessageRetry,
   ToolMessage,
   AssistantMessage,
 } from '@/src/task-types/rag/types';
@@ -42,28 +51,143 @@ interface ChatLineProps {
   latestResponse?: boolean;
   onSelection?: Function;
   focused?: boolean;
+  selected?: boolean;
 }
 
 // ===================================================================================
 //                               RENDER FUNCTIONS
 // ===================================================================================
-function Tool({ tool }: { tool: ToolCallRecord }) {
+
+const STATUS_CONFIG = {
+  pass: {
+    icon: CheckmarkFilled,
+    label: 'Pass',
+    badgeClass: classes.statusBadgePass,
+  },
+  warn: {
+    icon: WarningFilled,
+    label: 'Warn',
+    badgeClass: classes.statusBadgeWarn,
+  },
+  fail: {
+    icon: ErrorFilled,
+    label: 'Fail',
+    badgeClass: classes.statusBadgeFail,
+  },
+} as const;
+
+function RetriesModal({
+  retries,
+  open,
+  onClose,
+}: {
+  retries: MessageRetry[];
+  open: boolean;
+  onClose: () => void;
+}) {
   return (
-    <div className={cx(classes.message, classes.toolCall)}>
-      <span>
-        Tool ID: {tool.id}&nbsp;
-        {tool.name ? <span>({tool.name})</span> : null}
-      </span>
-      {tool.arguments ? (
-        <CodeSnippet type="multi" hideCopyButton wrapText>
-          {JSON.stringify(tool.arguments, null, 2)}
-        </CodeSnippet>
-      ) : null}
-    </div>
+    <Modal
+      open={open}
+      onRequestClose={onClose}
+      modalHeading={`Retry Attempts (${retries.length})`}
+      passiveModal
+      size="md"
+    >
+      <div className={classes.retriesModalContent}>
+        {retries.map((retry, idx) => (
+          <div key={idx} className={classes.retryAttempt}>
+            <span className={classes.retryAttemptHeader}>
+              Attempt {idx + 1}
+            </span>
+            {retry.error && (
+              <div className={classes.retryError}>
+                <span className={classes.retryErrorLabel}>Error</span>
+                <span className={classes.retryErrorText}>{retry.error}</span>
+              </div>
+            )}
+            {retry.content && <p>{retry.content}</p>}
+            {retry.tool_calls &&
+              retry.tool_calls.map((call, callIdx) => (
+                <ToolCallCard
+                  key={callIdx}
+                  call={call}
+                  defaultExpanded={
+                    retry.tool_calls!.length <= 2 &&
+                    JSON.stringify(call.arguments).length <= 120
+                  }
+                />
+              ))}
+          </div>
+        ))}
+      </div>
+    </Modal>
   );
 }
 
-function ToolResponse({
+function BalloonFooter({
+  status,
+  statusDefinition,
+  retries,
+}: {
+  status?: string;
+  statusDefinition?: string;
+  retries?: MessageRetry[];
+}) {
+  const [retriesOpen, setRetriesOpen] = useState(false);
+  const hasStatus = status && status in STATUS_CONFIG;
+  const hasRetries = retries && retries.length > 0;
+
+  if (!hasStatus && !hasRetries) return null;
+
+  const config = hasStatus
+    ? STATUS_CONFIG[status as keyof typeof STATUS_CONFIG]
+    : null;
+
+  return (
+    <>
+      <div className={classes.balloonFooter}>
+        <div className={classes.balloonFooterRight}>
+          {config &&
+            (statusDefinition ? (
+              <DefinitionTooltip
+                definition={statusDefinition}
+                align="top-right"
+                openOnHover
+                className={cx(classes.statusBadge, config.badgeClass)}
+              >
+                <config.icon size={14} />
+                {config.label}
+              </DefinitionTooltip>
+            ) : (
+              <span className={cx(classes.statusBadge, config.badgeClass)}>
+                <config.icon size={14} />
+                {config.label}
+              </span>
+            ))}
+          {hasRetries && (
+            <Button
+              kind="ghost"
+              size="sm"
+              renderIcon={Restart}
+              onClick={() => setRetriesOpen(true)}
+            >
+              {retries.length} {retries.length === 1 ? 'retry' : 'retries'}
+            </Button>
+          )}
+        </div>
+      </div>
+      {hasRetries && (
+        <RetriesModal
+          retries={retries}
+          open={retriesOpen}
+          onClose={() => setRetriesOpen(false)}
+        />
+      )}
+    </>
+  );
+}
+
+function ToolResponseContent({
   messageId,
   message,
   onSelection,
@@ -74,13 +198,9 @@ function ToolResponse({
 }) {
   const [documentIndex, setDocumentIndex] = useState<number>(0);
 
-  return (
-    <div className={cx(classes.message, classes.toolResponse)}>
-      <span>
-        Tool Call ID: {message.tool_call_id}&nbsp;
-        {message.name ? <span>({message.name})</span> : null}
-      </span>
-      {message.type === 'documents' && Array.isArray(message.content) ? (
+  if (message.type === 'documents' && Array.isArray(message.content)) {
+    return (
+      <div className={classes.toolResponse}>
         <DocumentsViewer
           key={`${messageId}__documents--${message.content.length}`}
           id={`${messageId}__documents`}
@@ -88,40 +208,23 @@ function ToolResponse({
           documentIndex={documentIndex}
           setDocumentIndex={setDocumentIndex}
           onSelection={onSelection}
-        ></DocumentsViewer>
-      ) : message.type === 'json' ? (
-        <CodeSnippet type="multi" hideCopyButton wrapText>
-          {JSON.stringify(message.content, null, 2)}
-        </CodeSnippet>
-      ) : (
-        <Balancer
-          className={cx(classes.message, classes.toolMessage)}
-          ratio={0.2}
-          onMouseDown={() => {
-            if (onSelection) {
-              onSelection(
-                `messages[${messageId.split('--').slice(-1)[0]}].content`,
-              );
-            }
-          }}
-          onMouseUp={() => {
-            if (onSelection) {
-              onSelection(
-                `messages[${messageId.split('--').slice(-1)[0]}].content`,
-              );
-            }
-          }}
-        >
-          {typeof message.content === 'string'
-            ? message.content.split('\n').map((line, i) => (
-                <span key={i}>
-                  {line}
-                  <br />
-                </span>
-              ))
-            : message.content}
-        </Balancer>
-      )}
+        />
+      </div>
+    );
+  }
+
+  const contentStr =
+    message.type === 'json' || typeof message.content !== 'string'
+      ? JSON.stringify(message.content, null, 2)
+      : (message.content as string);
+
+  return (
+    <div className={classes.toolResponse}>
+      <ToolResponseCard
+        toolCallId={message.tool_call_id}
+        name={message.name}
+        content={contentStr}
+      />
     </div>
   );
 }
@@ -166,8 +269,17 @@ function AssistantResponse({
       ) : null}
       {message.tool_calls
         ? message.tool_calls.map((tool, toolIdx) => {
+            // Collapse if there are more than 2 calls, or if the single call's args are long
+            const defaultExpanded =
+              message.tool_calls!.length <= 2 &&
+              JSON.stringify(tool.arguments).length <= 120;
             return (
-              <Tool key={`message-${messageId}__tool-${toolIdx}`} tool={tool} />
+              <div
+                key={`message-${messageId}__tool-${toolIdx}`}
+                className={classes.toolCallItem}
+              >
+                <ToolCallCard call={tool} defaultExpanded={defaultExpanded} />
+              </div>
             );
           })
         : null}
@@ -184,6 +296,7 @@ export default function ChatLine({
   latestResponse,
   onSelection,
   focused,
+  selected,
 }: ChatLineProps) {
   const anchorRef = useRef<HTMLDivElement>(null);
 
@@ -201,6 +314,12 @@ export default function ChatLine({
     return null;
   }
 
+  const status = message.metadata?.status as string | undefined;
+  const statusDefinition = message.metadata?.statusDefinition as
+    | string
+    | undefined;
+  const retries = message.retries;
+
   return (
     <div
       ref={anchorRef}
@@ -209,7 +328,7 @@ export default function ChatLine({
         [classes.latestResponse]: latestResponse,
       })}
     >
-      <Avatar role={message.role} />
+      <Avatar role={message.role} selected={selected} status={status} />
       <div
         className={cx(
           classes.baloon,
@@ -221,6 +340,7 @@ export default function ChatLine({
             : message.role === 'tool'
               ? classes.toolResponseBaloon
               : null,
+          { [classes.baloonSelected]: selected },
         )}
       >
         {message.role === 'system' ||
@@ -253,7 +373,11 @@ export default function ChatLine({
           </Balancer>
         ) : message.role === 'tool' ? (
           //@ts-ignore
-          <ToolResponse messageId={messageId} message={message} />
+          <ToolResponseContent
+            messageId={messageId}
+            message={message}
+            onSelection={onSelection}
+          />
         ) : (
           <AssistantResponse
             messageId={messageId}
@@ -262,6 +386,11 @@ export default function ChatLine({
             onSelection={onSelection}
           />
         )}
+        <BalloonFooter
+          status={status}
+          statusDefinition={statusDefinition}
+          retries={retries}
+        />
       </div>
     </div>
   );

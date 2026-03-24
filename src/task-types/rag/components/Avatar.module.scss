@@ -29,6 +29,30 @@
   justify-content: center;
   overflow: hidden;
   object-fit: none;
+
+  // Reserve space for the selection border so layout doesn't shift on select
+  border: 2px solid transparent;
+  transition: border-color 0.1s ease;
+}
+
+.selected {
+  border-color: var(--cds-border-interactive);
+}
+
+// Status ring via outline so it sits outside the selection border without layout shift
+.statusPass {
+  outline: 3px solid var(--cds-support-success);
+  outline-offset: 2px;
+}
+
+.statusWarn {
+  outline: 3px solid var(--cds-support-warning);
+  outline-offset: 2px;
+}
+
+.statusFail {
+  outline: 3px solid var(--cds-support-error);
+  outline-offset: 2px;
 }
 
 .wrapper img {

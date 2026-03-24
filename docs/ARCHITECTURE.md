@@ -64,8 +64,6 @@ InspectorRAGet/
 │   │   ├── visualize/          # /visualize — Upload and analyze
 │   │   ├── examples/           # /examples — Browse pre-loaded datasets
 │   │   │   └── [example_id]/   # /examples/:id — Specific dataset analysis
-│   │   ├── documentation/      # /documentation (placeholder)
-│   │   └── cookbooks/          # /cookbooks (placeholder)
 │   │
 │   ├── views/                  # Page-level container components
 │   │   ├── home/               # Landing page cards
@@ -100,10 +98,15 @@ InspectorRAGet/
 │   │   │   ├── TaskView.tsx    # Conversation thread + per-model response + evaluations/steps tabs
 │   │   │   ├── Copier.tsx
 │   │   │   └── components/
-│   │   │       └── ChatLine.tsx    # Renders a single OpenAI-format message
-│   │   └── tool_calling/       # Function/tool calling evaluation
-│   │       ├── types.ts        # ToolDefinition (OpenAI JSON Schema format)
-│   │       ├── TaskView.tsx    # Conversation + available tools panel + prediction/target/evaluations/steps
+│   │   │       ├── ChatLine.tsx    # Renders a single OpenAI-format message (status ring, retries footer)
+│   │   │       ├── Avatar.tsx      # Role avatar with status ring (pass/warn/fail outline)
+│   │   │       └── DocumentsViewer.tsx
+│   │   ├── tool_calling/       # Function/tool calling evaluation
+│   │   │   ├── types.ts        # ToolDefinition (OpenAI JSON Schema format)
+│   │   │   ├── TaskView.tsx    # Conversation + available tools panel + prediction/target/evaluations/steps
+│   │   │   └── Copier.tsx
+│   │   └── agentic/            # Goal-directed multi-turn agent execution
+│   │       ├── TaskView.tsx    # Goal + initial state + target state + execution thread + evaluations/steps
 │   │       └── Copier.tsx
 │   │
 │   ├── components/             # Reusable UI components
@@ -112,7 +115,7 @@ InspectorRAGet/
 │   │   ├── expression-builder/ # Advanced filter expression builder
 │   │   ├── selectors/          # Model, Metric, Aggregator selectors
 │   │   ├── evaluations/        # EvaluationsPanel — shared human + algorithmic score tables
-│   │   ├── steps/              # Execution trace: StepGroup (tree) + StepItem (collapsible card)
+│   │   ├── trace/              # Execution trace: TraceGroup + TraceItem (collapsible cards for invocation/tool_execution/observation events)
 │   │   ├── comments/           # Task commenting system (see Comment System section below)
 │   │   ├── notification/       # Toast notifications (context provider)
 │   │   ├── avatar/             # User/agent avatars
@@ -151,7 +154,7 @@ InspectorRAGet/
 │   └── theme.tsx               # ThemeProvider (Carbon g10/g90)
 │
 ├── converters/                 # Dataset converters
-│   └── bfcl/                   # Berkeley Function Calling Leaderboard (single-turn V3/V4)
+│   └── bfcl/                   # Berkeley Function Calling Leaderboard (single-turn and multi-turn, V3/V4)
 ├── data/                       # Pre-loaded example datasets (JSON, schema v2)
 ├── notebooks/                  # Integration notebooks (Ragas, LM Eval, HuggingFace, BFCL)
 ├── public/                     # Static assets (favicon, license)
@@ -182,7 +185,7 @@ RawData
            contexts?, comments?: TaskComment[] }
 ```
 
-`output` is always a `Message[]`. For single-inference task types (qa, generation, rag, tool_calling) it is a one-element array. The `agentic` task type will produce a full execution thread. Steps live on `output[0].steps`, not at the result level.
+`output` is always a `Message[]`. For single-inference task types (qa, generation, rag, tool_calling) it is a one-element array. For `agentic` tasks it is the full execution thread: interleaved user, assistant, and tool messages across all turns. Trace events live on individual messages as `message.trace`, not at the result level.
 
 ### Key type unions
 
@@ -191,21 +194,25 @@ RawData
 - `role: 'system' | 'user' | 'assistant' | 'tool'`
 - `content?: string` — text response
 - `tool_calls?: ToolCallRecord[]` — tool-calling output (on assistant messages)
-- `steps?: Step[]` — execution trace attached to the message that produced them
+- `trace?: TraceEvent[]` — execution trace attached to the assistant message that produced it; each event is discriminated on `type`: `invocation | tool_execution | observation`
 - `retries?: MessageRetry[]` — intermediate retry attempts before final output
+- `metadata?: Record<string, unknown>` — benchmark-supplied metadata; known keys: `status` (`'pass' | 'fail' | 'warn'`) rendered as a coloured badge in the chat footer, and `statusDefinition` (string) shown as a hover tooltip on that badge
+
+**`ModelResult`** carries an optional `metadata?: Record<string, unknown>` bag for benchmark-supplied per-result diagnostics. Known key: `error` — `{ kind: 'text' | 'structured', context: unknown }` used by the BFCL agentic converter to surface structured state-diff details.
 
 **`TaskTarget`** — discriminated on `type`:
 
 - `{ type: 'text'; value: string }` — most task types
 - `{ type: 'tool_calls'; calls: ToolCallRecord[] }` — tool-calling ground truth
-- `{ type: 'state'; description: string }` — agentic (future)
+- `{ type: 'state'; value: Record<string, unknown> }` — agentic expected final environment state
 - `{ type: 'image'; url: string }` — multimodal (future)
 
-**`Step`** — discriminated on `type`:
+**`TraceEvent`** — discriminated on `type`:
 
-- `thinking` | `tool_call` | `tool_response` | `retrieval` | `generation`
-- Optional `startTimestamp`/`endTimestamp` for latency analysis
-- `tool_call` and `tool_response` are paired by `toolCallId`
+- `invocation` — an intermediate LLM call within a turn (before the accepted output)
+- `tool_execution` — environment response(s) following an intermediate invocation
+- `observation` — runner feedback after a decode failure, empty response, or forced termination
+- All events carry an optional `label` (e.g. `"step_2"` matching the inference log key) and `content` string
 
 ### Schema migration
 
@@ -250,6 +257,7 @@ const taskTypeRegistry: Record<
   generation: { TaskView: GenerationTaskView, Copier: GenerationCopier },
   rag: { TaskView: RAGTaskView, Copier: RAGCopier },
   tool_calling: { TaskView: ToolCallingTaskView, Copier: ToolCallingCopier },
+  agentic: { TaskView: AgenticTaskView, Copier: AgenticCopier },
 };
 ```
 
@@ -303,8 +311,6 @@ Optional structured annotation attached to a `TaskComment`. Discriminated on `ty
 | `/visualize`     | Client        | Upload wizard → analysis view            |
 | `/examples`      | Server        | Loads `data/` dir, renders dataset grid  |
 | `/examples/[id]` | Server        | Loads specific dataset, renders analysis |
-| `/documentation` | —             | Placeholder                              |
-| `/cookbooks`     | —             | Placeholder                              |
 
 The analysis hub (`Example` view) provides 7 tabs:
 
@@ -326,6 +332,7 @@ Clicking a task in any table opens a **Task modal overlay** (`views/task/Task.ts
 
 - Migration runs first, before `camelCaseKeys`, so it operates on raw snake_case fields
 - Processor validates every result has scores for all plottable metrics, ensures every task has results from all specified models, sorts categorical metric values, computes metric ranges
+- `bin()` in `utilities/metrics.ts` maps a numeric value to its `[start, end]` bucket string using the metric's `range: [min, max, step]`. Values below `min` map to `<min` and values above `max` map to `>max` — both render as normal category bars in Carbon Charts, preventing unbounded raw-value bins from outliers
 
 ### Input Validation
 

@@ -19,6 +19,7 @@ node_modules
 
 # Next files
 .next
+next-env.d.ts
 
 # TypeScript incremental build cache
 *.tsbuildinfo
@@ -31,6 +32,9 @@ dist
 
 # Downloaded benchmark datasets (populated by converters/*/download_dataset.sh)
 converters/*/dataset/
+
+# Python bytecode cache
+converters/**/__pycache__/
 
 # Local benchmark run outputs for converter testing
 converters/*/runs/

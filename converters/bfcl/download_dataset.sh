@@ -56,7 +56,7 @@ if [[ "$VERSION" == "v3" ]]; then
     "BFCL_v3_live_parallel_multiple.json"
     "BFCL_v3_live_relevance.json"
     "BFCL_v3_live_irrelevance.json"
-    # Multi-turn (agentic task type — not yet supported by convert.py)
+    # Multi-turn (agentic task type)
     "BFCL_v3_multi_turn_base.json"
     "BFCL_v3_multi_turn_miss_func.json"
     "BFCL_v3_multi_turn_miss_param.json"
@@ -76,6 +76,19 @@ if [[ "$VERSION" == "v3" ]]; then
     "possible_answer/BFCL_v3_live_parallel.json"
     "possible_answer/BFCL_v3_live_parallel_multiple.json"
   )
+  # Tool definitions for multi-turn (agentic) tasks.
+  # Each file defines the tools available in one virtual environment class.
+  # Required for the agentic converter to populate task.tools.
+  FUNC_DOC_FILES=(
+    "multi_turn_func_doc/gorilla_file_system.json"
+    "multi_turn_func_doc/math_api.json"
+    "multi_turn_func_doc/message_api.json"
+    "multi_turn_func_doc/posting_api.json"
+    "multi_turn_func_doc/ticket_api.json"
+    "multi_turn_func_doc/trading_bot.json"
+    "multi_turn_func_doc/travel_booking.json"
+    "multi_turn_func_doc/vehicle_control.json"
+  )
 else
   BASE_URL="https://raw.githubusercontent.com/ShishirPatil/gorilla/main/berkeley-function-call-leaderboard/bfcl_eval/data"
   FILES=(
@@ -92,12 +105,12 @@ else
     "BFCL_v4_live_irrelevance.json"
     "BFCL_v4_live_relevance.json"
     "BFCL_v4_format_sensitivity.json"
-    # Multi-turn (agentic task type — not yet supported by convert.py)
+    # Multi-turn (agentic task type)
     "BFCL_v4_multi_turn_base.json"
     "BFCL_v4_multi_turn_miss_func.json"
     "BFCL_v4_multi_turn_miss_param.json"
     "BFCL_v4_multi_turn_long_context.json"
-    # V4 agentic categories (agentic task type — not yet supported by convert.py)
+    # V4 agentic categories (agentic task type)
     "BFCL_v4_web_search.json"
     "BFCL_v4_memory.json"
   )
@@ -113,14 +126,32 @@ else
     "possible_answer/BFCL_v4_live_parallel.json"
     "possible_answer/BFCL_v4_live_parallel_multiple.json"
   )
+  # Tool definitions for multi-turn (agentic) tasks.
+  # Each file defines the tools available in one virtual environment class.
+  # Required for the agentic converter to populate task.tools.
+  FUNC_DOC_FILES=(
+    "multi_turn_func_doc/gorilla_file_system.json"
+    "multi_turn_func_doc/math_api.json"
+    "multi_turn_func_doc/message_api.json"
+    "multi_turn_func_doc/posting_api.json"
+    "multi_turn_func_doc/ticket_api.json"
+    "multi_turn_func_doc/trading_bot.json"
+    "multi_turn_func_doc/travel_booking.json"
+    "multi_turn_func_doc/vehicle_control.json"
+    "multi_turn_func_doc/memory_kv.json"
+    "multi_turn_func_doc/memory_rec_sum.json"
+    "multi_turn_func_doc/memory_vector.json"
+    "multi_turn_func_doc/web_search.json"
+  )
 fi
 
 echo "Downloading BFCL $VERSION dataset files to $DEST/"
 echo ""
 
 mkdir -p "$DEST/possible_answer"
+mkdir -p "$DEST/multi_turn_func_doc"
 
-for FILE in "${FILES[@]}" "${ANSWER_FILES[@]}"; do
+for FILE in "${FILES[@]}" "${ANSWER_FILES[@]}" "${FUNC_DOC_FILES[@]}"; do
   URL="$BASE_URL/$FILE"
   DEST_FILE="$DEST/$FILE"
   if [[ -f "$DEST_FILE" ]]; then

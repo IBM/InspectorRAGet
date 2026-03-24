@@ -42,6 +42,7 @@ export interface CardProps {
   href?: string | null;
   actionText?: ReactNode;
   text?: ReactNode;
+  features?: string[];
   content?: ReactNode;
   headingLevel?: HeadingLevel;
   tag?: string | null;
@@ -53,6 +54,7 @@ function Card({
   icon: Icon,
   title,
   text,
+  features,
   href,
   actionText,
   content,
@@ -79,7 +81,7 @@ function Card({
         </CarbonLink>
       )}
       <div className={classes.body}>
-        <Icon className={classes.icon} size={24} />
+        <Icon className={classes.icon} size={32} />
         <Heading className={classes.heading}>
           {title}
           {tag && (
@@ -89,6 +91,13 @@ function Card({
           )}
         </Heading>
         {!!text && <p className={classes.text}>{text}</p>}
+        {features && features.length > 0 && (
+          <ul className={classes.features}>
+            {features.map((f) => (
+              <li key={f}>{f}</li>
+            ))}
+          </ul>
+        )}
         {!!content && <div className={classes.content}>{content}</div>}
       </div>
     </section>

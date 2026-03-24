@@ -24,7 +24,7 @@ $line-width: 1px;
 // Horizontal gap from spine to card left edge.
 $spine-to-card: $spacing-06;
 
-// Vertical midpoint of a step card header (padding $spacing-03 top + ~1rem text).
+// Vertical midpoint of a trace card header (padding $spacing-03 top + ~1rem text).
 $header-mid: $spacing-06;
 
 // --- Spine ---
@@ -84,11 +84,9 @@ $header-mid: $spacing-06;
   margin-bottom: 0;
 }
 
-// --- Children ---
+// --- Children (sub-agent trace indentation) ---
 
-// Indented wrapper for response cards.
-// Uses a single L-shaped border on each child via ::before rather than a
-// separate trunk + horizontal combination, which avoids the clipping problem.
+// Indented wrapper for child trace events.
 .children {
   margin-left: $spacing-05;
   margin-top: $spacing-02;
@@ -129,4 +127,25 @@ $header-mid: $spacing-06;
 
 .childNodeLast {
   margin-bottom: 0;
+}
+
+// --- Collapsed depth node ---
+
+// Shown instead of rendering children automatically when depth >= 3.
+.collapsedNode {
+  margin-left: $spacing-05;
+  margin-top: $spacing-02;
+  padding: $spacing-02 $spacing-03;
+  background: none;
+  border: 1px dashed var(--cds-border-subtle-01);
+  border-radius: 2px;
+  font-size: 0.75rem;
+  color: var(--cds-text-secondary);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+
+  &:hover {
+    background-color: var(--cds-layer-hover-01);
+  }
 }

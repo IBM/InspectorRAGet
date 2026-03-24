@@ -31,8 +31,10 @@ See README.md for full documentation.
 """
 
 import argparse
+import ast
 import json
 import os
+import re
 import sys
 import uuid
 from collections import defaultdict
@@ -92,12 +94,16 @@ SKIPPED_CATEGORIES: set[str] = set()
 # Maps BFCL error_type prefixes/values to a recoverability severity score.
 # Semantic anchor: how hard would this error be to fix?
 #   0.00 — correct
-#   0.25 — right function, wrong argument details (recoverable)
-#   0.50 — wrong function entirely, or wrong count (more fundamental)
-#   0.75 — should not have called any function (irrelevance error)
-#   1.00 — output could not be decoded at all (worst case)
+#   0.25 — right function(s), wrong argument details (recoverable with a retry)
+#   0.50 — wrong function, wrong count, or wrong final state across turns
+#   0.75 — called a function when none was appropriate (irrelevance), or reached a
+#           partially-correct state (multi-turn state mismatch after completing turns)
+#   1.00 — output could not be decoded, model went silent, or run was force-terminated
+#
+# The same scale is used for both single-turn (tool_calling) and multi-turn (agentic)
+# categories so error severity is comparable across task types.
 SEVERITY_MAP = {
-    # Argument-level errors — model understood the task, got details wrong
+    # --- Single-turn: argument-level errors ---
     "type_error:simple": ("wrong_arguments", 0.25, "Wrong Arguments"),
     "type_error:nested": ("wrong_arguments", 0.25, "Wrong Arguments"),
     "value_error:string": ("wrong_arguments", 0.25, "Wrong Arguments"),
@@ -105,14 +111,25 @@ SEVERITY_MAP = {
     "value_error:list/tuple": ("wrong_arguments", 0.25, "Wrong Arguments"),
     "value_error:dict_value": ("wrong_arguments", 0.25, "Wrong Arguments"),
     "simple_function_checker:missing_optional": ("wrong_arguments", 0.25, "Wrong Arguments"),
-    # Function-level errors — model called the wrong thing
+    # --- Single-turn: function-level errors ---
     "simple_function_checker:wrong_func_name": ("wrong_function", 0.50, "Wrong Function"),
     "simple_function_checker:wrong_count": ("wrong_function", 0.50, "Wrong Function"),
     "multiple_function_checker:wrong_count": ("wrong_function", 0.50, "Wrong Function"),
     "parallel_function_checker_no_order:wrong_count": ("wrong_function", 0.50, "Wrong Function"),
     "parallel_function_checker_no_order:cannot_find_match": ("wrong_function", 0.50, "Wrong Function"),
-    # Irrelevance errors — model called a function when it should have declined
+    # --- Single-turn: irrelevance errors ---
     "irrelevance_error:decoder_success": ("irrelevance_error", 0.75, "Irrelevance Error"),
+    # --- Multi-turn: argument/execution errors ---
+    # Model called the right function but with wrong arguments; execution failed.
+    "multi_turn:execution_response_mismatch": ("wrong_arguments", 0.25, "Wrong Arguments"),
+    # --- Multi-turn: state/function errors ---
+    # Model completed all turns but the environment ended in the wrong state.
+    "multi_turn:instance_state_mismatch": ("wrong_function", 0.50, "Wrong Function"),
+    # --- Multi-turn: unrecoverable failures ---
+    # Model produced no output for a turn, ran out of turns, or output couldn't be decoded.
+    "multi_turn:empty_turn_model_response": ("malformed_output", 1.0, "Malformed Output"),
+    "multi_turn:force_terminated": ("malformed_output", 1.0, "Malformed Output"),
+    "multi_turn:inference_error": ("malformed_output", 1.0, "Malformed Output"),
 }
 
 
@@ -239,6 +256,225 @@ def decoded_to_tool_calls(model_result_decoded) -> list | None:
             })
 
     return calls if calls else None
+
+
+# ---------------------------------------------------------------------------
+# Token count helper
+# ---------------------------------------------------------------------------
+
+def token_sum(raw: int | float | list | None) -> float | None:
+    """
+    Flatten a token count field to a single total, or None if absent.
+
+    Single-turn result files store token counts as plain scalars. Multi-turn
+    result files store them as list[list[float]] — one inner list per turn, one
+    value per retry step within that turn. We sum everything so the metric
+    represents total tokens consumed, including retries.
+
+    Returns None when the field is absent (e.g. inference_error runs where the
+    runner aborted before any token counts were recorded). Callers should
+    substitute a per-model average so the metric remains present on every result
+    (a missing metric causes the task to be disqualified by the processor).
+    """
+    if raw is None:
+        return None
+    if isinstance(raw, (int, float)):
+        return float(raw)
+    total = sum(
+        v for inner in raw
+        for v in (inner if isinstance(inner, list) else [inner])
+        if isinstance(v, (int, float))
+    )
+    return total if total else None
+
+
+def model_token_averages(
+    result_map: dict[str, dict[str, dict]],
+) -> dict[str, dict[str, float]]:
+    """
+    Compute per-model averages for input and output token counts across all
+    tasks that have data. Used to fill in missing values so every result carries
+    a token metric (the processor disqualifies results with missing metrics).
+
+    Returns {model_id: {"input": avg, "output": avg}}.
+    """
+    averages: dict[str, dict[str, float]] = {}
+    for model_id, records in result_map.items():
+        input_vals: list[float] = []
+        output_vals: list[float] = []
+        for rec in records.values():
+            iv = token_sum(rec.get("input_token_count"))
+            ov = token_sum(rec.get("output_token_count"))
+            if iv is not None:
+                input_vals.append(iv)
+            if ov is not None:
+                output_vals.append(ov)
+        averages[model_id] = {
+            "input": sum(input_vals) / len(input_vals) if input_vals else 0.0,
+            "output": sum(output_vals) / len(output_vals) if output_vals else 0.0,
+        }
+    return averages
+
+
+# ---------------------------------------------------------------------------
+# Message status helper (item 22: metadata.status stamping)
+# ---------------------------------------------------------------------------
+
+def message_status_and_definition(msg: dict) -> tuple[str, str] | tuple[None, None]:
+    """
+    Derive a (status, statusDefinition) pair for a single message dict.
+
+    Returns (None, None) for roles that carry no status (user, system, developer).
+
+    Rules:
+    - tool messages: 'fail' when content is JSON with a top-level 'error' key,
+      otherwise 'pass'.
+    - assistant messages without a trace (single step, no intermediate reasoning):
+        'pass'  — has tool_calls or content (clean single-step turn).
+        None    — neither (malformed).
+    - assistant messages with a trace (multiple intermediate steps before accepted):
+        'fail'  — trace ends with invocation or observation — force-terminated, no
+                  accepted step was reached.
+        'warn'  — trace ends with tool_execution — intermediate steps were present
+                  but the model eventually produced an accepted output.
+
+    statusDefinition is a human-readable BFCL-specific explanation of why this
+    particular message has the given status. It is stamped into metadata so the
+    UI can show it as a definition tooltip on hover.
+    """
+    role = msg.get("role")
+
+    if role == "tool":
+        content = msg.get("content", "")
+        if isinstance(content, str):
+            try:
+                parsed = json.loads(content)
+                if isinstance(parsed, dict) and "error" in parsed:
+                    return "fail", "Tool execution returned an error response from the BFCL environment."
+            except (json.JSONDecodeError, ValueError):
+                pass
+        return "pass", "Tool executed successfully and returned a result."
+
+    if role == "assistant":
+        trace = msg.get("trace")
+        has_tool_calls = bool(msg.get("tool_calls"))
+        has_content = bool(msg.get("content"))
+
+        if trace:
+            # Count intermediate invocation steps for a richer definition.
+            invocation_count = sum(
+                1 for e in trace if isinstance(e, dict) and e.get("type") == "invocation"
+            )
+            last_event = None
+            for e in reversed(trace):
+                if isinstance(e, dict) and e.get("type"):
+                    last_event = e
+                    break
+            last_event_type = last_event.get("type") if last_event else None
+
+            if last_event_type in ("invocation", "observation"):
+                # Use the observation content to give a precise cause when available.
+                if last_event_type == "observation":
+                    obs_content = (last_event or {}).get("content", "")
+                    if "forced to quit" in obs_content:
+                        fail_def = (
+                            "Turn did not complete. The BFCL runner exhausted the "
+                            "step budget before an accepted output was reached."
+                        )
+                    elif "decode error" in obs_content:
+                        fail_def = (
+                            "Turn did not complete. The model repeatedly failed to "
+                            "produce a parseable tool call and the runner gave up."
+                        )
+                    elif "empty response" in obs_content:
+                        fail_def = (
+                            "Turn did not complete. The model repeatedly returned "
+                            "an empty response with no tool calls."
+                        )
+                    else:
+                        fail_def = (
+                            "Turn did not complete. The BFCL runner terminated this "
+                            "turn before an accepted output was reached."
+                        )
+                else:
+                    # Trace ends on an invocation with no following observation or
+                    # tool_execution — turn was cut off without runner feedback.
+                    fail_def = (
+                        "Turn did not complete. The BFCL runner terminated this "
+                        "turn before an accepted output was reached."
+                    )
+                return "fail", fail_def
+            steps_noun = "step" if invocation_count == 1 else "steps"
+            return (
+                "warn",
+                f"Model required {invocation_count} intermediate {steps_noun} before "
+                "producing an accepted output for this turn. "
+                "Open the Trace tab to inspect the intermediate reasoning.",
+            )
+
+        if has_tool_calls or has_content:
+            return "pass", "Model produced accepted output in a single step."
+        return None, None
+
+    return None, None
+
+
+# ---------------------------------------------------------------------------
+# Error metadata helper (item 23: ModelResult.metadata.error)
+# ---------------------------------------------------------------------------
+
+def build_error_metadata(error_dict: dict) -> dict | None:
+    """
+    Extract structured diagnostic detail from a multi-turn BFCL error dict and
+    return a metadata.error entry, or None when no useful detail is available.
+
+    BFCL error types that carry a 'details' sub-dict:
+    - instance_state_mismatch: details.differences (model vs ground-truth env
+      state repr) and error.execution_result (per-turn tool response arrays).
+    - execution_response_mismatch: details.missing_items (expected tool responses
+      not produced), details['model_response (including all previous turns)'],
+      details['ground_truth_response (only the current turn)'].
+    - empty_turn_model_response: details.execution_result (per-turn arrays showing
+      which turns had model output and which were empty).
+
+    force_terminated and inference_error have no details — return None for those.
+    """
+    if not isinstance(error_dict, dict):
+        return None
+
+    error_type = error_dict.get("error_type", "")
+    details = error_dict.get("details")
+
+    if error_type == "multi_turn:instance_state_mismatch" and isinstance(details, dict):
+        context: dict = {}
+        if "differences" in details:
+            context["differences"] = details["differences"]
+        execution_result = error_dict.get("execution_result") or details.get("execution_result")
+        if execution_result:
+            context["execution_result"] = execution_result
+        if context:
+            return {"kind": "structured", "context": context}
+
+    if error_type == "multi_turn:execution_response_mismatch" and isinstance(details, dict):
+        context = {}
+        if "missing_items" in details:
+            context["missing_items"] = details["missing_items"]
+        # Key names in BFCL details include spaces — copy them as-is.
+        model_resp = details.get("model_response (including all previous turns)")
+        gt_resp = details.get("ground_truth_response (only the current turn)")
+        if model_resp is not None:
+            context["model_response"] = model_resp
+        if gt_resp is not None:
+            context["ground_truth_response"] = gt_resp
+        if context:
+            return {"kind": "structured", "context": context}
+
+    if error_type == "multi_turn:empty_turn_model_response" and isinstance(details, dict):
+        execution_result = details.get("execution_result")
+        if execution_result:
+            return {"kind": "structured", "context": {"execution_result": execution_result}}
+
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -447,8 +683,8 @@ def convert_tool_calling(
                 print(f"  Loaded {len(failure_records)} failure records from {score_file.name}")
 
     if deferred_categories:
-        print(f"Deferred categories (multi-turn, requires agentic task type): {sorted(deferred_categories)}")
-        print("  Re-run with --task-type agentic to convert these (not yet implemented).")
+        print(f"Deferred categories (multi-turn, agentic task type): {sorted(deferred_categories)}")
+        print("  Re-run with --task-type agentic to convert these.")
 
     # --- Load dataset files for passing-task prompts ---
     dataset_records: dict[str, dict] = {}
@@ -487,6 +723,7 @@ def convert_tool_calling(
         task_ids_to_emit = all_failed_ids
 
     all_model_ids = sorted(result_map.keys())
+    token_avgs = model_token_averages(result_map)
     print(f"\nBuilding output for {len(task_ids_to_emit)} tasks across {len(all_model_ids)} model(s)...")
 
     # --- Build tasks and results ---
@@ -601,25 +838,27 @@ def convert_tool_calling(
                     raw = (result_record or {}).get("result", "") or (score_record or {}).get("model_result_raw", "")
                     output_message["content"] = raw if isinstance(raw, str) else json.dumps(raw)
 
-            # Raw output as a generation step on the message for UI visibility.
-            raw_output = score_record.get("model_result_raw") if score_record else (result_record or {}).get("result", "")
-            if raw_output:
-                output_message["steps"] = [{
-                    "type": "generation",
-                    "id": str(uuid.uuid4()),
-                    "content": raw_output if isinstance(raw_output, str) else json.dumps(raw_output),
-                }]
+            # Stamp metadata.status and metadata.statusDefinition on the output
+            # message so the UI can show a visual pass/fail/warn indicator with
+            # a hover tooltip explaining the status.
+            status, status_def = message_status_and_definition(output_message)
+            if status:
+                output_message["metadata"] = {"status": status, "statusDefinition": status_def}
 
             output = [output_message]
 
-            # Latency from result file. Default to 600.0 (sentinel) when the
-            # result file is absent — avoids missing metrics while making the
-            # gap visible in aggregate views.
-            latency = (result_record or {}).get("latency", 600.0)
+            # Latency and token counts from result file. Default to 600.0
+            # (sentinel) when the result file is absent — avoids missing metrics
+            # while making the gap visible in aggregate views.
+            rec = result_record or {}
+            latency = rec.get("latency", 600.0)
+            avg = token_avgs.get(model_id, {})
+            input_tokens = token_sum(rec.get("input_token_count")) or avg.get("input", 0.0)
+            output_tokens = token_sum(rec.get("output_token_count")) or avg.get("output", 0.0)
 
             # Scores are nested as {metricName: {annotatorId: {value, ...}}}.
             # BFCL metrics are all algorithm-produced, annotator key is "bfcl".
-            # All four metrics are always present on every ModelResult.
+            # All metrics are always present on every ModelResult.
             # bfcl_error_type and bfcl_errors use "none" for passing models
             # (unambiguously signals no error, not a missing value).
             scores: dict = {
@@ -650,6 +889,12 @@ def convert_tool_calling(
                 "bfcl_latency_total_s": {
                     "bfcl": {"value": latency}
                 },
+                "bfcl_input_tokens_total": {
+                    "bfcl": {"value": input_tokens}
+                },
+                "bfcl_output_tokens_total": {
+                    "bfcl": {"value": output_tokens}
+                },
             }
 
             result_entry: dict = {
@@ -670,7 +915,7 @@ def convert_tool_calling(
             "author": "algorithm",
             "type": "categorical",
             "aggregator": "majority",
-            "order": "descending",
+            "order": "ascending",
             "values": [
                 {"value": "correct", "numeric_value": 1, "display_value": "Correct"},
                 {"value": "incorrect", "numeric_value": 0, "display_value": "Incorrect"},
@@ -681,20 +926,22 @@ def convert_tool_calling(
             "display_name": "Error Severity",
             "description": (
                 "Recoverability-anchored severity scale derived from BFCL error type. "
-                "0 = correct, 0.25 = wrong arguments, 0.5 = wrong function, "
-                "0.75 = irrelevance error, 1.0 = malformed output."
+                "Consistent across single-turn (tool_calling) and multi-turn (agentic) categories. "
+                "0 = correct, 0.25 = wrong arguments or execution mismatch, "
+                "0.5 = wrong function or state mismatch, "
+                "0.75 = irrelevance error, 1.0 = malformed or unrecoverable output."
             ),
             "author": "algorithm",
             "type": "categorical",
             "aggregator": "majority",
             "order": "descending",
             "values": [
-                {"value": "correct", "numeric_value": 0.0, "display_value": "Correct"},
-                {"value": "wrong_arguments", "numeric_value": 0.25, "display_value": "Wrong Arguments"},
-                {"value": "wrong_function", "numeric_value": 0.5, "display_value": "Wrong Function"},
-                {"value": "unknown", "numeric_value": 0.5, "display_value": "Unknown"},
-                {"value": "irrelevance_error", "numeric_value": 0.75, "display_value": "Irrelevance Error"},
-                {"value": "malformed_output", "numeric_value": 1.0, "display_value": "Malformed Output"},
+                {"value": "correct",          "numeric_value": 0.0,  "display_value": "Correct"},
+                {"value": "wrong_arguments",  "numeric_value": 0.25, "display_value": "Wrong Arguments"},
+                {"value": "wrong_function",   "numeric_value": 0.5,  "display_value": "Wrong Function"},
+                {"value": "unknown",          "numeric_value": 0.5,  "display_value": "Unknown"},
+                {"value": "irrelevance_error","numeric_value": 0.75, "display_value": "Irrelevance Error"},
+                {"value": "malformed_output", "numeric_value": 1.0,  "display_value": "Malformed Output"},
             ],
         },
         {
@@ -714,12 +961,40 @@ def convert_tool_calling(
         {
             "name": "bfcl_latency_total_s",
             "display_name": "Latency (s)",
-            "description": "Total wall-clock inference time in seconds. Binned in 5s intervals up to 30s. Values above 30s render as raw numbers; 600.0 indicates missing data.",
+            "description": "Total wall-clock inference time in seconds. Binned in 5s intervals up to 25s. Values above 25s render as raw numbers; 600.0 indicates missing data.",
             "author": "algorithm",
             "type": "numerical",
             "aggregator": "mean",
             "order": "descending",
-            "range": [0, 30, 5],
+            "range": [0, 25, 5],
+        },
+        {
+            "name": "bfcl_input_tokens_total",
+            "display_name": "Input Tokens",
+            "description": (
+                "Total input token count for this task. "
+                "Not directly comparable across models with different tokenizers, "
+                "but useful as a cost proxy when combined with per-model pricing."
+            ),
+            "author": "algorithm",
+            "type": "numerical",
+            "aggregator": "mean",
+            "order": "descending",
+            "range": [0, 2000, 250],
+        },
+        {
+            "name": "bfcl_output_tokens_total",
+            "display_name": "Output Tokens",
+            "description": (
+                "Total output token count for this task. "
+                "Not directly comparable across models with different tokenizers, "
+                "but useful as a cost proxy when combined with per-model pricing."
+            ),
+            "author": "algorithm",
+            "type": "numerical",
+            "aggregator": "mean",
+            "order": "descending",
+            "range": [0, 400, 50],
         },
     ]
 
@@ -751,23 +1026,867 @@ def convert_tool_calling(
 
 
 # ---------------------------------------------------------------------------
-# Agentic conversion (not yet implemented)
+# Agentic conversion helpers
+# ---------------------------------------------------------------------------
+
+def _to_snake(name: str) -> str:
+    """Convert a CamelCase or PascalCase class name to snake_case.
+
+    Examples: GorillaFileSystem → gorilla_file_system, TravelAPI → travel_api
+    """
+    s = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", name)
+    s = re.sub(r"([a-z\d])([A-Z])", r"\1_\2", s)
+    return s.lower()
+
+
+def load_func_doc_dir(dataset_dir: Path) -> dict[str, list[dict]]:
+    """
+    Load tool definitions from multi_turn_func_doc/ within dataset_dir.
+    Returns a map of snake_case class_name → list of tool dicts (normalised).
+
+    BFCL dataset files store class names in CamelCase (e.g. GorillaFileSystem,
+    TravelAPI), while the func_doc files on disk use snake_case filenames.
+    Some names diverge between dataset records and file stems, so aliases are
+    added to cover both the file-stem key and any alternate snake_case name.
+    """
+    # Aliases from alternate snake_case name (derived from involved_classes) → file stem.
+    # TwitterAPI → twitter_api but file is message_api.json (same tool set, renamed in v3).
+    # TravelAPI → travel_api but file is travel_booking.json.
+    # VehicleControlAPI → vehicle_control_api but file is vehicle_control.json.
+    _ALIASES: dict[str, str] = {
+        "twitter_api": "message_api",
+        "travel_api": "travel_booking",
+        "vehicle_control_api": "vehicle_control",
+    }
+
+    func_doc_dir = dataset_dir / "multi_turn_func_doc"
+    if not func_doc_dir.exists():
+        return {}
+    class_tools: dict[str, list[dict]] = {}
+    for path in sorted(func_doc_dir.glob("*.json")):
+        class_name = path.stem
+        tools = []
+        for record in load_jsonl(path):
+            if isinstance(record, dict) and "name" in record:
+                tools.append(normalize_tool_def(record))
+        if tools:
+            class_tools[class_name] = tools
+
+    for alt_key, canonical in _ALIASES.items():
+        if canonical in class_tools and alt_key not in class_tools:
+            class_tools[alt_key] = class_tools[canonical]
+
+    return class_tools
+
+
+def load_agentic_dataset_dir(dataset_dir: Path, categories: set[str]) -> dict[str, dict]:
+    """
+    Load multi-turn BFCL dataset files (e.g. BFCL_v3_multi_turn_base.json).
+    Returns task_id → record. Records include question, initial_config, path, involved_classes.
+
+    Ground truth answers (per-turn expected call sequences) are merged from
+    possible_answer/ subdirectory under key "ground_truth_turns".
+    """
+    dataset_map: dict[str, dict] = {}
+    for category in categories:
+        for pattern in (f"BFCL_v4_{category}.json", f"BFCL_v3_{category}.json"):
+            path = dataset_dir / pattern
+            if not path.exists():
+                continue
+            for record in load_jsonl(path):
+                task_id = record.get("id")
+                if task_id:
+                    dataset_map[task_id] = record
+            break
+
+    answer_dir = dataset_dir / "possible_answer"
+    if answer_dir.exists():
+        for category in categories:
+            for pattern in (f"BFCL_v4_{category}.json", f"BFCL_v3_{category}.json"):
+                path = answer_dir / pattern
+                if not path.exists():
+                    continue
+                for record in load_jsonl(path):
+                    task_id = record.get("id")
+                    ground_truth = record.get("ground_truth")
+                    if task_id and ground_truth is not None and task_id in dataset_map:
+                        # ground_truth is list[list[str]] — one list per turn, each
+                        # entry is a canonical function call string like "create_file(...)"
+                        dataset_map[task_id]["ground_truth_turns"] = ground_truth
+                break
+
+    return dataset_map
+
+
+def _build_observation(sr: dict) -> str | None:
+    """
+    Build an observation text string from a step result dict, or return None
+    if this step produced no runner feedback worth surfacing.
+
+    Three cases from the BFCL runner inner loop:
+
+    decode_error — The model's output could not be parsed as a function call.
+        convert_to_function_call() raised an AttributeError (model returned
+        plain text instead of a tool call). handler_log.error is set to the
+        exception string. The model's raw text is in asst_content.
+        Observation text: "Runner: decode error — <error>. Model output: <raw>"
+
+    empty_response — The model output decoded to an empty call list. The runner
+        treats this the same as a no-tool-call response and logs
+        "Empty response from the model. Proceed to next turn." in handler_log.content.
+        The model's raw text (or empty string) is in asst_content.
+        Observation text: "Runner: empty response. Model output: <raw>"
+
+    force_quit — The runner exhausted the 20-step budget (step limit exceeded
+        within a turn). It appends "Model has been forced to quit after N steps."
+        to the last step's handler_log after terminating the inner loop.
+        Observation text: "Runner: model forced to quit (step budget exhausted)."
+
+    Only the first matching case is used; a step may have at most one of these.
+    """
+    if sr.get("decode_error"):
+        err = sr["decode_error"]
+        raw = sr.get("asst_content", "").strip()
+        if raw:
+            return f"Runner: decode error — {err}. Model output: {raw}"
+        return f"Runner: decode error — {err}."
+
+    if sr.get("empty_response"):
+        raw = sr.get("asst_content", "").strip()
+        if raw:
+            return f"Runner: empty response. Model output: {raw}"
+        return "Runner: empty response (model produced no tool calls)."
+
+    if sr.get("force_quit"):
+        return "Runner: model forced to quit (step budget exhausted)."
+
+    return None
+
+
+def inference_log_to_messages(inference_log: list) -> list[dict]:
+    """
+    Convert a BFCL inference_log into a flat Message[] execution thread.
+
+    BFCL inference_log is a list that alternates between:
+      - lists of state_info dicts  (class instance snapshots — dropped)
+      - turn dicts with keys:
+          "begin_of_turn_query": list[Message]  (the user instruction for this turn)
+          "step_0", "step_1", ...               (retry steps within the turn)
+
+    Each step is a list of entries with these roles:
+      - "inference_input": raw API request payload  — dropped
+      - "assistant": model output string             — kept (last step only per turn)
+      - "handler_log": decoder status               — used to find decoded calls
+      - "tool": environment execution result        — kept
+
+    We emit one user message per turn (from begin_of_turn_query) and the final
+    assistant + tool sequence from that turn (last step where decode succeeded,
+    or last step overall if all steps failed). Retry steps are collapsed: the
+    final assistant message carries a "retries" list for earlier attempts.
+    """
+    messages: list[dict] = []
+
+    for chunk in inference_log:
+        # Skip state_info lists
+        if isinstance(chunk, list):
+            continue
+        if not isinstance(chunk, dict):
+            continue
+
+        # User message: last user-role entry in begin_of_turn_query
+        btq = chunk.get("begin_of_turn_query", [])
+        user_msg = None
+        if isinstance(btq, list):
+            for m in reversed(btq):
+                if isinstance(m, dict) and m.get("role") == "user":
+                    user_msg = {"role": "user", "content": str(m.get("content", ""))}
+                    break
+
+        if user_msg:
+            messages.append(user_msg)
+
+        # Collect all step keys in order
+        step_keys = sorted(
+            [k for k in chunk if k.startswith("step_")],
+            key=lambda k: int(k.split("_", 1)[1]),
+        )
+
+        if not step_keys:
+            continue
+
+        # Process steps: collect assistant output, tool calls, tool responses,
+        # and any runner feedback for each step.
+        step_results: list[dict] = []
+        for step_key in step_keys:
+            step_entries = chunk.get(step_key, [])
+            if not isinstance(step_entries, list):
+                continue
+
+            asst_content: str = ""
+            tool_calls: list[dict] | None = None
+            tool_msgs: list[dict] = []
+            decode_error: str | None = None
+            empty_response: bool = False
+            force_quit: bool = False
+
+            for entry in step_entries:
+                if not isinstance(entry, dict):
+                    continue
+                role = entry.get("role")
+
+                if role == "assistant":
+                    raw = entry.get("content", "")
+                    asst_content = str(raw)
+                    # Try to parse tool calls from the raw string
+                    tool_calls = _parse_tool_calls_from_raw([raw])
+
+                elif role == "handler_log":
+                    # handler_log carries model_response_decoded when decode succeeded
+                    decoded = entry.get("model_response_decoded")
+                    if decoded:
+                        tool_calls = _parse_tool_calls_from_raw(decoded) or tool_calls
+                    err = entry.get("error")
+                    if err:
+                        decode_error = str(err)
+                    content_str = str(entry.get("content", ""))
+                    if "empty response" in content_str.lower():
+                        empty_response = True
+                    if "forced to quit" in content_str.lower():
+                        force_quit = True
+
+                elif role == "tool":
+                    content = entry.get("content", "")
+                    tool_msgs.append({
+                        "role": "tool",
+                        "tool_call_id": entry.get("tool_call_id", ""),
+                        "content": content if isinstance(content, str) else json.dumps(content),
+                    })
+
+            step_results.append({
+                "asst_content": asst_content,
+                "tool_calls": tool_calls,
+                "tool_msgs": tool_msgs,
+                "decode_error": decode_error,
+                "empty_response": empty_response,
+                "force_quit": force_quit,
+            })
+
+        if not step_results:
+            continue
+
+        # Find the accepted step: last step where the environment actually executed
+        # tool calls (has tool_msgs). A step with only tool_calls but no tool_msgs
+        # is a decode-fail step — the runner rejected the output and did not execute
+        # anything. Fall back to the last step if no step produced tool_msgs.
+        accepted_idx = len(step_results) - 1
+        for i in range(len(step_results) - 1, -1, -1):
+            if step_results[i]["tool_msgs"]:
+                accepted_idx = i
+                break
+
+        # Build the trace from steps 0..accepted_idx-1 only.
+        # The accepted step's invocation and tool responses are already in the
+        # top-level assistant message and subsequent tool messages in output —
+        # repeating them in the trace would show the same content twice.
+        # Intermediate steps (0..accepted_idx-1) are trace-only: they represent
+        # genuine agentic reasoning (model reacting to tool feedback) or failed
+        # decode/empty-response attempts.
+        # If accepted_idx == 0 with no observations, the trace is empty and omitted.
+        trace_events: list[dict] = []
+        for step_idx, sr in enumerate(step_results[:accepted_idx]):
+            invocation_output: dict = {"role": "assistant"}
+            if sr["tool_calls"]:
+                invocation_output["tool_calls"] = sr["tool_calls"]
+            else:
+                invocation_output["content"] = sr["asst_content"]
+            # Label matches the step_N key in the BFCL inference log for cross-referencing.
+            trace_events.append({"type": "invocation", "label": f"step_{step_idx}", "output": invocation_output})
+
+            # Tool executions follow each intermediate invocation that produced tool calls.
+            for tool_msg in sr["tool_msgs"]:
+                trace_events.append({"type": "tool_execution", "result": tool_msg})
+
+            # Observation: runner feedback after this step, before the next invocation.
+            # Three cases from the BFCL runner:
+            #   decode_error   — runner could not parse the model output into a tool call
+            #                    (handler_log.error set); model's raw text is in asst_content
+            #   empty_response — model output decoded to an empty call list; runner
+            #                    treats this the same as a text/no-tool-call response
+            #   (force_quit is only set on the last step — handled below)
+            obs = _build_observation(sr)
+            if obs:
+                trace_events.append({"type": "observation", "content": obs})
+
+        # Observation on the accepted step: force_quit is appended by the runner to
+        # the last step after it terminates the inner loop. Surface it as a trailing
+        # observation so researchers can see the termination reason.
+        # It goes at the end of trace_events, after any intermediate step events,
+        # because it describes what happened to the accepted step itself.
+        accepted_sr = step_results[accepted_idx]
+        accepted_obs = _build_observation(accepted_sr)
+        if accepted_obs:
+            trace_events.append({"type": "observation", "content": accepted_obs})
+
+        final = step_results[accepted_idx]
+        asst_msg: dict = {"role": "assistant"}
+        if final["tool_calls"]:
+            asst_msg["tool_calls"] = final["tool_calls"]
+        else:
+            asst_msg["content"] = final["asst_content"]
+
+        if trace_events:
+            asst_msg["trace"] = trace_events
+
+        messages.append(asst_msg)
+        messages.extend(final["tool_msgs"])
+
+    return messages
+
+
+def _parse_tool_calls_from_raw(raw_outputs: list) -> list[dict] | None:
+    """
+    Attempt to parse BFCL function call syntax from a list of raw output strings.
+
+    BFCL result files store decoded calls in a separate field (model_result_decoded),
+    but the inference_log stores raw assistant output strings. We do a best-effort
+    parse here: if each non-empty output looks like "func_name(...)", we build a
+    ToolCallRecord; otherwise return None so the caller falls back to plain text.
+
+    This is intentionally conservative — an unparseable response falls back to
+    text content rather than an empty or broken tool_calls list.
+    """
+    calls = []
+    for raw in raw_outputs:
+        raw = str(raw).strip()
+        if not raw:
+            continue
+        # Match: function_name(key=value, ...) possibly wrapped in brackets
+        raw_clean = raw.strip("[]").strip()
+        # Try splitting on top-level commas to handle parallel calls
+        for call_str in _split_parallel_calls(raw_clean):
+            call_str = call_str.strip()
+            m = re.match(r"^([A-Za-z_][A-Za-z0-9_.]*)\s*\((.*)\)\s*$", call_str, re.DOTALL)
+            if not m:
+                return None  # Not a parseable call — bail out entirely
+            func_name = m.group(1)
+            args_str = m.group(2).strip()
+            args = _parse_kwargs(args_str)
+            if args is None:
+                return None
+            calls.append({"id": str(uuid.uuid4()), "name": func_name, "arguments": args})
+
+    return calls if calls else None
+
+
+def _split_parallel_calls(s: str) -> list[str]:
+    """
+    Split a string of parallel function calls at top-level commas that appear
+    between top-level closing and opening parentheses.
+    e.g. "f(a=1), g(b=2)" → ["f(a=1)", "g(b=2)"]
+    """
+    parts = []
+    depth = 0
+    current: list[str] = []
+    for ch in s:
+        if ch == '(':
+            depth += 1
+            current.append(ch)
+        elif ch == ')':
+            depth -= 1
+            current.append(ch)
+        elif ch == ',' and depth == 0:
+            parts.append(''.join(current).strip())
+            current = []
+        else:
+            current.append(ch)
+    if current:
+        parts.append(''.join(current).strip())
+    return [p for p in parts if p]
+
+
+def _parse_kwargs(args_str: str) -> dict | None:
+    """
+    Parse a kwargs string like 'key1="val", key2=42' into a dict.
+    Uses ast.literal_eval for individual values — conservative and safe.
+    Returns None if the string cannot be reliably parsed.
+    """
+    if not args_str.strip():
+        return {}
+
+    result = {}
+    # Match key=value pairs where value can be a quoted string, number, bool,
+    # list, dict, or None. We use a simple scan to handle nested structures.
+    remaining = args_str.strip()
+    while remaining:
+        # Match key=
+        key_match = re.match(r'^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*', remaining)
+        if not key_match:
+            return None
+        key = key_match.group(1)
+        remaining = remaining[key_match.end():]
+
+        # Find the end of the value by scanning brackets/quotes
+        value_end = _find_value_end(remaining)
+        if value_end < 0:
+            return None
+        value_str = remaining[:value_end].strip()
+        remaining = remaining[value_end:].lstrip(', ')
+
+        try:
+            result[key] = ast.literal_eval(value_str)
+        except (ValueError, SyntaxError):
+            result[key] = value_str  # store as string if unparseable
+
+    return result
+
+
+def _find_value_end(s: str) -> int:
+    """
+    Given a string starting at the value of a kwarg, return the index of the
+    character after the value ends (either at a top-level comma, or end of string).
+    Handles nested brackets and quoted strings.
+    """
+    depth = 0
+    in_str: str | None = None
+    i = 0
+    while i < len(s):
+        ch = s[i]
+        if in_str:
+            if ch == '\\':
+                i += 2
+                continue
+            if ch == in_str:
+                in_str = None
+        elif ch in ('"', "'"):
+            in_str = ch
+        elif ch in ('(', '[', '{'):
+            depth += 1
+        elif ch in (')', ']', '}'):
+            depth -= 1
+        elif ch == ',' and depth == 0:
+            return i
+        i += 1
+    return i  # end of string
+
+
+def ground_truth_turns_to_target(path: list, ground_truth_turns: list | None) -> list[dict]:
+    """
+    Build a TaskTarget[] for an agentic task.
+
+    If ground_truth_turns is available (per-turn expected call sequences), we
+    produce a state target whose value is a structured summary of the expected
+    execution: {turn_N: [call_strings]}. This is readable and searchable without
+    requiring the virtual environment to produce a real final state snapshot.
+
+    If only path is available, we produce a text target describing the canonical
+    sequence of method names.
+    """
+    if ground_truth_turns:
+        # ground_truth_turns is list[list[str]] — one list per turn
+        state_value: dict = {}
+        for turn_idx, turn_calls in enumerate(ground_truth_turns):
+            if turn_calls:
+                state_value[f"turn_{turn_idx + 1}"] = turn_calls
+        if state_value:
+            return [{"type": "state", "value": state_value}]
+
+    if path:
+        return [{"type": "text", "value": " → ".join(path)}]
+
+    return []
+
+
+# ---------------------------------------------------------------------------
+# Core conversion: agentic task type
 # ---------------------------------------------------------------------------
 
 def convert_agentic(bfcl_root: Path, dataset_dir: Path | None, output_name: str) -> dict:
-    print(
-        "\nError: --task-type agentic is not yet implemented.\n"
-        "\n"
-        "BFCL multi-turn categories (multi_turn_base, multi_turn_miss_func,\n"
-        "multi_turn_miss_param, multi_turn_long_context) use goal-directed agentic\n"
-        "execution with stateful environment simulation. They require the 'agentic'\n"
-        "task type in InspectorRAGet, which is still under design.\n"
-        "\n"
-        "To convert single-turn BFCL categories today, use:\n"
-        "    python convert.py --task-type tool_calling ...\n",
-        file=sys.stderr,
-    )
-    sys.exit(1)
+    """
+    Walk bfcl_root, collect all multi-turn BFCL categories, and produce an
+    InspectorRAGet JSON document with task_type "agentic".
+
+    Multi-turn tasks use goal-directed agentic execution: the model receives
+    a goal and an initial environment state, then drives tool calls across
+    multiple turns until the goal is achieved or abandoned. The execution
+    trace (all turns, all tool calls, all tool responses) is stored as
+    output: Message[].
+
+    Result files contain an inference_log field with the full execution trace.
+    Score files contain pass/fail and error details (failures only).
+    Dataset files contain the initial environment state and canonical path.
+    """
+    result_map: dict[str, dict[str, dict]] = defaultdict(dict)
+    score_map: dict[str, dict[str, dict]] = defaultdict(dict)
+    model_dir_names: dict[str, str] = {}
+
+    model_dirs = find_model_dirs(bfcl_root)
+    if not model_dirs:
+        sys.exit(f"Error: no model output directories found under {bfcl_root}")
+
+    print(f"Found {len(model_dirs)} model director{'y' if len(model_dirs) == 1 else 'ies'} under {bfcl_root}")
+
+    for model_dir in model_dirs:
+        print(f"\nProcessing: {model_dir.name}")
+
+        for mid_dir in find_model_id_dir(model_dir, "result"):
+            model_id = mid_dir.name
+            model_dir_names[model_id] = model_dir.name
+            for result_file in sorted(mid_dir.glob("*.json")):
+                category = infer_category(result_file.name)
+                if category is None:
+                    continue
+                if category not in AGENTIC_CATEGORIES:
+                    continue
+                records = load_jsonl(result_file)
+                for record in records:
+                    task_id = record.get("id")
+                    if task_id:
+                        result_map[model_id][task_id] = record
+                print(f"  Loaded {len(records)} result records from {result_file.name}")
+
+        for mid_dir in find_model_id_dir(model_dir, "score"):
+            model_id = mid_dir.name
+            for score_file in sorted(mid_dir.glob("*.json")):
+                category = infer_category(score_file.name)
+                if category is None or category not in AGENTIC_CATEGORIES:
+                    continue
+                records = load_jsonl(score_file)
+                failure_records = [r for r in records if "id" in r]
+                for record in failure_records:
+                    task_id = record.get("id")
+                    if task_id:
+                        score_map[model_id][task_id] = record
+                print(f"  Loaded {len(failure_records)} failure records from {score_file.name}")
+
+    if not result_map:
+        print(
+            "\nNo multi-turn result files found. Make sure your BFCL run includes "
+            "multi-turn categories and that results are under result/<model-id>/ "
+            "with filenames like BFCL_v3_multi_turn_base_result.json.",
+            file=sys.stderr,
+        )
+
+    # Load dataset files (initial_config, path, involved_classes) and func docs
+    dataset_records: dict[str, dict] = {}
+    class_tools: dict[str, list[dict]] = {}
+    if dataset_dir:
+        dataset_records = load_agentic_dataset_dir(dataset_dir, AGENTIC_CATEGORIES)
+        class_tools = load_func_doc_dir(dataset_dir)
+        print(f"\nLoaded {len(dataset_records)} task definitions from dataset dir")
+        print(f"Loaded {len(class_tools)} toolkit class definitions from multi_turn_func_doc/")
+    else:
+        print("\nNo --dataset-dir provided. Tasks will have no initial state or tools.")
+
+    all_model_ids = sorted(result_map.keys())
+    all_result_ids: set[str] = set()
+    for model_records in result_map.values():
+        all_result_ids.update(model_records.keys())
+
+    if dataset_dir:
+        task_ids_to_emit = set(dataset_records.keys()) & all_result_ids
+    else:
+        task_ids_to_emit = all_result_ids
+
+    token_avgs = model_token_averages(result_map)
+    print(f"\nBuilding output for {len(task_ids_to_emit)} tasks across {len(all_model_ids)} model(s)...")
+
+    tasks_list: list[dict] = []
+    results_list: list[dict] = []
+
+    for task_id in sorted(task_ids_to_emit):
+        dataset_record = dataset_records.get(task_id, {})
+
+        # Goal: first user message from question[0]
+        question = dataset_record.get("question", [])
+        goal_message: dict | None = None
+        if question and isinstance(question[0], list) and question[0]:
+            goal_message = question[0][0]
+
+        # Initial state: initial_config from dataset record
+        initial_config = dataset_record.get("initial_config")
+
+        # Tools: gathered from involved_classes.
+        # Dataset records use CamelCase class names (e.g. GorillaFileSystem),
+        # while func_doc files are keyed by snake_case stem — normalise before lookup.
+        involved_classes = dataset_record.get("involved_classes", [])
+        task_tools: list[dict] = []
+        for class_name in involved_classes:
+            task_tools.extend(class_tools.get(_to_snake(class_name), []))
+
+        # Category
+        category = task_id.rsplit("_", 2)[0] if "_" in task_id else task_id
+        for cat in AGENTIC_CATEGORIES:
+            if task_id.startswith(cat):
+                category = cat
+                break
+
+        # Targets
+        path = dataset_record.get("path", [])
+        ground_truth_turns = dataset_record.get("ground_truth_turns")
+        targets = ground_truth_turns_to_target(path, ground_truth_turns)
+
+        task: dict = {
+            "task_id": task_id,
+            "task_type": "agentic",
+        }
+        if goal_message:
+            task["input"] = [goal_message]
+        if initial_config:
+            # Store as a single context entry so the agentic TaskView renders it
+            # under "Initial State" using the contexts field.
+            task["contexts"] = [{"text": json.dumps(initial_config, ensure_ascii=False)}]
+        if task_tools:
+            task["tools"] = task_tools
+        if targets:
+            task["targets"] = targets
+        if category:
+            task["bfcl_category"] = category
+
+        tasks_list.append(task)
+
+        # One ModelResult per model
+        for model_id in all_model_ids:
+            result_record = result_map.get(model_id, {}).get(task_id)
+            score_record = score_map.get(model_id, {}).get(task_id)
+
+            if result_record is None and score_record is None:
+                continue
+
+            is_failing = score_record is not None
+            is_valid = not is_failing or score_record.get("valid", False)
+
+            # Multi-turn score records nest error_type inside the "error" dict,
+            # unlike single-turn which has a top-level "error_type" key.
+            error_dict = score_record.get("error", {}) if score_record else {}
+            if isinstance(error_dict, dict):
+                error_type = error_dict.get("error_type")
+                raw_msg = error_dict.get("error_message", "")
+                # BFCL sometimes stores error_message as a list of strings
+                error_message = "\n".join(raw_msg) if isinstance(raw_msg, list) else raw_msg
+            else:
+                # Defensive: some score records may use the single-turn flat format
+                error_type = score_record.get("error_type") if score_record else None
+                error_message = "; ".join(str(e) for e in error_dict) if isinstance(error_dict, list) else str(error_dict)
+
+            # For per-task targets: use possible_answer from the score record when
+            # available (failing tasks only). This is the per-turn ground truth as
+            # list[list[str]]. Prefer it over the dataset's path-only ground truth.
+            score_possible_answer = score_record.get("possible_answer") if score_record else None
+            if score_possible_answer and not task.get("targets"):
+                task["targets"] = ground_truth_turns_to_target(path, score_possible_answer)
+
+            # Prefer score record's inference_log for failing tasks — it is the same
+            # log that was used for evaluation and is always present for failures.
+            # Fall back to result record for passing tasks.
+            log_source = score_record if (score_record and score_record.get("inference_log")) else result_record
+            inference_log = (log_source or {}).get("inference_log", [])
+            output_messages = inference_log_to_messages(inference_log)
+
+            # Fallback: if no thread could be reconstructed, build a minimal one
+            # from the goal + error so the instance view is not empty.
+            if not output_messages and goal_message:
+                output_messages = [{"role": "user", "content": goal_message.get("content", "")}]
+                if is_failing and error_message:
+                    output_messages.append({
+                        "role": "assistant",
+                        "content": f"[Run failed: {error_type or 'unknown'}]\n{error_message}",
+                    })
+
+            severity_value, severity_numeric, severity_display = derive_severity(is_valid, error_type)
+
+            rec = result_record or {}
+            latency = token_sum(rec.get("latency")) or 600.0
+            avg = token_avgs.get(model_id, {})
+            input_tokens = token_sum(rec.get("input_token_count")) or avg.get("input", 0.0)
+            output_tokens = token_sum(rec.get("output_token_count")) or avg.get("output", 0.0)
+
+            # Stamp metadata.status on each assistant and tool message so the UI
+            # can show a visual pass/fail/warn indicator per message.
+            # For force_terminated runs, the last assistant message gets 'fail' —
+            # its turn exhausted the step budget. Earlier assistant messages completed
+            # their turns and are stamped normally (pass/warn).
+            is_force_terminated = error_type == "multi_turn:force_terminated"
+            last_asst_idx = max(
+                (i for i, m in enumerate(output_messages) if m.get("role") == "assistant"),
+                default=None,
+            )
+            for i, msg in enumerate(output_messages):
+                if is_force_terminated and i == last_asst_idx:
+                    msg["metadata"] = {
+                        "status": "fail",
+                        "statusDefinition": (
+                            "Turn did not complete. The BFCL runner force-terminated the "
+                            "agent before it could finish (step budget exhausted)."
+                        ),
+                    }
+                else:
+                    status, status_def = message_status_and_definition(msg)
+                    if status:
+                        msg["metadata"] = {"status": status, "statusDefinition": status_def}
+
+            scores: dict = {
+                "bfcl_correctness": {
+                    "bfcl": {
+                        "value": "correct" if is_valid else "incorrect",
+                        "numeric_value": 1 if is_valid else 0,
+                    }
+                },
+                "bfcl_error_severity": {
+                    "bfcl": {
+                        "value": severity_value,
+                        "numeric_value": severity_numeric,
+                        "display_value": severity_display,
+                    }
+                },
+                "bfcl_error_type": {
+                    "bfcl": {"value": error_type if error_type is not None else "none"}
+                },
+                "bfcl_errors": {
+                    "bfcl": {"value": error_message if error_message else "none"}
+                },
+                "bfcl_latency_total_s": {
+                    "bfcl": {"value": latency}
+                },
+                "bfcl_input_tokens_total": {
+                    "bfcl": {"value": input_tokens}
+                },
+                "bfcl_output_tokens_total": {
+                    "bfcl": {"value": output_tokens}
+                },
+            }
+
+            result_entry: dict = {
+                "task_id": task_id,
+                "model_id": model_id,
+                "output": output_messages,
+                "scores": scores,
+            }
+
+            # Structured error diagnostics from BFCL score record details.
+            # Only present for error types that carry a 'details' sub-dict.
+            if score_record:
+                error_meta = build_error_metadata(error_dict)
+                if error_meta:
+                    result_entry["metadata"] = {"error": error_meta}
+
+            results_list.append(result_entry)
+
+    # Metrics: same set as tool_calling (correctness, severity, error type, errors, latency)
+    # plus bfcl_turn_count for multi-turn depth analysis.
+    metrics = [
+        {
+            "name": "bfcl_correctness",
+            "display_name": "Correctness",
+            "description": "Whether the agent completed the goal according to BFCL evaluation.",
+            "author": "algorithm",
+            "type": "categorical",
+            "aggregator": "majority",
+            "order": "ascending",
+            "values": [
+                {"value": "correct",   "numeric_value": 1, "display_value": "Correct"},
+                {"value": "incorrect", "numeric_value": 0, "display_value": "Incorrect"},
+            ],
+        },
+        {
+            "name": "bfcl_error_severity",
+            "display_name": "Error Severity",
+            "description": (
+                "Recoverability-anchored severity scale derived from BFCL error type. "
+                "Consistent across single-turn (tool_calling) and multi-turn (agentic) categories. "
+                "0 = correct, 0.25 = wrong arguments or execution mismatch, "
+                "0.5 = wrong function or state mismatch, "
+                "0.75 = irrelevance error, 1.0 = malformed or unrecoverable output."
+            ),
+            "author": "algorithm",
+            "type": "categorical",
+            "aggregator": "majority",
+            "order": "descending",
+            "values": [
+                {"value": "correct",          "numeric_value": 0.0,  "display_value": "Correct"},
+                {"value": "wrong_arguments",  "numeric_value": 0.25, "display_value": "Wrong Arguments"},
+                {"value": "wrong_function",   "numeric_value": 0.5,  "display_value": "Wrong Function"},
+                {"value": "unknown",          "numeric_value": 0.5,  "display_value": "Unknown"},
+                {"value": "irrelevance_error","numeric_value": 0.75, "display_value": "Irrelevance Error"},
+                {"value": "malformed_output", "numeric_value": 1.0,  "display_value": "Malformed Output"},
+            ],
+        },
+        {
+            "name": "bfcl_error_type",
+            "display_name": "Error Type",
+            "description": "Raw BFCL error type string. 'none' for correct tasks.",
+            "author": "algorithm",
+            "type": "text",
+        },
+        {
+            "name": "bfcl_errors",
+            "display_name": "Error Messages",
+            "description": "BFCL error messages joined as a single string. 'none' for correct tasks.",
+            "author": "algorithm",
+            "type": "text",
+        },
+        {
+            "name": "bfcl_latency_total_s",
+            "display_name": "Latency (s)",
+            "description": "Total wall-clock inference time in seconds across all turns, including retry steps. Binned in 100s intervals up to 1000s. Values above 1000s render as raw numbers; 600.0 indicates missing data.",
+            "author": "algorithm",
+            "type": "numerical",
+            "aggregator": "mean",
+            "order": "descending",
+            "range": [0, 1000, 100],
+        },
+        {
+            "name": "bfcl_input_tokens_total",
+            "display_name": "Input Tokens",
+            "description": (
+                "Total input token count across all turns and retry steps. "
+                "Not directly comparable across models with different tokenizers, "
+                "but useful as a cost proxy when combined with per-model pricing. "
+                "Runs where token counts were not recorded use the per-model average."
+            ),
+            "author": "algorithm",
+            "type": "numerical",
+            "aggregator": "mean",
+            "order": "descending",
+            "range": [0, 200000, 25000],
+        },
+        {
+            "name": "bfcl_output_tokens_total",
+            "display_name": "Output Tokens",
+            "description": (
+                "Total output token count across all turns and retry steps. "
+                "Not directly comparable across models with different tokenizers, "
+                "but useful as a cost proxy when combined with per-model pricing. "
+                "Runs where token counts were not recorded use the per-model average."
+            ),
+            "author": "algorithm",
+            "type": "numerical",
+            "aggregator": "mean",
+            "order": "descending",
+            "range": [0, 2000, 250],
+        },
+    ]
+
+    bfcl_categories = sorted({
+        task.get("bfcl_category", "") for task in tasks_list if task.get("bfcl_category")
+    })
+
+    models = [
+        {"model_id": mid, "name": model_dir_names.get(mid, mid), "owner": ""}
+        for mid in all_model_ids
+    ]
+
+    output_doc: dict = {
+        "schema_version": SCHEMA_VERSION,
+        "name": output_name,
+        "models": models,
+        "metrics": metrics,
+        "tasks": tasks_list,
+        "results": results_list,
+    }
+    if bfcl_categories:
+        output_doc["filters"] = ["bfcl_category"]
+
+    return output_doc
 
 
 # ---------------------------------------------------------------------------
@@ -780,17 +1899,21 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Convert single-turn categories from one model run:
+  # Convert single-turn categories:
   python convert.py \\
       --bfcl-root ./bfcl_output \\
-      --dataset-dir ./bfcl_dataset \\
-      --output my_results.json
+      --dataset-dir dataset/v4/ \\
+      --output single_turn.json
+
+  # Convert multi-turn (agentic) categories:
+  python convert.py \\
+      --bfcl-root ./bfcl_output \\
+      --dataset-dir dataset/v4/ \\
+      --task-type agentic \\
+      --output multi_turn.json
 
   # Multiple models (each in their own subdirectory under bfcl_output):
   python convert.py --bfcl-root ./bfcl_output --output comparison.json
-
-  # Without dataset files (passing tasks will have no input/tools):
-  python convert.py --bfcl-root ./bfcl_output --output partial.json
 """,
     )
     parser.add_argument(
@@ -811,9 +1934,12 @@ Examples:
     )
     parser.add_argument(
         "--output",
-        required=True,
         type=Path,
-        help="Path for the output InspectorRAGet JSON file.",
+        default=None,
+        help=(
+            "Path for the output InspectorRAGet JSON file. "
+            "Defaults to bfcl_<task_type>.json inside --bfcl-root."
+        ),
     )
     parser.add_argument(
         "--name",
@@ -827,7 +1953,9 @@ Examples:
         help=(
             "Target InspectorRAGet task type. "
             "'tool_calling' converts single-turn next-response-prediction categories. "
-            "'agentic' converts multi-turn goal-directed categories (not yet implemented). "
+            "'agentic' converts multi-turn goal-directed categories "
+            "(multi_turn_base, multi_turn_miss_func, multi_turn_miss_param, "
+            "multi_turn_long_context, web_search, memory). "
             "Default: tool_calling."
         ),
     )
@@ -839,18 +1967,20 @@ Examples:
     if args.dataset_dir and not args.dataset_dir.exists():
         sys.exit(f"Error: --dataset-dir path does not exist: {args.dataset_dir}")
 
+    output = args.output if args.output else args.bfcl_root / f"bfcl_{args.task_type}.json"
+
     if args.task_type == "tool_calling":
         result = convert_tool_calling(args.bfcl_root, args.dataset_dir, args.name)
     else:
         result = convert_agentic(args.bfcl_root, args.dataset_dir, args.name)
 
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    with open(args.output, "w", encoding="utf-8") as f:
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with open(output, "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False)
 
     task_count = len(result.get("tasks", []))
     model_count = len(result.get("models", []))
-    print(f"\nWrote {task_count} tasks across {model_count} model(s) to {args.output}")
+    print(f"\nWrote {task_count} tasks across {model_count} model(s) to {output}")
 
 
 if __name__ == "__main__":

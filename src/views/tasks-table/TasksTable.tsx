@@ -48,6 +48,7 @@ import { useTheme } from '@/src/theme';
 import { Metric, Model, Task, ModelResult } from '@/src/types';
 import { extractMetricDisplayValue } from '@/src/utilities/metrics';
 import { truncate } from '@/src/utilities/strings';
+import { totalCommentCount } from '@/src/utilities/comments';
 import { useDataStore } from '@/src/store';
 import { useNotification } from '@/src/components/notification/Notification';
 import { exportData } from '@/src/exporter';
@@ -287,6 +288,17 @@ export default function TasksTable({
     );
   }, [results]);
 
+  // Groups results by taskId for comment count lookups.
+  const resultsByTaskId = useMemo(() => {
+    const map = new Map<string, ModelResult[]>();
+    results.forEach((r) => {
+      const existing = map.get(r.taskId) ?? [];
+      existing.push(r);
+      map.set(r.taskId, existing);
+    });
+    return map;
+  }, [results]);
+
   var [headers, rows]: [{ key: string; header: string }[], EvaluationRow[]] =
     useMemo(
       () =>
@@ -504,31 +516,38 @@ export default function TasksTable({
                                       {truncate(cell.value, 80)}
                                     </span>
                                     <div className={classes.taskCellDetails}>
-                                      {taskMap?.get(cell.id.split(':task')[0])
-                                        ?.comments && (
-                                        <Tooltip
-                                          align={'bottom'}
-                                          label={
-                                            'Click to view task with comments'
-                                          }
-                                        >
-                                          <Button
-                                            id="comments-btn"
-                                            className={classes.ViewCommentsBtn}
-                                            kind={'ghost'}
-                                            onClick={() => {
-                                              onClick(row.id);
-                                            }}
-                                          >
-                                            <Chat />
-                                            {
-                                              taskMap?.get(
-                                                cell.id.split(':task')[0],
-                                              )?.comments?.length
+                                      {(() => {
+                                        const taskId =
+                                          cell.id.split(':task')[0];
+                                        const task = taskMap?.get(taskId);
+                                        const taskResults =
+                                          resultsByTaskId.get(taskId) ?? [];
+                                        const count = task
+                                          ? totalCommentCount(task, taskResults)
+                                          : 0;
+                                        return count > 0 ? (
+                                          <Tooltip
+                                            align={'bottom'}
+                                            label={
+                                              'Click to view task with comments'
                                             }
-                                          </Button>
-                                        </Tooltip>
-                                      )}
+                                          >
+                                            <Button
+                                              id="comments-btn"
+                                              className={
+                                                classes.ViewCommentsBtn
+                                              }
+                                              kind={'ghost'}
+                                              onClick={() => {
+                                                onClick(row.id);
+                                              }}
+                                            >
+                                              <Chat />
+                                              {count}
+                                            </Button>
+                                          </Tooltip>
+                                        ) : null;
+                                      })()}
                                       <Tooltip
                                         align={'bottom-right'}
                                         label={'Click to flag task'}

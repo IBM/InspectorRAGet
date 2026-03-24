@@ -16,8 +16,28 @@
  *
  **/
 
-import classes from './CookBooks.module.scss';
+@use '@carbon/react/scss/spacing' as *;
 
-export default function CookBooksView() {
-  return <div className={classes.page}></div>;
+.container {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-02;
+}
+
+.copyFormatSelectors {
+  display: flex;
+  column-gap: $spacing-03;
+}
+
+.copyFormatSelectors > div > label {
+  background-color: var(--cds-background) !important;
+}
+
+.previewBox {
+  height: 75%;
+  background-color: var(--cds-background);
+}
+
+.heading {
+  padding-bottom: $spacing-03;
 }

@@ -1,0 +1,67 @@
+/**
+ *
+ * Copyright 2023-present InspectorRAGet Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ **/
+
+@use '@carbon/react/scss/spacing' as *;
+
+// Shared card shell — used by both ToolCallCard and ToolResponseCard
+.card {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-02;
+  padding: $spacing-03;
+  border-radius: 2px;
+  background-color: var(--cds-layer-01);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  column-gap: $spacing-02;
+  font-size: 0.875rem;
+}
+
+.cardHeaderClickable {
+  cursor: pointer;
+}
+
+.cardName {
+  font-weight: 600;
+}
+
+// Decorative chevron pushed to the right edge
+.expandToggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  color: var(--cds-icon-secondary);
+}
+
+.cardMeta {
+  font-size: 0.75rem;
+  color: var(--cds-text-secondary);
+}
+
+// Expanded content — capped height so large payloads don't flood the layout
+.expandedBlock {
+  max-height: 240px;
+  overflow-y: auto;
+
+  :global(.cds--snippet) {
+    max-width: 100%;
+  }
+}
