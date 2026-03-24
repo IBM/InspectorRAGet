@@ -37,7 +37,8 @@ export async function load() {
       const { data: migratedRaw, migrated } = migrateData(
         JSON.parse(fileContent),
       );
-      const [data] = processData(camelCaseKeys(migratedRaw), migrated);
+      const converted = camelCaseKeys(migratedRaw);
+      const [data] = processData(converted, migrated);
       if (data) {
         examples.push(data);
       }

@@ -18,7 +18,7 @@
 
 @use '@carbon/react/scss/spacing' as *;
 
-.stepItem {
+.traceItem {
   display: flex;
   flex-direction: column;
   background-color: var(--cds-layer-01);
@@ -29,7 +29,7 @@
 }
 
 // Full-width clickable header row. Reset button styles so it reads as a row.
-.stepHeader {
+.traceHeader {
   display: flex;
   align-items: center;
   column-gap: $spacing-03;
@@ -59,32 +59,22 @@
   flex-shrink: 0;
 }
 
-.tagThinking {
-  background-color: var(--cds-tag-background-purple);
-  color: var(--cds-tag-color-purple);
-}
-
-.tagToolCall {
+.tagInvocation {
   background-color: var(--cds-tag-background-blue);
   color: var(--cds-tag-color-blue);
 }
 
-.tagToolResponse {
+.tagToolExecution {
   background-color: var(--cds-tag-background-teal);
   color: var(--cds-tag-color-teal);
 }
 
-.tagRetrieval {
-  background-color: var(--cds-tag-background-green);
-  color: var(--cds-tag-color-green);
+.tagObservation {
+  background-color: var(--cds-tag-background-purple);
+  color: var(--cds-tag-color-purple);
 }
 
-.tagGeneration {
-  background-color: var(--cds-tag-background-gray);
-  color: var(--cds-tag-color-gray);
-}
-
-.stepName {
+.traceName {
   display: inline-flex;
   align-items: center;
   column-gap: $spacing-01;
@@ -92,26 +82,28 @@
   font-weight: 600;
 }
 
-.stepDuration {
+.traceLabel {
   font-size: 0.75rem;
   color: var(--cds-text-secondary);
-  font-weight: 400;
-  margin-left: auto;
+  font-family: var(--cds-code-01-font-family, monospace);
+  flex-shrink: 0;
 }
 
-// Chevron pushed to the far right, after duration.
 .expandIcon {
   display: inline-flex;
   align-items: center;
   color: var(--cds-text-secondary);
-  margin-left: $spacing-02;
+  margin-left: auto;
   flex-shrink: 0;
 }
 
 // Expanded content area below the header.
-// Override Carbon's internal max-width so code snippets span the full card width.
-.stepContent {
-  padding: 0 $spacing-03 $spacing-03;
+// layer-02 background visually separates content from the layer-01 header,
+// making it clear the cards below belong inside this trace item.
+.traceContent {
+  padding: $spacing-03;
+  background-color: var(--cds-layer-02);
+  border-top: 1px solid var(--cds-border-subtle-01);
   font-size: 0.875rem;
   line-height: 1.4;
   white-space: pre-wrap;
@@ -125,13 +117,37 @@
   }
 }
 
-.documentList {
-  margin: 0;
-  padding-left: $spacing-05;
-  font-size: 0.75rem;
-  color: var(--cds-text-secondary);
+.invocationContent {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-03;
+}
 
-  li {
-    margin-bottom: $spacing-01;
+// Separator between tool call cards when an invocation produced multiple calls.
+.toolCallList {
+  display: flex;
+  flex-direction: column;
+
+  & > * + * {
+    border-top: 1px solid var(--cds-border-subtle-01);
+    padding-top: $spacing-02;
   }
+}
+
+.thinkingSection {
+  margin-bottom: $spacing-03;
+  padding: $spacing-02 $spacing-03;
+  background-color: var(--cds-layer-02);
+  border-radius: 2px;
+  font-style: italic;
+  color: var(--cds-text-secondary);
+}
+
+.thinkingLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--cds-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: $spacing-01;
 }

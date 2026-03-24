@@ -1,0 +1,105 @@
+/**
+ *
+ * Copyright 2023-present InspectorRAGet Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ **/
+
+@use '@carbon/react/scss/spacing' as *;
+
+// Search box — full-width with solid background
+.toolsSearch {
+  width: 100%;
+  margin-bottom: $spacing-03;
+
+  :global(.cds--search-input) {
+    background-color: var(--cds-field-01);
+    border: 1px solid var(--cds-border-strong-01);
+  }
+}
+
+// Wraps multiple ToolDefinitionCards with consistent vertical spacing
+.callList {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-03;
+}
+
+// Individual tool card
+.callCard {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-02;
+  padding: $spacing-03;
+  border-radius: 2px;
+  background-color: var(--cds-layer-01);
+}
+
+.callCardHeader {
+  display: flex;
+  align-items: center;
+  column-gap: $spacing-02;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.callCardHeaderClickable {
+  cursor: pointer;
+}
+
+// Decorative chevron at the right edge — click is handled by the header div
+.expandToggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  color: var(--cds-icon-secondary);
+}
+
+// Expanded content area inside a ToolDefinitionCard
+.toolDefinitionContent {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-02;
+  padding-top: $spacing-02;
+  border-top: 1px solid var(--cds-border-subtle-01);
+}
+
+.toolDescription {
+  font-size: 0.875rem;
+  color: var(--cds-text-secondary);
+  margin: 0;
+}
+
+.toolParamList {
+  margin: 0;
+  padding-left: $spacing-05;
+  font-size: 0.75rem;
+  color: var(--cds-text-secondary);
+}
+
+.toolParamList li {
+  margin-bottom: $spacing-01;
+}
+
+.toolParamRequired {
+  color: var(--cds-support-error);
+  font-weight: 600;
+}
+
+.noResults {
+  font-size: 0.875rem;
+  color: var(--cds-text-helper);
+  font-style: italic;
+  margin: 0;
+}

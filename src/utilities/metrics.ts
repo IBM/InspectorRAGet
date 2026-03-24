@@ -351,20 +351,14 @@ export function mergeAgreementObjects({
 export function bin(value: number | string, metric: Metric, n?: number) {
   if (typeof value === 'number' && metric.type === 'numerical') {
     if (metric.range && metric.range.length == 3) {
-      for (
-        let idx: number = 0;
-        metric.range[0] + idx * metric.range[2] + metric.range[2] <=
-        metric.range[1];
-        idx++
-      ) {
-        const start: number = parseFloat(
-          (metric.range[0] + idx * metric.range[2]).toFixed(2),
-        );
-        const end: number = parseFloat(
-          (metric.range[0] + idx * metric.range[2] + metric.range[2]).toFixed(
-            2,
-          ),
-        );
+      const [rangeMin, rangeMax, step] = metric.range;
+
+      if (value < rangeMin) return `<${rangeMin}`;
+      if (value > rangeMax) return `>${rangeMax}`;
+
+      for (let idx = 0; rangeMin + idx * step + step <= rangeMax; idx++) {
+        const start = parseFloat((rangeMin + idx * step).toFixed(2));
+        const end = parseFloat((rangeMin + idx * step + step).toFixed(2));
         if (start <= value && value <= end) {
           return `${start}-${end}`;
         }

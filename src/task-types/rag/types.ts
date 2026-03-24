@@ -16,7 +16,7 @@
  *
  **/
 
-import type { Step, ToolCallRecord } from '@/src/types';
+import type { TraceEvent, ToolCallRecord } from '@/src/types';
 
 // A retry attempt the model made before arriving at the final output.
 // Captures intermediate content/tool_calls and any error that triggered the retry.
@@ -24,7 +24,7 @@ export interface MessageRetry {
   content?: string;
   tool_calls?: ToolCallRecord[];
   error?: string;
-  steps?: Step[];
+  trace?: TraceEvent[];
 }
 
 export interface Message {
@@ -37,8 +37,12 @@ export interface Message {
   // casting when iterating over Message[] output. The concrete type is ToolCallRecord[].
   tool_calls?: ToolCallRecord[];
   // Per-message execution trace. Optional — views degrade gracefully when absent.
-  steps?: Step[];
+  trace?: TraceEvent[];
   retries?: MessageRetry[];
+  // Benchmark-supplied metadata. Keys are benchmark-specific; the UI renders
+  // known keys (e.g. metadata.status) and ignores unknown ones.
+  // Known keys: status — 'pass' | 'fail' | 'warn' (stamped by converters).
+  metadata?: Record<string, unknown>;
 }
 
 export interface SystemMessage extends Message {

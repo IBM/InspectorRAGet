@@ -97,6 +97,42 @@ function migrateV1toV2(raw: Record<string, any>): Record<string, any> {
     }
   }
 
+  // Rename steps → trace on all messages and strip old step type variants.
+  // The old 'thinking', 'tool_call', 'tool_response', 'retrieval', 'generation'
+  // step types were only ever written by the BFCL single-turn converter (now removed).
+  // Any message with a 'steps' field gets it renamed to 'trace', and entries with
+  // unrecognised types are stripped so the UI never sees the old shape.
+  const VALID_TRACE_TYPES = new Set([
+    'invocation',
+    'tool_execution',
+    'observation',
+  ]);
+
+  function migrateMessageSteps(msg: Record<string, any>) {
+    if (!msg || typeof msg !== 'object') return;
+    if (msg.steps !== undefined && msg.trace === undefined) {
+      const filtered = Array.isArray(msg.steps)
+        ? msg.steps.filter((s: any) => VALID_TRACE_TYPES.has(s?.type))
+        : [];
+      if (filtered.length > 0) {
+        msg.trace = filtered;
+      }
+      delete msg.steps;
+    }
+  }
+
+  for (const task of result.tasks ?? []) {
+    if (Array.isArray(task.input)) {
+      for (const msg of task.input) migrateMessageSteps(msg);
+    }
+  }
+
+  for (const evaluation of result.results ?? []) {
+    if (Array.isArray(evaluation.output)) {
+      for (const msg of evaluation.output) migrateMessageSteps(msg);
+    }
+  }
+
   result.schema_version = 2;
   return result;
 }

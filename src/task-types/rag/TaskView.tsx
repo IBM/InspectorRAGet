@@ -30,7 +30,6 @@ import {
   TabPanel,
   ContainedList,
   ContainedListItem,
-  InlineNotification,
 } from '@carbon/react';
 
 import { Model, ModelResult, Task, Metric, outputAsText } from '@/src/types';
@@ -38,7 +37,7 @@ import { useDataStore } from '@/src/store';
 import { truncate } from '@/src/utilities/strings';
 
 import EvaluationsPanel from '@/src/components/evaluations/EvaluationsPanel';
-import StepGroup from '@/src/components/steps/StepGroup';
+import TraceGroup from '@/src/components/trace/TraceGroup';
 import ChatLine from '@/src/task-types/rag/components/ChatLine';
 import RAGCopier from '@/src/task-types/rag/Copier';
 
@@ -218,12 +217,12 @@ export default function RAGTaskView({
                           <Tab
                             disabled={
                               !(
-                                Array.isArray(result.output[0]?.steps) &&
-                                result.output[0].steps!.length > 0
+                                Array.isArray(result.output[0]?.trace) &&
+                                result.output[0].trace!.length > 0
                               )
                             }
                           >
-                            Steps
+                            Trace
                           </Tab>
                         </TabList>
                         <TabPanels>
@@ -240,29 +239,9 @@ export default function RAGTaskView({
                             />
                           </TabPanel>
                           <TabPanel className={classes.flushTabPanel}>
-                            {Array.isArray(result.output[0]?.steps) &&
-                              result.output[0].steps!.length > 0 && (
-                                <>
-                                  {!result.output[0].steps!.some(
-                                    (s) => s.startTimestamp !== undefined,
-                                  ) && (
-                                    <InlineNotification
-                                      kind="info"
-                                      title="Auto-constructed steps"
-                                      subtitle="These steps were derived from the message thread and may not reflect actual execution order."
-                                      lowContrast
-                                      hideCloseButton
-                                    />
-                                  )}
-                                  <StepGroup
-                                    steps={result.output[0].steps!}
-                                    onStepMouseDown={(stepId) =>
-                                      updateCommentProvenance(
-                                        `${result.modelId}::steps::${stepId}`,
-                                      )
-                                    }
-                                  />
-                                </>
+                            {Array.isArray(result.output[0]?.trace) &&
+                              result.output[0].trace!.length > 0 && (
+                                <TraceGroup trace={result.output[0].trace!} />
                               )}
                           </TabPanel>
                         </TabPanels>

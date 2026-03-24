@@ -36,36 +36,37 @@ export default memo(function InstructionsView({
       <div className={classes.instructionsContainer}>
         <h4>Instructions</h4>
         <p>
-          Use the Analytics platform to examine and analyze LLM evaluation
-          experiments. The experiments are assumed to comprise:
+          Use InspectorRAGet to visualize and analyze LLM evaluation results.
+          Your evaluation data is expected to contain:
         </p>
         <UnorderedList>
           <ListItem>
-            A dataset of tasks, where each task has at least one triplet of
-            context, grounding document and response. There may be multiple
-            responses, if multiple models are being evaluated simultaneously (at
-            most 5 models are allowed).
+            A set of tasks, each with one or more model results. All models must
+            have a result for every task, and all metrics must have scores on
+            every model result. Including more than 5 models may result in
+            noticeable slowdowns due to the volume of data being processed and
+            rendered.
           </ListItem>
           <ListItem>
-            Each response is evaluated on at least one metric. A metric may be
-            categorical (yes/no, Likert scale) or numeric. One experiment may
-            include any number of categorical or numeric metrics, though we
-            strongly caution against including too many as this makes the
-            instance-level analysis challenging.
+            Scores on one or more metrics per model result. Metrics may be
+            categorical (e.g., yes/no, Likert scale) or numeric. Mixing metric
+            types within a single experiment is supported.
           </ListItem>
           <ListItem>
-            There is at least one annotator / evaluator. The annotator may be
-            human or algorithm (whether a defined quanititative metric, or an
-            LLM). One experiment may include any number of human or algorithmic
-            annotators.
+            At least one annotator or evaluator (human, algorithmic, or
+            LLM-based). Multiple annotators per experiment are supported.
           </ListItem>
         </UnorderedList>
+        <p>Supported task types:</p>
+        <UnorderedList>
+          <ListItem>RAG</ListItem>
+          <ListItem>Text generation</ListItem>
+          <ListItem>Tool calling</ListItem>
+          <ListItem>Agentic traces</ListItem>
+        </UnorderedList>
         <p>
-          Upload your experiment data on the following page, which contains a
-          detailed example of the expected schema. You will need to provide
-          sufficient metadata about the tasks, metrics, and annotators. If the
-          uploaded document is not well-formed, you will see a verification
-          error.
+          The next page includes a full schema example. If your file does not
+          match the expected format, you will see a validation error.
         </p>
       </div>
 

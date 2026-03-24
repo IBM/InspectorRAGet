@@ -27,13 +27,14 @@
 }
 
 .leadspaceWrapper {
-  margin-left: 5%;
   width: 60%;
+  margin: 0 auto;
+  text-align: center;
 }
 
 .leadspace {
-  margin-top: 20%;
-  margin-bottom: $spacing-07;
+  margin-top: 8%;
+  margin-bottom: $spacing-09;
 
   > p {
     font-size: rem(16px);
@@ -64,8 +65,14 @@
 }
 
 .cardsList {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+  gap: $spacing-07;
+
+  > li {
+    flex: 0 0 38%;
+  }
 }
 
 .annoucements {

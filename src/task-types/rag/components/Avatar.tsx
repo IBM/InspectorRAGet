@@ -26,11 +26,22 @@ import classes from './Avatar.module.scss';
 // ===================================================================================
 export default function Avatar({
   role,
+  selected,
+  status,
 }: {
   role: 'system' | 'developer' | 'user' | 'tool' | 'assistant';
+  selected?: boolean;
+  status?: string;
 }) {
   return (
-    <div className={cx(classes.wrapper)}>
+    <div
+      className={cx(classes.wrapper, {
+        [classes.selected]: selected,
+        [classes.statusPass]: status === 'pass',
+        [classes.statusWarn]: status === 'warn',
+        [classes.statusFail]: status === 'fail',
+      })}
+    >
       {role === 'assistant' ? (
         <Bot width="32px" height="32px" />
       ) : role === 'tool' ? (

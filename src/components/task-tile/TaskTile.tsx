@@ -47,6 +47,7 @@ import {
 import { Task, ModelResult } from '@/src/types';
 import { MetricDefinitions } from '@/src/utilities/metrics';
 import { castDurationToString } from '@/src/utilities/time';
+import { totalCommentCount } from '@/src/utilities/comments';
 
 import classes from './TaskTile.module.scss';
 
@@ -124,12 +125,10 @@ export default memo(function TaskTile({
                 className={classes.commentsIndicator}
                 kind={'ghost'}
                 onClick={onClickCommentsIcon}
-                disabled={
-                  task.comments === undefined || task.comments.length === 0
-                }
+                disabled={totalCommentCount(task, results) === 0}
               >
                 <Chat />
-                {task.comments ? task.comments.length : 0}
+                {totalCommentCount(task, results)}
               </Button>
             </Tooltip>
             {onClickCopyToClipboardIcon && (

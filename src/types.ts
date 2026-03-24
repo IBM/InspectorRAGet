@@ -68,10 +68,11 @@ export interface ComponentCommonLink {
 export interface ComponentHomeCard {
   title: string;
   text: string | null;
+  features?: string[];
   href: string | null;
   actionText: string | null;
   tag: string | null;
-  icon: 'CHART_MULTITYPE' | 'MICROSCOPE' | 'NOODLE_BOWL' | 'BOOK';
+  icon: 'CHART_MULTITYPE' | 'MICROSCOPE';
   openInNewTab: boolean;
   disabled?: boolean;
 }
@@ -79,7 +80,7 @@ export interface ComponentHomeCard {
 export interface HomePageAttributes {
   title: string;
   subtitle: string;
-  greeting: string;
+  greeting: string | null;
   subtitleLink: ComponentCommonLink | null;
   cards: ComponentHomeCard[];
 }
@@ -164,50 +165,34 @@ export interface ToolCallRecord {
   dependsOn?: string;
 }
 
-// --- Step ---
+// --- TraceEvent ---
 
-// A single observable step in a model's execution trace.
-// Discriminated by 'type' so renderers can handle each case without casting.
-// tool_response is always paired with a tool_call via toolCallId.
-// Timestamps are optional — present when the researcher captured timing.
-export type Step =
+// A single event in an agentic execution trace. Three variants:
+// 'invocation'    — one LLM inference call, carrying the model's output message and
+//                   an optional recursive sub-agent trace.
+// 'tool_execution'— one tool call result from the environment.
+// 'observation'   — feedback injected by the runner/benchmark between invocations:
+//                   decode errors, orchestrator notes, user simulator turns, etc.
+//                   Signals what the model observed before its next invocation.
+// The recursive trace? field on 'invocation' enables multi-level agent hierarchies.
+export type TraceEvent =
   | {
-      type: 'thinking';
-      id: string;
-      content: string;
-      startTimestamp?: number;
-      endTimestamp?: number;
+      type: 'invocation';
+      agent?: string; // optional — most benchmarks do not report agent identity
+      thinking?: string; // optional — not all models expose thinking tokens
+      output: Message; // LLM output: tool calls or final text
+      trace?: TraceEvent[]; // sub-agent trace, recursive
+      label?: string; // optional — free-form marker for cross-referencing source data
     }
   | {
-      type: 'tool_call';
-      id: string;
-      toolCallId: string;
-      name: string;
-      arguments: object;
-      startTimestamp?: number;
-      endTimestamp?: number;
+      type: 'tool_execution';
+      result: Message; // tool response (Message with role 'tool')
+      label?: string; // optional — free-form marker for cross-referencing source data
     }
   | {
-      type: 'tool_response';
-      id: string;
-      toolCallId: string;
-      content: string | object;
-      startTimestamp?: number;
-      endTimestamp?: number;
-    }
-  | {
-      type: 'retrieval';
-      id: string;
-      documents: RetrievedDocument[];
-      startTimestamp?: number;
-      endTimestamp?: number;
-    }
-  | {
-      type: 'generation';
-      id: string;
-      content: string;
-      startTimestamp?: number;
-      endTimestamp?: number;
+      type: 'observation';
+      content: string; // text injected by runner/benchmark before next invocation
+      label?: string; // optional — free-form marker for cross-referencing source data
     };
 
 // --- Output helper ---
@@ -234,7 +219,8 @@ export function outputAsText(output: Message[] | string): string {
 
 // Discriminated union of expected outputs. 'text' covers most task types.
 // 'tool_calls' is the ground-truth for tool-calling evaluation.
-// 'state' and 'image' are reserved for future agentic and multimodal support.
+// 'state' holds the expected final environment state for agentic tasks (BFCL multi-turn).
+// 'image' is reserved for future multimodal support.
 //
 // For 'tool_calls', the two levels of variance are:
 //   - Which function(s) to call: represented as separate TaskTarget entries in
@@ -252,7 +238,7 @@ export type TaskTarget =
       calls: ToolCallRecord[];
       alternatives?: Record<string, ToolCallRecord[]>;
     }
-  | { type: 'state'; description: string } // agentic, future
+  | { type: 'state'; value: Record<string, unknown> } // agentic: expected final env state
   | { type: 'image'; url: string }; // multimodal, future
 
 // --- Comment finding ---
@@ -320,7 +306,7 @@ export interface ModelResult {
   readonly modelId: string;
   // Model output as a Message array. For all current task types this is a
   // single-element array; multiple messages are reserved for the agentic task type.
-  // Steps for the output live on output[0].steps rather than as a top-level field.
+  // The execution trace lives on output[0].trace rather than as a top-level field.
   readonly output: Message[];
   // Metric scores keyed by metric name, then by evaluator/annotator id.
   readonly scores: {
@@ -330,6 +316,12 @@ export interface ModelResult {
   // Evaluation-level comments (e.g. noting an acceptable-but-different tool call).
   // Distinct from task.comments which are task-level observations shared across models.
   comments?: TaskComment[];
+  // Benchmark-supplied metadata. Keys are benchmark-specific; the UI renders
+  // known keys and ignores unknown ones.
+  // Known keys: error — { kind: 'text' | 'structured', context: unknown }
+  //   Structured diagnostics from benchmarks that surface per-result detail beyond
+  //   what fits in flat metric strings (e.g. BFCL multi-turn state diffs).
+  metadata?: Record<string, unknown>;
   [key: string]: any;
 }
 

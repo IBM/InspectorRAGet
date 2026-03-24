@@ -16,8 +16,18 @@
  *
  **/
 
-import classes from './Documentation.module.scss';
+import { Task, ModelResult } from '@/src/types';
 
-export default function DocumentationView() {
-  return <div className={classes.page}></div>;
+/**
+ * Total comment count across a task and all its model results.
+ * Comments can live at two levels: task-level (observations shared across
+ * models) and model-result-level (per-model evaluation notes).
+ */
+export function totalCommentCount(task: Task, results: ModelResult[]): number {
+  const taskCount = task.comments?.length ?? 0;
+  const resultCount = results.reduce(
+    (sum, r) => sum + (r.comments?.length ?? 0),
+    0,
+  );
+  return taskCount + resultCount;
 }

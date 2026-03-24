@@ -144,9 +144,15 @@ export default function Task({ taskId, onClose }: Props) {
     }
   }, [taskId, taskMap]);
 
-  const [showComments, setShowComments] = useState<boolean>(
-    (task?.comments?.length && task.comments.length > 0) || false,
-  );
+  const [showComments, setShowComments] = useState<boolean>(() => {
+    if ((task?.comments?.length ?? 0) > 0) return true;
+    // Check model-result comments at init time since `results` memo isn't computed yet.
+    return (
+      data?.results
+        .filter((r) => r.taskId === taskId)
+        .some((r) => (r.comments?.length ?? 0) > 0) ?? false
+    );
+  });
 
   // Merge live resultsMap entries so model-level comment updates are reactive.
   const results = useMemo(() => {

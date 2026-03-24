@@ -44,6 +44,12 @@
   border-bottom-right-radius: 0;
   background: var(--cds-layer-01);
   width: 80%;
+  border: 2px solid transparent;
+  transition: border-color 0.1s ease;
+}
+
+.baloonSelected {
+  border-color: var(--cds-border-interactive);
 }
 
 .assistantBaloon {
@@ -52,11 +58,102 @@
 }
 
 .toolCallBaloon {
-  background-color: var(--cds-highlight);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 1rem;
+  padding: $spacing-03;
 }
 
 .toolResponseBaloon {
-  background-color: var(--cds-tag-background-green);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 1rem;
+  padding: $spacing-03;
+}
+
+// Footer row at the bottom of every balloon.
+// Left side is reserved for future additions; status+retries are grouped on the right.
+.balloonFooter {
+  display: flex;
+  align-items: center;
+  padding: $spacing-02 $spacing-03;
+  border-top: 1px solid var(--cds-border-subtle-01);
+  min-height: 28px;
+}
+
+.balloonFooterRight {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: $spacing-03;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-02;
+  font-size: 0.75rem;
+  font-weight: 600;
+
+  // DefinitionTooltip renders an inner trigger button — make it flex so the
+  // icon and label sit side-by-side, and inherit the color from the wrapper.
+  :global(.cds--definition-term) {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-02;
+    font-size: inherit;
+    font-weight: inherit;
+    color: inherit;
+  }
+}
+
+.statusBadgePass {
+  color: var(--cds-support-success);
+}
+
+.statusBadgeWarn {
+  color: var(--cds-support-warning);
+}
+
+.statusBadgeFail {
+  color: var(--cds-support-error);
+}
+
+// Retries modal content
+.retriesModalContent {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-05;
+}
+
+.retryAttempt {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-03;
+  padding: $spacing-04;
+  background: var(--cds-layer-01);
+  border-radius: 4px;
+}
+
+.retryAttemptHeader {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cds-text-secondary);
+}
+
+.retryError {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-02;
+}
+
+.retryErrorLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--cds-support-error);
+}
+
+.retryErrorText {
+  font-size: 0.875rem;
+  color: var(--cds-text-primary);
 }
 
 .message {
@@ -64,6 +161,16 @@
   line-height: 22px;
   margin: $spacing-04 $spacing-05;
   min-width: 120px;
+}
+
+.assistantResponse {
+  display: flex;
+  flex-direction: column;
+}
+
+// Each tool call card inside an assistant balloon; top border separates adjacent calls
+.toolCallItem {
+  border-top: 1px solid var(--cds-border-subtle-01);
 }
 
 .toolCall {

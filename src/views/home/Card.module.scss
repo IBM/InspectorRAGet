@@ -16,21 +16,21 @@
  *
  **/
 
-@use '@carbon/styles/scss/colors' as *;
 @use '@carbon/styles/scss/spacing' as *;
 @use '@carbon/styles/scss/utilities/convert' as *;
 @use '@carbon/styles/scss/type' as *;
 
 .root {
-  padding: rem(16px);
+  padding: rem(24px);
   position: relative;
-  border-left: 1px solid var(--cds-border-subtle-03);
-  min-height: rem(230px);
+  border: 1px solid var(--cds-border-subtle-01);
+  background-color: var(--cds-layer-01);
+  height: rem(400px);
   display: flex;
   flex-direction: column-reverse;
 
   &:hover {
-    background-color: var(--cds-skeleton-background);
+    background-color: var(--cds-layer-hover-01);
   }
 }
 
@@ -39,22 +39,41 @@
   padding-right: 10%;
 
   > * {
-    margin-bottom: $spacing-03;
+    margin-bottom: $spacing-04;
   }
 }
 
 .heading {
-  @include type-style('body-compact-02');
+  @include type-style('heading-03');
 }
 
 .text {
-  @include type-style('body-compact-01');
+  @include type-style('body-01');
+}
+
+.features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  li {
+    @include type-style('body-01');
+
+    color: var(--cds-text-secondary);
+    padding: $spacing-02 0;
+    border-top: 1px solid var(--cds-border-subtle-01);
+
+    &:last-child {
+      border-bottom: 1px solid var(--cds-border-subtle-01);
+    }
+  }
 }
 
 .link {
   font-size: rem(14px);
   font-weight: 500;
   line-height: rem(24px);
+  padding-top: $spacing-05;
 
   &::before {
     content: '';
@@ -62,14 +81,6 @@
     inset: 0;
     pointer-events: auto;
     background-color: transparent;
-  }
-
-  &:hover::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-color: $gray-10;
-    z-index: -1;
   }
 
   > :global(.cds--link__icon) > svg {

@@ -21,12 +21,7 @@
 import { memo } from 'react';
 import Link from 'next/link';
 import { Link as CarbonLink } from '@carbon/react';
-import {
-  ChartMultitype,
-  Microscope,
-  NoodleBowl,
-  Book,
-} from '@carbon/icons-react';
+import { ChartMultitype, Microscope } from '@carbon/icons-react';
 
 import { HomePageAttributes } from '@/src/types';
 import Card from './Card';
@@ -39,8 +34,6 @@ interface Props {
 const ICONS = {
   CHART_MULTITYPE: ChartMultitype,
   MICROSCOPE: Microscope,
-  NOODLE_BOWL: NoodleBowl,
-  BOOK: Book,
 };
 
 export default memo(function HomePage({ page }: Props) {
@@ -48,7 +41,7 @@ export default memo(function HomePage({ page }: Props) {
     <div className={classes.root}>
       <div className={classes.leadspaceWrapper}>
         <header className={classes.leadspace}>
-          <p>{page.greeting}</p>
+          {page.greeting && <p>{page.greeting}</p>}
           <h1 className={classes.heading}>{page.title}</h1>
           <p>
             {page.subtitle}
@@ -73,7 +66,13 @@ export default memo(function HomePage({ page }: Props) {
           {page.cards.map((props, index) => {
             return (
               <li key={index}>
-                <Card {...{ ...props, icon: ICONS[props.icon] }} />
+                <Card
+                  {...{
+                    ...props,
+                    icon: ICONS[props.icon],
+                    features: props.features,
+                  }}
+                />
               </li>
             );
           })}

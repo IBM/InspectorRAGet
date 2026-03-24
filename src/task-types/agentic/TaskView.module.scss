@@ -21,7 +21,6 @@
 
 // --- Layout ---
 
-// Inner flex row — fills the 1fr grid cell given by Task.module.scss
 .layout {
   display: flex;
   flex-direction: row;
@@ -55,18 +54,15 @@
   }
 }
 
-// Inner scroll area inside ContainedList for conversation messages
-.conversationContent {
-  display: flex;
-  flex-direction: column;
-  row-gap: $spacing-03;
-  overflow-y: auto;
-  max-height: 40vh;
+.goalText {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
-// Horizontal divider between Conversation and Available Tools panels.
-// Matches the vertical column separator style.
-.inputDivider {
+// Horizontal dividers between sections within the left column
+.sectionDividerLeft {
   border: none;
   border-top: dashed 1px var(--cds-border-inverse);
   margin: 0;
@@ -75,6 +71,37 @@
   @media (width <= 1023px) {
     display: none;
   }
+}
+
+.targetsContent {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-03;
+}
+
+.targetBlock {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-02;
+
+  :global(.cds--snippet) {
+    max-width: 100%;
+  }
+}
+
+.targetLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--cds-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.targetText {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 // --- Separator ---
@@ -103,6 +130,7 @@
 
   @media (width <= 1023px) {
     flex: none;
+    max-width: 100%;
     height: auto;
   }
 }
@@ -114,27 +142,84 @@
   overflow-y: auto;
 }
 
-// Remove Carbon's default horizontal padding on inner tab panels so tables
-// and step cards span the full width of the column.
+// Remove Carbon's default horizontal padding on inner tab panels
 .flushTabPanel {
   padding-inline: 0;
 }
 
-// Visual break between the Target section and the Evaluations/Steps tabs.
-// Matches the vertical column separator: dashed, same token, same weight.
 .sectionDivider {
   border: none;
   border-top: dashed 1px var(--cds-border-inverse);
   margin: 0;
 }
 
-// --- Tool call list ---
+// --- Execution thread ---
 
-// Wraps multiple ToolCallCards with consistent vertical spacing
+// Cap the thread at 50% of the right column so the Evaluations/Steps tabs
+// are always visible without scrolling past a long conversation.
+.threadContent {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-02;
+  max-height: 50vh;
+  overflow-y: auto;
+
+  // Prevent avatar status rings from being clipped at the edges
+  padding-inline: $spacing-03;
+}
+
+// Turn demarcator — lightweight horizontal rule with inline label
+.turnDivider {
+  display: flex;
+  align-items: center;
+  column-gap: $spacing-02;
+  margin-block: $spacing-02;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background-color: var(--cds-border-subtle-01);
+  }
+}
+
+.turnLabel {
+  font-size: 0.75rem;
+  color: var(--cds-text-helper);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+// Wrapper applied to assistant messages: clickable for Steps selection
+.messageWrapperClickable {
+  cursor: pointer;
+}
+
+// --- Tool call chip (in target display) ---
+
 .callList {
   display: flex;
   flex-direction: column;
-  row-gap: $spacing-03;
+  row-gap: $spacing-02;
+}
+
+.callChip {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-02;
+  padding: $spacing-02 $spacing-03;
+  background-color: var(--cds-layer-01);
+  border-radius: 2px;
+
+  :global(.cds--snippet) {
+    max-width: 100%;
+  }
+}
+
+.callName {
+  font-weight: 600;
+  font-size: 0.875rem;
 }
 
 // --- Misc ---
@@ -144,8 +229,14 @@
   font-style: italic;
 }
 
-.noCallBadge {
+.stepsTabHint {
+  font-weight: 400;
+  font-size: 0.75rem;
   color: var(--cds-text-secondary);
-  font-style: italic;
-  font-size: 0.875rem;
+}
+
+.stepsHint {
+  font-size: 0.75rem;
+  color: var(--cds-text-secondary);
+  margin: $spacing-03 $spacing-05 $spacing-02;
 }

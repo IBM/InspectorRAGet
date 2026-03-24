@@ -18,7 +18,6 @@
 
 'use client';
 
-import { isEmpty } from 'lodash';
 import { useMemo, useState } from 'react';
 import {
   Tabs,
@@ -28,26 +27,17 @@ import {
   TabPanel,
   ContainedList,
   ContainedListItem,
-  CodeSnippet,
-  Search,
-  Tag,
-  InlineNotification,
 } from '@carbon/react';
-import { ChevronDown, ChevronUp, Function, ToolKit } from '@carbon/icons-react';
+import { ChevronDown, ChevronUp } from '@carbon/icons-react';
 
-import {
-  Model,
-  ModelResult,
-  Task,
-  Metric,
-  ToolCallRecord,
-  ToolDefinition,
-} from '@/src/types';
+import { Model, ModelResult, Task, Metric, ToolCallRecord } from '@/src/types';
 import { useDataStore } from '@/src/store';
 import { truncate } from '@/src/utilities/strings';
 
 import EvaluationsPanel from '@/src/components/evaluations/EvaluationsPanel';
-import StepGroup from '@/src/components/steps/StepGroup';
+import TraceGroup from '@/src/components/trace/TraceGroup';
+import AvailableToolsPanel from '@/src/components/tools/AvailableToolsPanel';
+import { ToolCallCard } from '@/src/components/tools/ToolCards';
 import ChatLine from '@/src/task-types/rag/components/ChatLine';
 import ToolCallingCopier from '@/src/task-types/tool_calling/Copier';
 
@@ -62,143 +52,6 @@ interface Props {
   taskCopierModalOpen: boolean;
   setTaskCopierModalOpen: Function;
   updateCommentProvenance: Function;
-}
-
-// --- Render helpers ---
-
-function ToolCallCard({ call }: { call: ToolCallRecord }) {
-  const [expanded, setExpanded] = useState(false);
-  const hasArgs = !isEmpty(call.arguments);
-
-  return (
-    <div className={classes.callCard}>
-      {/* Entire header row is clickable when arguments exist */}
-      <div
-        className={`${classes.callCardHeader} ${hasArgs ? classes.callCardHeaderClickable : ''}`}
-        onClick={hasArgs ? () => setExpanded((prev) => !prev) : undefined}
-        role={hasArgs ? 'button' : undefined}
-        aria-expanded={hasArgs ? expanded : undefined}
-      >
-        <Function size={16} />
-        <span>{call.name}</span>
-        {call.id && (
-          <Tag type="cool-gray" size="sm">
-            {call.id}
-          </Tag>
-        )}
-        {/* Decorative chevron — click is handled by the parent header div */}
-        {hasArgs && (
-          <span className={classes.expandToggle} aria-hidden>
-            {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </span>
-        )}
-      </div>
-      {call.dependsOn && (
-        <span className={classes.callDependency}>
-          depends on: {call.dependsOn}
-        </span>
-      )}
-      {hasArgs && expanded && (
-        <div className={classes.argumentsBlock}>
-          <CodeSnippet type="multi" hideCopyButton wrapText>
-            {JSON.stringify(call.arguments, null, 2)}
-          </CodeSnippet>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ToolDefinitionCard({ tool }: { tool: ToolDefinition }) {
-  const [expanded, setExpanded] = useState(false);
-  const hasContent =
-    !!tool.description ||
-    (!!tool.parameters?.properties && !isEmpty(tool.parameters.properties));
-
-  return (
-    <div className={classes.callCard}>
-      <div
-        className={`${classes.callCardHeader} ${hasContent ? classes.callCardHeaderClickable : ''}`}
-        onClick={hasContent ? () => setExpanded((prev) => !prev) : undefined}
-        role={hasContent ? 'button' : undefined}
-        aria-expanded={hasContent ? expanded : undefined}
-      >
-        <ToolKit size={16} />
-        <span>{tool.name}</span>
-        {hasContent && (
-          <span className={classes.expandToggle} aria-hidden>
-            {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </span>
-        )}
-      </div>
-      {hasContent && expanded && (
-        <div className={classes.toolDefinitionContent}>
-          {tool.description && (
-            <p className={classes.toolDescription}>{tool.description}</p>
-          )}
-          {tool.parameters?.properties &&
-            !isEmpty(tool.parameters.properties) && (
-              <ul className={classes.toolParamList}>
-                {Object.entries(tool.parameters.properties).map(
-                  ([paramName, paramDef]) => {
-                    const isRequired =
-                      tool.parameters?.required?.includes(paramName);
-                    return (
-                      <li key={paramName}>
-                        <strong>{paramName}</strong>
-                        {paramDef.type ? ` (${paramDef.type})` : ''}
-                        {isRequired && (
-                          <span className={classes.toolParamRequired}> *</span>
-                        )}
-                        {paramDef.description
-                          ? ` — ${paramDef.description}`
-                          : ''}
-                        {paramDef.enum
-                          ? ` [${(paramDef.enum as string[]).join(', ')}]`
-                          : ''}
-                      </li>
-                    );
-                  },
-                )}
-              </ul>
-            )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function AvailableToolsPanel({ tools }: { tools: ToolDefinition[] }) {
-  const [query, setQuery] = useState('');
-
-  const filtered = useMemo(() => {
-    if (!query.trim()) return tools;
-    const lower = query.toLowerCase();
-    // Match on name or description — not parameter schemas, which are not human-searchable
-    return tools.filter(
-      (t) =>
-        t.name.toLowerCase().includes(lower) ||
-        t.description?.toLowerCase().includes(lower),
-    );
-  }, [tools, query]);
-
-  return (
-    <>
-      <Search
-        className={classes.toolsSearch}
-        size="sm"
-        labelText="Search tools"
-        placeholder="Search by name or description"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-      />
-      <div className={classes.callList}>
-        {filtered.map((tool) => (
-          <ToolDefinitionCard key={tool.name} tool={tool} />
-        ))}
-      </div>
-    </>
-  );
 }
 
 // --- Main component ---
@@ -303,11 +156,8 @@ export default function ToolCallingTaskView({
               </TabList>
               <TabPanels>
                 {results.map((result) => {
-                  const steps = result.output[0]?.steps;
-                  const hasSteps = Array.isArray(steps) && steps.length > 0;
-                  const hasTimestamps = hasSteps
-                    ? steps!.some((s) => s.startTimestamp !== undefined)
-                    : false;
+                  const trace = result.output[0]?.trace;
+                  const hasTrace = Array.isArray(trace) && trace.length > 0;
 
                   return (
                     <TabPanel key={`tc-model-${result.modelId}-panel`}>
@@ -330,9 +180,20 @@ export default function ToolCallingTaskView({
                               {result.output[0]?.tool_calls &&
                               result.output[0].tool_calls.length > 0 ? (
                                 <div className={classes.callList}>
-                                  {result.output[0].tool_calls.map((call) => (
-                                    <ToolCallCard key={call.id} call={call} />
-                                  ))}
+                                  {result.output[0].tool_calls.map((call) => {
+                                    const calls = result.output[0].tool_calls!;
+                                    const defaultExpanded =
+                                      calls.length <= 2 &&
+                                      JSON.stringify(call.arguments).length <=
+                                        120;
+                                    return (
+                                      <ToolCallCard
+                                        key={call.id}
+                                        call={call}
+                                        defaultExpanded={defaultExpanded}
+                                      />
+                                    );
+                                  })}
                                 </div>
                               ) : !result.output[0]?.tool_calls &&
                                 result.output[0]?.content === '' ? (
@@ -361,9 +222,19 @@ export default function ToolCallingTaskView({
                             <ContainedListItem>
                               {targetCalls && targetCalls.length > 0 ? (
                                 <div className={classes.callList}>
-                                  {targetCalls.map((call) => (
-                                    <ToolCallCard key={call.id} call={call} />
-                                  ))}
+                                  {targetCalls.map((call) => {
+                                    const defaultExpanded =
+                                      targetCalls.length <= 2 &&
+                                      JSON.stringify(call.arguments).length <=
+                                        120;
+                                    return (
+                                      <ToolCallCard
+                                        key={call.id}
+                                        call={call}
+                                        defaultExpanded={defaultExpanded}
+                                      />
+                                    );
+                                  })}
                                 </div>
                               ) : (
                                 <span className={classes.notProvided}>
@@ -384,8 +255,8 @@ export default function ToolCallingTaskView({
                             fullWidth
                           >
                             <Tab>Evaluations</Tab>
-                            {/* Steps tab is always rendered; disabled when no steps data */}
-                            <Tab disabled={!hasSteps}>Steps</Tab>
+                            {/* Trace tab is always rendered; disabled when no trace data */}
+                            <Tab disabled={!hasTrace}>Trace</Tab>
                           </TabList>
                           <TabPanels>
                             <TabPanel className={classes.flushTabPanel}>
@@ -402,27 +273,7 @@ export default function ToolCallingTaskView({
                             </TabPanel>
 
                             <TabPanel className={classes.flushTabPanel}>
-                              {hasSteps && (
-                                <>
-                                  {!hasTimestamps && (
-                                    <InlineNotification
-                                      kind="info"
-                                      title="Auto-constructed steps"
-                                      subtitle="These steps were derived from the message thread and may not reflect actual execution order."
-                                      lowContrast
-                                      hideCloseButton
-                                    />
-                                  )}
-                                  <StepGroup
-                                    steps={steps!}
-                                    onStepMouseDown={(stepId) =>
-                                      updateCommentProvenance(
-                                        `${result.modelId}::steps::${stepId}`,
-                                      )
-                                    }
-                                  />
-                                </>
-                              )}
+                              {hasTrace && <TraceGroup trace={trace!} />}
                             </TabPanel>
                           </TabPanels>
                         </Tabs>
