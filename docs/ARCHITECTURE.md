@@ -154,7 +154,8 @@ InspectorRAGet/
 │   └── theme.tsx               # ThemeProvider (Carbon g10/g90)
 │
 ├── converters/                 # Dataset converters
-│   └── bfcl/                   # Berkeley Function Calling Leaderboard (single-turn and multi-turn, V3/V4)
+│   ├── bfcl/                   # Berkeley Function Calling Leaderboard (single-turn and multi-turn, V3/V4)
+│   └── acebench/               # ACEBench (tool-calling and agentic categories)
 ├── data/                       # Pre-loaded example datasets (JSON, schema v2)
 ├── notebooks/                  # Integration notebooks (Ragas, LM Eval, HuggingFace, BFCL)
 ├── public/                     # Static assets (favicon, license)
