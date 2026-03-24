@@ -610,9 +610,9 @@ def parse_dialogue_history(path: Path) -> list[dict]:
             else:
                 # Environment response to an accepted tool call.
                 if pending_asst is not None:
-                    pending_tool_msgs.append({"role": "tool", "content": content})
+                    pending_tool_msgs.append({"role": "tool", "tool_call_id": "env", "content": content})
                 else:
-                    tool_msg = {"role": "tool", "content": content}
+                    tool_msg = {"role": "tool", "tool_call_id": "env", "content": content}
                     s, sd = message_status_and_definition(tool_msg)
                     if s:
                         tool_msg["metadata"] = {"status": s, "statusDefinition": sd}
