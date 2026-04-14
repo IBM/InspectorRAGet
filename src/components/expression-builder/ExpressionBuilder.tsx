@@ -130,8 +130,8 @@ export default function ExpressionBuilder({
           metric === undefined ||
           setExpression === undefined
         }
-        invalid={errorMessage !== undefined}
-        invalidText={errorMessage}
+        invalid={errorMessage !== null}
+        invalidText={errorMessage ?? undefined}
         onChange={(event) => {
           setUpdatedExpressionText(event.target.value);
         }}
@@ -143,7 +143,7 @@ export default function ExpressionBuilder({
         <Button
           kind="primary"
           disabled={
-            errorMessage !== undefined ||
+            errorMessage !== null ||
             models === undefined ||
             metric === undefined ||
             setExpression === undefined

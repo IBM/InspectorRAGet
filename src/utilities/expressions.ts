@@ -46,6 +46,13 @@ export function validate(
 ): string | null {
   const keys = Object.keys(expression);
 
+  // Reject empty expression at the top level only (parent is undefined for
+  // the root call). Nested empty objects are already caught by the logical
+  // operator check below.
+  if (keys.length === 0 && parent === undefined) {
+    return 'Expression cannot be empty';
+  }
+
   const operators = keys.filter((key) => key.startsWith('$'));
   if (operators.length > 1) {
     return `More than one operator [${operators.join(', ')}] on the same level in the expression`;
