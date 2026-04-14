@@ -75,22 +75,55 @@ A standard BFCL run for a single model produces this layout:
         └── ... (one file per category)
 ```
 
+These two directory levels serve different purposes:
+
+- `<model-name>` is the human-readable display label shown in InspectorRAGet's model selector. It can be anything descriptive (e.g. `gpt-4o`).
+- `<model-id>` is the data key used to join result and score records across all tasks and metrics. It must match exactly between `result/` and `score/`. In standard BFCL runs this is typically the versioned model string (e.g. `gpt-4o-2024-11-20`).
+
+Both levels are required. The converter reads `<model-name>` for display and `<model-id>` as the internal key; collapsing them to the same value works fine if you have no need to distinguish the two.
+
 To compare multiple models, place each model's directory as a sibling under a shared experiment root:
 
 ```
 runs/
 ├── my_experiment/               ← pass this as --bfcl-root
-│   ├── ModelA/
-│   │   ├── result/...
-│   │   └── score/...
+│   ├── ModelA/                  ← display name
+│   │   ├── result/
+│   │   │   └── model-a-v1/     ← data key (model-id)
+│   │   │       └── *.json
+│   │   └── score/
+│   │       └── model-a-v1/
+│   │           └── *.json
 │   └── ModelB/
-│       ├── result/...
-│       └── score/...
+│       ├── result/
+│       │   └── model-b-v1/
+│       │       └── *.json
+│       └── score/
+│           └── model-b-v1/
+│               └── *.json
 └── another_experiment/
     └── ...
 ```
 
 `converters/bfcl/runs/` is gitignored and is a convenient local scratch space.
+
+> **Common mistake: pipeline variants or category subdirectories as direct children of `--bfcl-root`.**
+> The converter treats every direct child of `--bfcl-root` that contains a `result/` or `score/` subdirectory as a separate model. If your run produces subdirectories by pipeline configuration, category, or any other dimension instead of by model (for example `simple_pipeline/result/my-model/` and `simple_pipeline_clarify/result/my-model/`), the converter will see each subdirectory as its own "model", then discover the same model-id inside each one, and silently overwrite earlier data with later data, leaving only one model in the output.
+>
+> To fix this, wrap your run in a model-named directory so the layout matches what the converter expects:
+>
+> ```
+> runs/
+> └── my_experiment/               ← pass this as --bfcl-root
+>     └── my-model/                ← model directory
+>         ├── result/
+>         │   └── my-model/
+>         │       ├── BFCL_v3_multi_turn_base_result.json
+>         │       └── ...
+>         └── score/
+>             └── my-model/
+>                 └── ...
+> ```
 
 ---
 
