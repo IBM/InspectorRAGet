@@ -174,7 +174,6 @@ Source URLs:
 | -------------------------- | ----------- | ---------- | ----------------------------------------------------------------------------------------- |
 | `bfcl_correctness`         | categorical | majority   | Binary pass/fail: `correct` (1) or `incorrect` (0)                                        |
 | `bfcl_error_severity`      | categorical | majority   | Recoverability-anchored severity score (see scale below)                                  |
-| `bfcl_error_type`          | text        |            | Raw BFCL error type string (e.g., `type_error:nested`); `"none"` for correct tasks        |
 | `bfcl_errors`              | text        |            | Full error messages from BFCL, joined as a single string; `"none"` for correct tasks      |
 | `bfcl_latency_total_s`     | numerical   | mean       | Wall-clock inference time in seconds                                                      |
 | `bfcl_input_tokens_total`  | numerical   | mean       | Total input token count (not directly comparable across models with different tokenizers) |
@@ -182,27 +181,39 @@ Source URLs:
 
 ### Error Severity Scale
 
-| Value               | Score | Meaning                                                    | BFCL Source                                           |
-| ------------------- | ----- | ---------------------------------------------------------- | ----------------------------------------------------- |
-| `correct`           | 0.0   | No error                                                   | `valid: true`                                         |
-| `wrong_arguments`   | 0.25  | Right function, wrong argument values or types             | `type_error:*`, `value_error:*`, `missing_optional`   |
-| `wrong_function`    | 0.5   | Called the wrong function or wrong number of functions     | `wrong_func_name`, `wrong_count`, `cannot_find_match` |
-| `unknown`           | 0.5   | Error type not in the known mapping                        | Any unrecognised `error_type`                         |
-| `irrelevance_error` | 0.75  | Called a function when none was appropriate, or vice versa | `irrelevance_error:decoder_success`                   |
-| `malformed_output`  | 1.0   | Output could not be decoded into any function call         | No `model_result_decoded`                             |
+| Value               | Score | Meaning                                                    | BFCL Source                                                                                 |
+| ------------------- | ----- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `correct`           | 0.0   | No error                                                   | `valid: true`                                                                               |
+| `wrong_arguments`   | 0.25  | Right function, wrong argument values or types             | `type_error:*`, `value_error:*`, `missing_optional`, `missing_required`, `unexpected_param` |
+| `wrong_function`    | 0.5   | Called the wrong function or wrong number of functions     | `wrong_func_name`, `wrong_count`, `cannot_find_match`                                       |
+| `unknown`           | 0.5   | Error type not in the known mapping                        | Any `error_type` not listed above                                                           |
+| `irrelevance_error` | 0.75  | Called a function when none was appropriate, or vice versa | `irrelevance_error:decoder_success`                                                         |
+| `malformed_output`  | 1.0   | Output could not be decoded into any function call         | No `model_result_decoded`; `ast_decoder:*`; `relevance_error:decoder_failed`                |
+
+### Labels
+
+InspectorRAGet labels are per-(task, model) nominal descriptors that characterise output without scoring it. They have no ordering or aggregation semantics and appear in the Model Characteristics tab as grouped bar charts showing distribution across models.
+
+| Label        | Description                                                                                                |
+| ------------ | ---------------------------------------------------------------------------------------------------------- |
+| `Error Type` | Categorical error classifier for each result; `"none"` for correct tasks, `"N/A"` if error type is unknown |
+
+`error_type` is a label rather than a metric because it is a categorical classifier with no natural ordering or aggregation. Using it as a metric would imply ordinal meaning that does not exist. As a label it enables distribution analysis across models in Model Characteristics — the question researchers actually want to answer is "which error categories appear most often for this model?" not "what is the average error type?"
+
+For single-turn tasks, `Error Type` values are raw BFCL strings such as `type_error:nested`, `wrong_func_name`, `irrelevance_error:decoder_success`, and `none`. For multi-turn tasks, see the table below.
 
 ### Multi-Turn Error Types
 
-For agentic tasks, `bfcl_error_type` uses `multi_turn:` prefixed values:
+For agentic tasks, the `Error Type` label uses the raw BFCL `error_type` string with the `multi_turn:` prefix stripped (e.g., `instance_state_mismatch` instead of `multi_turn:instance_state_mismatch`). The agentic context is implied by the dataset.
 
-| Error Type                               | Severity                 | Meaning                                                                                                         |
-| ---------------------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| `none`                                   | `correct` (0.0)          | Task completed successfully                                                                                     |
-| `multi_turn:execution_response_mismatch` | `wrong_arguments` (0.25) | Right function(s) but environment responses differed from ground truth                                          |
-| `multi_turn:instance_state_mismatch`     | `wrong_function` (0.5)   | Final environment state does not match ground truth                                                             |
-| `multi_turn:empty_turn_model_response`   | `malformed_output` (1.0) | Model produced no tool calls for a turn that required them                                                      |
-| `multi_turn:force_terminated`            | `malformed_output` (1.0) | Runner hit the 20-step budget cap (step budget exhausted across all turns, or too many retries within one turn) |
-| `multi_turn:inference_error`             | `malformed_output` (1.0) | Inference failure (e.g., context overflow, API error) during the run                                            |
+| Error Type (label value)      | Severity (`bfcl_error_severity`) | Meaning                                                                                                         |
+| ----------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `none`                        | `correct` (0.0)                  | Task completed successfully                                                                                     |
+| `execution_response_mismatch` | `wrong_arguments` (0.25)         | Right function(s) but environment responses differed from ground truth                                          |
+| `instance_state_mismatch`     | `wrong_function` (0.5)           | Final environment state does not match ground truth                                                             |
+| `empty_turn_model_response`   | `malformed_output` (1.0)         | Model produced no tool calls for a turn that required them                                                      |
+| `force_terminated`            | `malformed_output` (1.0)         | Runner hit the 20-step budget cap (step budget exhausted across all turns, or too many retries within one turn) |
+| `inference_error`             | `malformed_output` (1.0)         | Inference failure (e.g., context overflow, API error) during the run                                            |
 
 ---
 
@@ -277,12 +288,12 @@ BFCL's ground truth is a list where every element is a required parallel call (A
 
 InspectorRAGet requires every model to have a score for every metric on every task. When a task failed for one model but passed for another, the converter synthesises "correct" scores for the passing model:
 
-| Metric                 | Failing Model             | Passing Model                          |
+| Metric / Label         | Failing Model             | Passing Model                          |
 | ---------------------- | ------------------------- | -------------------------------------- |
 | `bfcl_error_severity`  | derived from `error_type` | `correct` / `0.0`                      |
-| `bfcl_error_type`      | raw error type string     | `"none"`                               |
 | `bfcl_errors`          | error messages joined     | `"none"`                               |
 | `bfcl_latency_total_s` | from result file          | from result file, or `600.0` if absent |
+| `Error Type` (label)   | raw error type string     | `"none"`                               |
 
 The `600.0` sentinel for missing latency (10 minutes) is intentionally large — it stands out in aggregate views and signals incomplete data rather than silently skewing the mean.
 

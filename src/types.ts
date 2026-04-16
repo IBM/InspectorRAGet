@@ -316,6 +316,13 @@ export interface ModelResult {
   // Evaluation-level comments (e.g. noting an acceptable-but-different tool call).
   // Distinct from task.comments which are task-level observations shared across models.
   comments?: TaskComment[];
+  // Per-(task, model) categorical descriptors with no implied ordering. Keys are
+  // producer vocabulary (snake_case strings, e.g. "error_type"); values are short
+  // human-readable strings or null when the label is not applicable for this task.
+  // Omitting the key is equivalent to null — both are treated as N/A in the UI.
+  // camelCaseKeys must NOT recurse into this dict: label keys are producer vocabulary
+  // and must pass through as-is.
+  labels?: Record<string, string | null>;
   // Benchmark-supplied metadata. Keys are benchmark-specific; the UI renders
   // known keys and ignores unknown ones.
   // Known keys: error — { kind: 'text' | 'structured', context: unknown }

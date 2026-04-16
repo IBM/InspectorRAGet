@@ -20,7 +20,7 @@
 
 import { isEmpty, omit } from 'lodash';
 import cx from 'classnames';
-import { useState } from 'react';
+import { useState, ReactNode } from 'react';
 
 import {
   FilterableMultiSelect,
@@ -53,6 +53,10 @@ interface Props {
   metric?: Metric;
   expression?: object;
   setExpression?: Function;
+  // Slot for a custom expression builder component. When provided, replaces the
+  // default ExpressionBuilder in the Expression tab (used by ModelCharacteristics
+  // which needs label semantics, not metric semantics).
+  expressionBuilder?: ReactNode;
 }
 
 // ===================================================================================
@@ -67,10 +71,17 @@ export default function Filters({
   metric,
   expression,
   setExpression,
+  expressionBuilder,
 }: Props) {
+  // Show the expression tab when either the metric-based builder or the custom
+  // slot is supplied alongside an expression state.
+  const hasExpressionTab =
+    expression !== undefined &&
+    (setExpression !== undefined || expressionBuilder !== undefined);
+
   // Hide the filter panel when neither static filters nor expression builder is available
   const [showFilters, setShowFilters] = useState<boolean>(
-    filters !== undefined || setExpression !== undefined,
+    filters !== undefined || hasExpressionTab,
   );
 
   return (
@@ -107,7 +118,7 @@ export default function Filters({
       )}
       <div className={cx(classes.container, showFilters && classes.visible)}>
         {showFilters ? (
-          filters && expression ? (
+          filters && hasExpressionTab ? (
             <Tabs>
               <TabList aria-label="additional filters" contained fullWidth>
                 <Tab>Static</Tab>
@@ -190,14 +201,18 @@ export default function Filters({
                   </div>
                 </TabPanel>
                 <TabPanel>
-                  <div key={hash(JSON.stringify(expression))}>
-                    <ExpressionBuilder
-                      expression={expression}
-                      models={models}
-                      metric={metric}
-                      setExpression={setExpression}
-                    ></ExpressionBuilder>
-                  </div>
+                  {expressionBuilder ? (
+                    expressionBuilder
+                  ) : (
+                    <div key={hash(JSON.stringify(expression))}>
+                      <ExpressionBuilder
+                        expression={expression}
+                        models={models}
+                        metric={metric}
+                        setExpression={setExpression}
+                      ></ExpressionBuilder>
+                    </div>
+                  )}
                 </TabPanel>
               </TabPanels>
             </Tabs>
@@ -268,15 +283,19 @@ export default function Filters({
                 );
               })}
             </div>
-          ) : expression ? (
-            <div key={hash(JSON.stringify(expression))}>
-              <ExpressionBuilder
-                expression={expression}
-                models={models}
-                metric={metric}
-                setExpression={setExpression}
-              ></ExpressionBuilder>
-            </div>
+          ) : hasExpressionTab ? (
+            expressionBuilder ? (
+              expressionBuilder
+            ) : (
+              <div key={hash(JSON.stringify(expression))}>
+                <ExpressionBuilder
+                  expression={expression}
+                  models={models}
+                  metric={metric}
+                  setExpression={setExpression}
+                ></ExpressionBuilder>
+              </div>
+            )
           ) : null
         ) : null}
       </div>

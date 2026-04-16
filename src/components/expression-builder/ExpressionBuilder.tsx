@@ -92,6 +92,7 @@ export default function ExpressionBuilder({
                   Comparison: $eq &nbsp;$neq &nbsp;$gt &nbsp;$gte &nbsp;$lt
                   &nbsp;$lte
                 </p>
+                <p>Set: $in &nbsp;$nin</p>
                 <p>Logical: $and &nbsp;$or</p>
                 <p>
                   <strong>Examples</strong>
@@ -103,6 +104,10 @@ export default function ExpressionBuilder({
                   <ListItem>
                     Multi-model:{' '}
                     {`{ "model-a": { "$gte": 3 }, "model-b": { "$lt": 2 } }`}
+                  </ListItem>
+                  <ListItem>
+                    Set membership:{' '}
+                    {`{ "model-a": { "$in": ["good", "excellent"] } }`}
                   </ListItem>
                   <ListItem>
                     AND:{' '}

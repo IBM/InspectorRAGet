@@ -110,24 +110,77 @@ SEVERITY_MAP = {
     "value_error:others": ("wrong_arguments", 0.25, "Wrong Arguments"),
     "value_error:list/tuple": ("wrong_arguments", 0.25, "Wrong Arguments"),
     "value_error:dict_value": ("wrong_arguments", 0.25, "Wrong Arguments"),
-    "simple_function_checker:missing_optional": ("wrong_arguments", 0.25, "Wrong Arguments"),
+    "value_error:dict_key": ("wrong_arguments", 0.25, "Wrong Arguments"),
+    "value_error:list_dict_count": ("wrong_arguments", 0.25, "Wrong Arguments"),
+    "simple_function_checker:missing_optional": (
+        "wrong_arguments",
+        0.25,
+        "Wrong Arguments",
+    ),
+    "simple_function_checker:missing_required": (
+        "wrong_arguments",
+        0.25,
+        "Wrong Arguments",
+    ),
+    "simple_function_checker:unexpected_param": (
+        "wrong_arguments",
+        0.25,
+        "Wrong Arguments",
+    ),
+    # Java/JavaScript type vocabulary errors — argument-level mismatch.
+    "type_error:java": ("wrong_arguments", 0.25, "Wrong Arguments"),
+    "type_error:js": ("wrong_arguments", 0.25, "Wrong Arguments"),
     # --- Single-turn: function-level errors ---
-    "simple_function_checker:wrong_func_name": ("wrong_function", 0.50, "Wrong Function"),
+    "simple_function_checker:wrong_func_name": (
+        "wrong_function",
+        0.50,
+        "Wrong Function",
+    ),
     "simple_function_checker:wrong_count": ("wrong_function", 0.50, "Wrong Function"),
     "multiple_function_checker:wrong_count": ("wrong_function", 0.50, "Wrong Function"),
-    "parallel_function_checker_no_order:wrong_count": ("wrong_function", 0.50, "Wrong Function"),
-    "parallel_function_checker_no_order:cannot_find_match": ("wrong_function", 0.50, "Wrong Function"),
+    "parallel_function_checker_no_order:wrong_count": (
+        "wrong_function",
+        0.50,
+        "Wrong Function",
+    ),
+    "parallel_function_checker_no_order:cannot_find_match": (
+        "wrong_function",
+        0.50,
+        "Wrong Function",
+    ),
+    # --- Single-turn: malformed output ---
+    # AST decoder could not parse the model's output into any function call at all.
+    "ast_decoder:decoder_failed": ("malformed_output", 1.0, "Malformed Output"),
+    "ast_decoder:decoder_wrong_output_format": (
+        "malformed_output",
+        1.0,
+        "Malformed Output",
+    ),
+    # Relevance checker decoder failure — output could not be decoded for irrelevance check.
+    "relevance_error:decoder_failed": ("malformed_output", 1.0, "Malformed Output"),
     # --- Single-turn: irrelevance errors ---
-    "irrelevance_error:decoder_success": ("irrelevance_error", 0.75, "Irrelevance Error"),
+    "irrelevance_error:decoder_success": (
+        "irrelevance_error",
+        0.75,
+        "Irrelevance Error",
+    ),
     # --- Multi-turn: argument/execution errors ---
     # Model called the right function but with wrong arguments; execution failed.
-    "multi_turn:execution_response_mismatch": ("wrong_arguments", 0.25, "Wrong Arguments"),
+    "multi_turn:execution_response_mismatch": (
+        "wrong_arguments",
+        0.25,
+        "Wrong Arguments",
+    ),
     # --- Multi-turn: state/function errors ---
     # Model completed all turns but the environment ended in the wrong state.
     "multi_turn:instance_state_mismatch": ("wrong_function", 0.50, "Wrong Function"),
     # --- Multi-turn: unrecoverable failures ---
     # Model produced no output for a turn, ran out of turns, or output couldn't be decoded.
-    "multi_turn:empty_turn_model_response": ("malformed_output", 1.0, "Malformed Output"),
+    "multi_turn:empty_turn_model_response": (
+        "malformed_output",
+        1.0,
+        "Malformed Output",
+    ),
     "multi_turn:force_terminated": ("malformed_output", 1.0, "Malformed Output"),
     "multi_turn:inference_error": ("malformed_output", 1.0, "Malformed Output"),
 }
@@ -136,6 +189,7 @@ SEVERITY_MAP = {
 # ---------------------------------------------------------------------------
 # Tool definition normalisation
 # ---------------------------------------------------------------------------
+
 
 def normalize_tool_def(tool: dict) -> dict:
     """
@@ -151,7 +205,10 @@ def normalize_tool_def(tool: dict) -> dict:
         elif isinstance(value, dict):
             result[key] = normalize_tool_def(value)
         elif isinstance(value, list):
-            result[key] = [normalize_tool_def(item) if isinstance(item, dict) else item for item in value]
+            result[key] = [
+                normalize_tool_def(item) if isinstance(item, dict) else item
+                for item in value
+            ]
         else:
             result[key] = value
     return result
@@ -160,6 +217,7 @@ def normalize_tool_def(tool: dict) -> dict:
 # ---------------------------------------------------------------------------
 # Ground-truth (possible_answer) → TaskTarget conversion
 # ---------------------------------------------------------------------------
+
 
 def possible_answer_to_targets(possible_answer: list) -> list:
     """
@@ -204,12 +262,16 @@ def possible_answer_to_targets(possible_answer: list) -> list:
                     else:
                         canonical_args[arg_name] = arg_values
 
-            calls.append({"id": call_id, "name": func_name, "arguments": canonical_args})
+            calls.append(
+                {"id": call_id, "name": func_name, "arguments": canonical_args}
+            )
 
             # If any argument has more than one acceptable value, record the
             # additional combinations in alternatives keyed by this call's id.
             if isinstance(args, dict):
-                extra_values = {k: v for k, v in args.items() if isinstance(v, list) and len(v) > 1}
+                extra_values = {
+                    k: v for k, v in args.items() if isinstance(v, list) and len(v) > 1
+                }
                 if extra_values:
                     alt_calls = []
                     # Generate one ToolCallRecord per additional combination.
@@ -221,7 +283,13 @@ def possible_answer_to_targets(possible_answer: list) -> list:
                         for arg_name, arg_values in extra_values.items():
                             if i < len(arg_values):
                                 alt_args[arg_name] = arg_values[i]
-                        alt_calls.append({"id": str(uuid.uuid4()), "name": func_name, "arguments": alt_args})
+                        alt_calls.append(
+                            {
+                                "id": str(uuid.uuid4()),
+                                "name": func_name,
+                                "arguments": alt_args,
+                            }
+                        )
                     if alt_calls:
                         alternatives[call_id] = alt_calls
 
@@ -234,6 +302,7 @@ def possible_answer_to_targets(possible_answer: list) -> list:
 # ---------------------------------------------------------------------------
 # Model output → Message[] conversion
 # ---------------------------------------------------------------------------
+
 
 def decoded_to_tool_calls(model_result_decoded) -> list | None:
     """
@@ -249,11 +318,13 @@ def decoded_to_tool_calls(model_result_decoded) -> list | None:
         if not isinstance(entry, dict):
             continue
         for func_name, args in entry.items():
-            calls.append({
-                "id": str(uuid.uuid4()),
-                "name": func_name,
-                "arguments": args if isinstance(args, dict) else {},
-            })
+            calls.append(
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": func_name,
+                    "arguments": args if isinstance(args, dict) else {},
+                }
+            )
 
     return calls if calls else None
 
@@ -261,6 +332,7 @@ def decoded_to_tool_calls(model_result_decoded) -> list | None:
 # ---------------------------------------------------------------------------
 # Token count helper
 # ---------------------------------------------------------------------------
+
 
 def token_sum(raw: int | float | list | None) -> float | None:
     """
@@ -281,7 +353,8 @@ def token_sum(raw: int | float | list | None) -> float | None:
     if isinstance(raw, (int, float)):
         return float(raw)
     total = sum(
-        v for inner in raw
+        v
+        for inner in raw
         for v in (inner if isinstance(inner, list) else [inner])
         if isinstance(v, (int, float))
     )
@@ -320,6 +393,7 @@ def model_token_averages(
 # Message status helper (item 22: metadata.status stamping)
 # ---------------------------------------------------------------------------
 
+
 def message_status_and_definition(msg: dict) -> tuple[str, str] | tuple[None, None]:
     """
     Derive a (status, statusDefinition) pair for a single message dict.
@@ -350,7 +424,10 @@ def message_status_and_definition(msg: dict) -> tuple[str, str] | tuple[None, No
             try:
                 parsed = json.loads(content)
                 if isinstance(parsed, dict) and "error" in parsed:
-                    return "fail", "Tool execution returned an error response from the BFCL environment."
+                    return (
+                        "fail",
+                        "Tool execution returned an error response from the BFCL environment.",
+                    )
             except (json.JSONDecodeError, ValueError):
                 pass
         return "pass", "Tool executed successfully and returned a result."
@@ -363,7 +440,9 @@ def message_status_and_definition(msg: dict) -> tuple[str, str] | tuple[None, No
         if trace:
             # Count intermediate invocation steps for a richer definition.
             invocation_count = sum(
-                1 for e in trace if isinstance(e, dict) and e.get("type") == "invocation"
+                1
+                for e in trace
+                if isinstance(e, dict) and e.get("type") == "invocation"
             )
             last_event = None
             for e in reversed(trace):
@@ -423,6 +502,7 @@ def message_status_and_definition(msg: dict) -> tuple[str, str] | tuple[None, No
 # Error metadata helper (item 23: ModelResult.metadata.error)
 # ---------------------------------------------------------------------------
 
+
 def build_error_metadata(error_dict: dict) -> dict | None:
     """
     Extract structured diagnostic detail from a multi-turn BFCL error dict and
@@ -449,13 +529,17 @@ def build_error_metadata(error_dict: dict) -> dict | None:
         context: dict = {}
         if "differences" in details:
             context["differences"] = details["differences"]
-        execution_result = error_dict.get("execution_result") or details.get("execution_result")
+        execution_result = error_dict.get("execution_result") or details.get(
+            "execution_result"
+        )
         if execution_result:
             context["execution_result"] = execution_result
         if context:
             return {"kind": "structured", "context": context}
 
-    if error_type == "multi_turn:execution_response_mismatch" and isinstance(details, dict):
+    if error_type == "multi_turn:execution_response_mismatch" and isinstance(
+        details, dict
+    ):
         context = {}
         if "missing_items" in details:
             context["missing_items"] = details["missing_items"]
@@ -469,10 +553,15 @@ def build_error_metadata(error_dict: dict) -> dict | None:
         if context:
             return {"kind": "structured", "context": context}
 
-    if error_type == "multi_turn:empty_turn_model_response" and isinstance(details, dict):
+    if error_type == "multi_turn:empty_turn_model_response" and isinstance(
+        details, dict
+    ):
         execution_result = details.get("execution_result")
         if execution_result:
-            return {"kind": "structured", "context": {"execution_result": execution_result}}
+            return {
+                "kind": "structured",
+                "context": {"execution_result": execution_result},
+            }
 
     return None
 
@@ -480,6 +569,7 @@ def build_error_metadata(error_dict: dict) -> dict | None:
 # ---------------------------------------------------------------------------
 # Error severity derivation
 # ---------------------------------------------------------------------------
+
 
 def derive_severity(valid: bool, error_type: str | None) -> tuple[str, float, str]:
     """
@@ -500,6 +590,7 @@ def derive_severity(valid: bool, error_type: str | None) -> tuple[str, float, st
 # File loading helpers
 # ---------------------------------------------------------------------------
 
+
 def load_jsonl(path: Path) -> list[dict]:
     """Load a JSONL file, skipping blank lines. Returns list of parsed objects."""
     records = []
@@ -510,7 +601,10 @@ def load_jsonl(path: Path) -> list[dict]:
                 try:
                     records.append(json.loads(line))
                 except json.JSONDecodeError as e:
-                    print(f"  Warning: skipping malformed line in {path}: {e}", file=sys.stderr)
+                    print(
+                        f"  Warning: skipping malformed line in {path}: {e}",
+                        file=sys.stderr,
+                    )
     return records
 
 
@@ -528,13 +622,14 @@ def infer_category(filename: str) -> str | None:
     # Strip version prefix (v4, v3, v2, v1)
     for prefix in ("BFCL_v4_", "BFCL_v3_", "BFCL_v2_", "BFCL_v1_"):
         if stem.startswith(prefix):
-            return stem[len(prefix):]
+            return stem[len(prefix) :]
     return None
 
 
 # ---------------------------------------------------------------------------
 # Directory scanning
 # ---------------------------------------------------------------------------
+
 
 def find_model_dirs(bfcl_root: Path) -> list[Path]:
     """
@@ -543,7 +638,9 @@ def find_model_dirs(bfcl_root: Path) -> list[Path]:
     """
     model_dirs = []
     for entry in sorted(bfcl_root.iterdir()):
-        if entry.is_dir() and ((entry / "result").exists() or (entry / "score").exists()):
+        if entry.is_dir() and (
+            (entry / "result").exists() or (entry / "score").exists()
+        ):
             model_dirs.append(entry)
     return model_dirs
 
@@ -578,7 +675,11 @@ def load_dataset_dir(dataset_dir: Path, categories: set[str]) -> dict[str, dict]
     """
     dataset_map: dict[str, dict] = {}
     for category in categories:
-        for pattern in (f"BFCL_v4_{category}.json", f"BFCL_v3_{category}.json", f"BFCL_v2_{category}.json"):
+        for pattern in (
+            f"BFCL_v4_{category}.json",
+            f"BFCL_v3_{category}.json",
+            f"BFCL_v2_{category}.json",
+        ):
             path = dataset_dir / pattern
             if not path.exists():
                 continue
@@ -594,7 +695,11 @@ def load_dataset_dir(dataset_dir: Path, categories: set[str]) -> dict[str, dict]
     answer_dir = dataset_dir / "possible_answer"
     if answer_dir.exists():
         for category in categories:
-            for pattern in (f"BFCL_v4_{category}.json", f"BFCL_v3_{category}.json", f"BFCL_v2_{category}.json"):
+            for pattern in (
+                f"BFCL_v4_{category}.json",
+                f"BFCL_v3_{category}.json",
+                f"BFCL_v2_{category}.json",
+            ):
                 path = answer_dir / pattern
                 if not path.exists():
                     continue
@@ -611,6 +716,7 @@ def load_dataset_dir(dataset_dir: Path, categories: set[str]) -> dict[str, dict]
 # ---------------------------------------------------------------------------
 # Core conversion: tool_calling task type
 # ---------------------------------------------------------------------------
+
 
 def convert_tool_calling(
     bfcl_root: Path,
@@ -634,7 +740,9 @@ def convert_tool_calling(
     if not model_dirs:
         sys.exit(f"Error: no model output directories found under {bfcl_root}")
 
-    print(f"Found {len(model_dirs)} model director{'y' if len(model_dirs) == 1 else 'ies'} under {bfcl_root}")
+    print(
+        f"Found {len(model_dirs)} model director{'y' if len(model_dirs) == 1 else 'ies'} under {bfcl_root}"
+    )
 
     for model_dir in model_dirs:
         print(f"\nProcessing: {model_dir.name}")
@@ -651,7 +759,10 @@ def convert_tool_calling(
                     deferred_categories.add(category)
                     continue
                 if category not in TOOL_CALLING_CATEGORIES:
-                    print(f"  Warning: unknown category '{category}' in {result_file.name}, skipping", file=sys.stderr)
+                    print(
+                        f"  Warning: unknown category '{category}' in {result_file.name}, skipping",
+                        file=sys.stderr,
+                    )
                     continue
 
                 records = load_jsonl(result_file)
@@ -680,10 +791,14 @@ def convert_tool_calling(
                     task_id = record.get("id")
                     if task_id:
                         score_map[model_id][task_id] = record
-                print(f"  Loaded {len(failure_records)} failure records from {score_file.name}")
+                print(
+                    f"  Loaded {len(failure_records)} failure records from {score_file.name}"
+                )
 
     if deferred_categories:
-        print(f"Deferred categories (multi-turn, agentic task type): {sorted(deferred_categories)}")
+        print(
+            f"Deferred categories (multi-turn, agentic task type): {sorted(deferred_categories)}"
+        )
         print("  Re-run with --task-type agentic to convert these.")
 
     # --- Load dataset files for passing-task prompts ---
@@ -693,8 +808,12 @@ def convert_tool_calling(
         print(f"\nLoaded {len(dataset_records)} task definitions from dataset dir")
     else:
         print("\nNo --dataset-dir provided.")
-        print("Output will contain only tasks that failed for at least one model (full prompt available from score files).")
-        print("To include passing tasks, download dataset files from https://huggingface.co/datasets/gorilla-llm/BFCL-v3")
+        print(
+            "Output will contain only tasks that failed for at least one model (full prompt available from score files)."
+        )
+        print(
+            "To include passing tasks, download dataset files from https://huggingface.co/datasets/gorilla-llm/BFCL-v3"
+        )
         print("and pass --dataset-dir.")
 
     # --- Determine which task IDs to emit ---
@@ -724,7 +843,9 @@ def convert_tool_calling(
 
     all_model_ids = sorted(result_map.keys())
     token_avgs = model_token_averages(result_map)
-    print(f"\nBuilding output for {len(task_ids_to_emit)} tasks across {len(all_model_ids)} model(s)...")
+    print(
+        f"\nBuilding output for {len(task_ids_to_emit)} tasks across {len(all_model_ids)} model(s)..."
+    )
 
     # --- Build tasks and results ---
     # tasks: flat list of task definitions (no model data).
@@ -813,7 +934,9 @@ def convert_tool_calling(
                 error_type = None
                 errors = []
 
-            severity_value, severity_numeric, severity_display = derive_severity(is_valid, error_type)
+            severity_value, severity_numeric, severity_display = derive_severity(
+                is_valid, error_type
+            )
 
             # Model output: decoded form from score record for failures.
             # For passing tasks the score file is absent, so BFCL provides no
@@ -821,7 +944,9 @@ def convert_tool_calling(
             # the model was correct, so its output matches the ground truth.
             # For failing tasks with no decoded output (e.g. inference errors),
             # fall back to the raw result string rather than the target proxy.
-            model_result_decoded = score_record.get("model_result_decoded") if score_record else None
+            model_result_decoded = (
+                score_record.get("model_result_decoded") if score_record else None
+            )
             tool_calls = decoded_to_tool_calls(model_result_decoded)
 
             # Build the output message. tool_calls takes priority; content is used
@@ -835,15 +960,22 @@ def convert_tool_calling(
                     if targets and targets[0].get("calls"):
                         output_message["tool_calls"] = targets[0]["calls"]
                 if "tool_calls" not in output_message:
-                    raw = (result_record or {}).get("result", "") or (score_record or {}).get("model_result_raw", "")
-                    output_message["content"] = raw if isinstance(raw, str) else json.dumps(raw)
+                    raw = (result_record or {}).get("result", "") or (
+                        score_record or {}
+                    ).get("model_result_raw", "")
+                    output_message["content"] = (
+                        raw if isinstance(raw, str) else json.dumps(raw)
+                    )
 
             # Stamp metadata.status and metadata.statusDefinition on the output
             # message so the UI can show a visual pass/fail/warn indicator with
             # a hover tooltip explaining the status.
             status, status_def = message_status_and_definition(output_message)
             if status:
-                output_message["metadata"] = {"status": status, "statusDefinition": status_def}
+                output_message["metadata"] = {
+                    "status": status,
+                    "statusDefinition": status_def,
+                }
 
             output = [output_message]
 
@@ -853,13 +985,17 @@ def convert_tool_calling(
             rec = result_record or {}
             latency = rec.get("latency", 600.0)
             avg = token_avgs.get(model_id, {})
-            input_tokens = token_sum(rec.get("input_token_count")) or avg.get("input", 0.0)
-            output_tokens = token_sum(rec.get("output_token_count")) or avg.get("output", 0.0)
+            input_tokens = token_sum(rec.get("input_token_count")) or avg.get(
+                "input", 0.0
+            )
+            output_tokens = token_sum(rec.get("output_token_count")) or avg.get(
+                "output", 0.0
+            )
 
             # Scores are nested as {metricName: {annotatorId: {value, ...}}}.
             # BFCL metrics are all algorithm-produced, annotator key is "bfcl".
             # All metrics are always present on every ModelResult.
-            # bfcl_error_type and bfcl_errors use "none" for passing models
+            # bfcl_errors use "none" for passing models
             # (unambiguously signals no error, not a missing value).
             scores: dict = {
                 "bfcl_correctness": {
@@ -875,26 +1011,34 @@ def convert_tool_calling(
                         "display_value": severity_display,
                     }
                 },
-                "bfcl_error_type": {
-                    "bfcl": {"value": error_type if error_type is not None else "none"}
-                },
                 "bfcl_errors": {
                     "bfcl": {
                         # error entries can be strings or dicts (detailed sub-error objects)
                         "value": "\n".join(
                             e if isinstance(e, str) else json.dumps(e) for e in errors
-                        ) if errors else "none"
+                        )
+                        if errors
+                        else "none"
                     }
                 },
-                "bfcl_latency_total_s": {
-                    "bfcl": {"value": latency}
-                },
-                "bfcl_input_tokens_total": {
-                    "bfcl": {"value": input_tokens}
-                },
-                "bfcl_output_tokens_total": {
-                    "bfcl": {"value": output_tokens}
-                },
+                "bfcl_latency_total_s": {"bfcl": {"value": latency}},
+                "bfcl_input_tokens_total": {"bfcl": {"value": input_tokens}},
+                "bfcl_output_tokens_total": {"bfcl": {"value": output_tokens}},
+            }
+
+            # InspectorRAGet labels are per-(task, model) nominal descriptors that
+            # characterise output without scoring it. Unlike metrics, labels have no natural
+            # ordering or aggregation semantics; InspectorRAGet surfaces them in the Model
+            # Characteristics tab for distribution analysis across models.
+            #
+            # "Error Type" stores the BFCL error_type string rather than a metric because
+            # it is a categorical classifier (e.g., "type_error:nested",
+            # "wrong_func_name"), not a quantity. Treating it as a metric would imply
+            # ordinal meaning that doesn't exist. As a label it appears in grouped bar
+            # charts showing how error types are distributed per model, which is the
+            # analysis researchers actually want.
+            labels: dict = {
+                "Error Type": error_type if error_type is not None else "N/A"
             }
 
             result_entry: dict = {
@@ -902,6 +1046,7 @@ def convert_tool_calling(
                 "model_id": model_id,
                 "output": output,
                 "scores": scores,
+                "labels": labels,
             }
 
             results_list.append(result_entry)
@@ -918,7 +1063,11 @@ def convert_tool_calling(
             "order": "ascending",
             "values": [
                 {"value": "correct", "numeric_value": 1, "display_value": "Correct"},
-                {"value": "incorrect", "numeric_value": 0, "display_value": "Incorrect"},
+                {
+                    "value": "incorrect",
+                    "numeric_value": 0,
+                    "display_value": "Incorrect",
+                },
             ],
         },
         {
@@ -936,20 +1085,29 @@ def convert_tool_calling(
             "aggregator": "majority",
             "order": "descending",
             "values": [
-                {"value": "correct",          "numeric_value": 0.0,  "display_value": "Correct"},
-                {"value": "wrong_arguments",  "numeric_value": 0.25, "display_value": "Wrong Arguments"},
-                {"value": "wrong_function",   "numeric_value": 0.5,  "display_value": "Wrong Function"},
-                {"value": "unknown",          "numeric_value": 0.5,  "display_value": "Unknown"},
-                {"value": "irrelevance_error","numeric_value": 0.75, "display_value": "Irrelevance Error"},
-                {"value": "malformed_output", "numeric_value": 1.0,  "display_value": "Malformed Output"},
+                {"value": "correct", "numeric_value": 0.0, "display_value": "Correct"},
+                {
+                    "value": "wrong_arguments",
+                    "numeric_value": 0.25,
+                    "display_value": "Wrong Arguments",
+                },
+                {
+                    "value": "wrong_function",
+                    "numeric_value": 0.5,
+                    "display_value": "Wrong Function",
+                },
+                {"value": "unknown", "numeric_value": 0.5, "display_value": "Unknown"},
+                {
+                    "value": "irrelevance_error",
+                    "numeric_value": 0.75,
+                    "display_value": "Irrelevance Error",
+                },
+                {
+                    "value": "malformed_output",
+                    "numeric_value": 1.0,
+                    "display_value": "Malformed Output",
+                },
             ],
-        },
-        {
-            "name": "bfcl_error_type",
-            "display_name": "Error Type",
-            "description": "Raw BFCL error type string (e.g. type_error:nested). Empty for correct tasks.",
-            "author": "algorithm",
-            "type": "text",
         },
         {
             "name": "bfcl_errors",
@@ -999,11 +1157,13 @@ def convert_tool_calling(
     ]
 
     # Collect unique bfcl_category values for the filters block.
-    bfcl_categories = sorted({
-        task.get("bfcl_category", "")
-        for task in tasks_list
-        if task.get("bfcl_category")
-    })
+    bfcl_categories = sorted(
+        {
+            task.get("bfcl_category", "")
+            for task in tasks_list
+            if task.get("bfcl_category")
+        }
+    )
 
     # --- Build models block ---
     models = [
@@ -1028,6 +1188,7 @@ def convert_tool_calling(
 # ---------------------------------------------------------------------------
 # Agentic conversion helpers
 # ---------------------------------------------------------------------------
+
 
 def _to_snake(name: str) -> str:
     """Convert a CamelCase or PascalCase class name to snake_case.
@@ -1079,7 +1240,9 @@ def load_func_doc_dir(dataset_dir: Path) -> dict[str, list[dict]]:
     return class_tools
 
 
-def load_agentic_dataset_dir(dataset_dir: Path, categories: set[str]) -> dict[str, dict]:
+def load_agentic_dataset_dir(
+    dataset_dir: Path, categories: set[str]
+) -> dict[str, dict]:
     """
     Load multi-turn BFCL dataset files (e.g. BFCL_v3_multi_turn_base.json).
     Returns task_id → record. Records include question, initial_config, path, involved_classes.
@@ -1256,20 +1419,26 @@ def inference_log_to_messages(inference_log: list) -> list[dict]:
 
                 elif role == "tool":
                     content = entry.get("content", "")
-                    tool_msgs.append({
-                        "role": "tool",
-                        "tool_call_id": entry.get("tool_call_id", ""),
-                        "content": content if isinstance(content, str) else json.dumps(content),
-                    })
+                    tool_msgs.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": entry.get("tool_call_id", ""),
+                            "content": content
+                            if isinstance(content, str)
+                            else json.dumps(content),
+                        }
+                    )
 
-            step_results.append({
-                "asst_content": asst_content,
-                "tool_calls": tool_calls,
-                "tool_msgs": tool_msgs,
-                "decode_error": decode_error,
-                "empty_response": empty_response,
-                "force_quit": force_quit,
-            })
+            step_results.append(
+                {
+                    "asst_content": asst_content,
+                    "tool_calls": tool_calls,
+                    "tool_msgs": tool_msgs,
+                    "decode_error": decode_error,
+                    "empty_response": empty_response,
+                    "force_quit": force_quit,
+                }
+            )
 
         if not step_results:
             continue
@@ -1300,7 +1469,13 @@ def inference_log_to_messages(inference_log: list) -> list[dict]:
             else:
                 invocation_output["content"] = sr["asst_content"]
             # Label matches the step_N key in the BFCL inference log for cross-referencing.
-            trace_events.append({"type": "invocation", "label": f"step_{step_idx}", "output": invocation_output})
+            trace_events.append(
+                {
+                    "type": "invocation",
+                    "label": f"step_{step_idx}",
+                    "output": invocation_output,
+                }
+            )
 
             # Tool executions follow each intermediate invocation that produced tool calls.
             for tool_msg in sr["tool_msgs"]:
@@ -1365,7 +1540,9 @@ def _parse_tool_calls_from_raw(raw_outputs: list) -> list[dict] | None:
         # Try splitting on top-level commas to handle parallel calls
         for call_str in _split_parallel_calls(raw_clean):
             call_str = call_str.strip()
-            m = re.match(r"^([A-Za-z_][A-Za-z0-9_.]*)\s*\((.*)\)\s*$", call_str, re.DOTALL)
+            m = re.match(
+                r"^([A-Za-z_][A-Za-z0-9_.]*)\s*\((.*)\)\s*$", call_str, re.DOTALL
+            )
             if not m:
                 return None  # Not a parseable call — bail out entirely
             func_name = m.group(1)
@@ -1373,7 +1550,9 @@ def _parse_tool_calls_from_raw(raw_outputs: list) -> list[dict] | None:
             args = _parse_kwargs(args_str)
             if args is None:
                 return None
-            calls.append({"id": str(uuid.uuid4()), "name": func_name, "arguments": args})
+            calls.append(
+                {"id": str(uuid.uuid4()), "name": func_name, "arguments": args}
+            )
 
     return calls if calls else None
 
@@ -1388,19 +1567,19 @@ def _split_parallel_calls(s: str) -> list[str]:
     depth = 0
     current: list[str] = []
     for ch in s:
-        if ch == '(':
+        if ch == "(":
             depth += 1
             current.append(ch)
-        elif ch == ')':
+        elif ch == ")":
             depth -= 1
             current.append(ch)
-        elif ch == ',' and depth == 0:
-            parts.append(''.join(current).strip())
+        elif ch == "," and depth == 0:
+            parts.append("".join(current).strip())
             current = []
         else:
             current.append(ch)
     if current:
-        parts.append(''.join(current).strip())
+        parts.append("".join(current).strip())
     return [p for p in parts if p]
 
 
@@ -1419,18 +1598,18 @@ def _parse_kwargs(args_str: str) -> dict | None:
     remaining = args_str.strip()
     while remaining:
         # Match key=
-        key_match = re.match(r'^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*', remaining)
+        key_match = re.match(r"^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*", remaining)
         if not key_match:
             return None
         key = key_match.group(1)
-        remaining = remaining[key_match.end():]
+        remaining = remaining[key_match.end() :]
 
         # Find the end of the value by scanning brackets/quotes
         value_end = _find_value_end(remaining)
         if value_end < 0:
             return None
         value_str = remaining[:value_end].strip()
-        remaining = remaining[value_end:].lstrip(', ')
+        remaining = remaining[value_end:].lstrip(", ")
 
         try:
             result[key] = ast.literal_eval(value_str)
@@ -1452,24 +1631,26 @@ def _find_value_end(s: str) -> int:
     while i < len(s):
         ch = s[i]
         if in_str:
-            if ch == '\\':
+            if ch == "\\":
                 i += 2
                 continue
             if ch == in_str:
                 in_str = None
         elif ch in ('"', "'"):
             in_str = ch
-        elif ch in ('(', '[', '{'):
+        elif ch in ("(", "[", "{"):
             depth += 1
-        elif ch in (')', ']', '}'):
+        elif ch in (")", "]", "}"):
             depth -= 1
-        elif ch == ',' and depth == 0:
+        elif ch == "," and depth == 0:
             return i
         i += 1
     return i  # end of string
 
 
-def ground_truth_turns_to_target(path: list, ground_truth_turns: list | None) -> list[dict]:
+def ground_truth_turns_to_target(
+    path: list, ground_truth_turns: list | None
+) -> list[dict]:
     """
     Build a TaskTarget[] for an agentic task.
 
@@ -1500,7 +1681,10 @@ def ground_truth_turns_to_target(path: list, ground_truth_turns: list | None) ->
 # Core conversion: agentic task type
 # ---------------------------------------------------------------------------
 
-def convert_agentic(bfcl_root: Path, dataset_dir: Path | None, output_name: str) -> dict:
+
+def convert_agentic(
+    bfcl_root: Path, dataset_dir: Path | None, output_name: str
+) -> dict:
     """
     Walk bfcl_root, collect all multi-turn BFCL categories, and produce an
     InspectorRAGet JSON document with task_type "agentic".
@@ -1523,7 +1707,9 @@ def convert_agentic(bfcl_root: Path, dataset_dir: Path | None, output_name: str)
     if not model_dirs:
         sys.exit(f"Error: no model output directories found under {bfcl_root}")
 
-    print(f"Found {len(model_dirs)} model director{'y' if len(model_dirs) == 1 else 'ies'} under {bfcl_root}")
+    print(
+        f"Found {len(model_dirs)} model director{'y' if len(model_dirs) == 1 else 'ies'} under {bfcl_root}"
+    )
 
     for model_dir in model_dirs:
         print(f"\nProcessing: {model_dir.name}")
@@ -1556,7 +1742,9 @@ def convert_agentic(bfcl_root: Path, dataset_dir: Path | None, output_name: str)
                     task_id = record.get("id")
                     if task_id:
                         score_map[model_id][task_id] = record
-                print(f"  Loaded {len(failure_records)} failure records from {score_file.name}")
+                print(
+                    f"  Loaded {len(failure_records)} failure records from {score_file.name}"
+                )
 
     if not result_map:
         print(
@@ -1573,7 +1761,9 @@ def convert_agentic(bfcl_root: Path, dataset_dir: Path | None, output_name: str)
         dataset_records = load_agentic_dataset_dir(dataset_dir, AGENTIC_CATEGORIES)
         class_tools = load_func_doc_dir(dataset_dir)
         print(f"\nLoaded {len(dataset_records)} task definitions from dataset dir")
-        print(f"Loaded {len(class_tools)} toolkit class definitions from multi_turn_func_doc/")
+        print(
+            f"Loaded {len(class_tools)} toolkit class definitions from multi_turn_func_doc/"
+        )
     else:
         print("\nNo --dataset-dir provided. Tasks will have no initial state or tools.")
 
@@ -1588,7 +1778,9 @@ def convert_agentic(bfcl_root: Path, dataset_dir: Path | None, output_name: str)
         task_ids_to_emit = all_result_ids
 
     token_avgs = model_token_averages(result_map)
-    print(f"\nBuilding output for {len(task_ids_to_emit)} tasks across {len(all_model_ids)} model(s)...")
+    print(
+        f"\nBuilding output for {len(task_ids_to_emit)} tasks across {len(all_model_ids)} model(s)..."
+    )
 
     tasks_list: list[dict] = []
     results_list: list[dict] = []
@@ -1634,7 +1826,9 @@ def convert_agentic(bfcl_root: Path, dataset_dir: Path | None, output_name: str)
         if initial_config:
             # Store as a single context entry so the agentic TaskView renders it
             # under "Initial State" using the contexts field.
-            task["contexts"] = [{"text": json.dumps(initial_config, ensure_ascii=False)}]
+            task["contexts"] = [
+                {"text": json.dumps(initial_config, ensure_ascii=False)}
+            ]
         if task_tools:
             task["tools"] = task_tools
         if targets:
@@ -1662,43 +1856,67 @@ def convert_agentic(bfcl_root: Path, dataset_dir: Path | None, output_name: str)
                 error_type = error_dict.get("error_type")
                 raw_msg = error_dict.get("error_message", "")
                 # BFCL sometimes stores error_message as a list of strings
-                error_message = "\n".join(raw_msg) if isinstance(raw_msg, list) else raw_msg
+                error_message = (
+                    "\n".join(raw_msg) if isinstance(raw_msg, list) else raw_msg
+                )
             else:
                 # Defensive: some score records may use the single-turn flat format
                 error_type = score_record.get("error_type") if score_record else None
-                error_message = "; ".join(str(e) for e in error_dict) if isinstance(error_dict, list) else str(error_dict)
+                error_message = (
+                    "; ".join(str(e) for e in error_dict)
+                    if isinstance(error_dict, list)
+                    else str(error_dict)
+                )
 
             # For per-task targets: use possible_answer from the score record when
             # available (failing tasks only). This is the per-turn ground truth as
             # list[list[str]]. Prefer it over the dataset's path-only ground truth.
-            score_possible_answer = score_record.get("possible_answer") if score_record else None
+            score_possible_answer = (
+                score_record.get("possible_answer") if score_record else None
+            )
             if score_possible_answer and not task.get("targets"):
-                task["targets"] = ground_truth_turns_to_target(path, score_possible_answer)
+                task["targets"] = ground_truth_turns_to_target(
+                    path, score_possible_answer
+                )
 
             # Prefer score record's inference_log for failing tasks — it is the same
             # log that was used for evaluation and is always present for failures.
             # Fall back to result record for passing tasks.
-            log_source = score_record if (score_record and score_record.get("inference_log")) else result_record
+            log_source = (
+                score_record
+                if (score_record and score_record.get("inference_log"))
+                else result_record
+            )
             inference_log = (log_source or {}).get("inference_log", [])
             output_messages = inference_log_to_messages(inference_log)
 
             # Fallback: if no thread could be reconstructed, build a minimal one
             # from the goal + error so the instance view is not empty.
             if not output_messages and goal_message:
-                output_messages = [{"role": "user", "content": goal_message.get("content", "")}]
+                output_messages = [
+                    {"role": "user", "content": goal_message.get("content", "")}
+                ]
                 if is_failing and error_message:
-                    output_messages.append({
-                        "role": "assistant",
-                        "content": f"[Run failed: {error_type or 'unknown'}]\n{error_message}",
-                    })
+                    output_messages.append(
+                        {
+                            "role": "assistant",
+                            "content": f"[Run failed: {error_type or 'unknown'}]\n{error_message}",
+                        }
+                    )
 
-            severity_value, severity_numeric, severity_display = derive_severity(is_valid, error_type)
+            severity_value, severity_numeric, severity_display = derive_severity(
+                is_valid, error_type
+            )
 
             rec = result_record or {}
             latency = token_sum(rec.get("latency")) or 600.0
             avg = token_avgs.get(model_id, {})
-            input_tokens = token_sum(rec.get("input_token_count")) or avg.get("input", 0.0)
-            output_tokens = token_sum(rec.get("output_token_count")) or avg.get("output", 0.0)
+            input_tokens = token_sum(rec.get("input_token_count")) or avg.get(
+                "input", 0.0
+            )
+            output_tokens = token_sum(rec.get("output_token_count")) or avg.get(
+                "output", 0.0
+            )
 
             # Stamp metadata.status on each assistant and tool message so the UI
             # can show a visual pass/fail/warn indicator per message.
@@ -1707,7 +1925,11 @@ def convert_agentic(bfcl_root: Path, dataset_dir: Path | None, output_name: str)
             # their turns and are stamped normally (pass/warn).
             is_force_terminated = error_type == "multi_turn:force_terminated"
             last_asst_idx = max(
-                (i for i, m in enumerate(output_messages) if m.get("role") == "assistant"),
+                (
+                    i
+                    for i, m in enumerate(output_messages)
+                    if m.get("role") == "assistant"
+                ),
                 default=None,
             )
             for i, msg in enumerate(output_messages):
@@ -1722,7 +1944,10 @@ def convert_agentic(bfcl_root: Path, dataset_dir: Path | None, output_name: str)
                 else:
                     status, status_def = message_status_and_definition(msg)
                     if status:
-                        msg["metadata"] = {"status": status, "statusDefinition": status_def}
+                        msg["metadata"] = {
+                            "status": status,
+                            "statusDefinition": status_def,
+                        }
 
             scores: dict = {
                 "bfcl_correctness": {
@@ -1738,21 +1963,30 @@ def convert_agentic(bfcl_root: Path, dataset_dir: Path | None, output_name: str)
                         "display_value": severity_display,
                     }
                 },
-                "bfcl_error_type": {
-                    "bfcl": {"value": error_type if error_type is not None else "none"}
-                },
                 "bfcl_errors": {
                     "bfcl": {"value": error_message if error_message else "none"}
                 },
-                "bfcl_latency_total_s": {
-                    "bfcl": {"value": latency}
-                },
-                "bfcl_input_tokens_total": {
-                    "bfcl": {"value": input_tokens}
-                },
-                "bfcl_output_tokens_total": {
-                    "bfcl": {"value": output_tokens}
-                },
+                "bfcl_latency_total_s": {"bfcl": {"value": latency}},
+                "bfcl_input_tokens_total": {"bfcl": {"value": input_tokens}},
+                "bfcl_output_tokens_total": {"bfcl": {"value": output_tokens}},
+            }
+
+            # InspectorRAGet labels are per-(task, model) nominal descriptors that
+            # characterise output without scoring it. Unlike metrics, labels have no natural
+            # ordering or aggregation semantics; InspectorRAGet surfaces them in the Model
+            # Characteristics tab for distribution analysis across models.
+            #
+            # "Error Type" stores the BFCL error_type string rather than a metric because
+            # it is a categorical classifier (e.g., "multi_turn:instance_state_mismatch",
+            # "multi_turn:force_terminated"), not a quantity. Treating it as a metric would
+            # imply ordinal meaning that doesn't exist. As a label it appears in grouped bar
+            # charts showing how error types are distributed per model, which is the
+            # analysis researchers actually want. The "multi_turn:" prefix is stripped to
+            # keep label values concise; the agentic context is already implied by the tab.
+            labels: dict = {
+                "Error Type": error_type.removeprefix("multi_turn:")
+                if error_type is not None
+                else "N/A"
             }
 
             result_entry: dict = {
@@ -1760,6 +1994,7 @@ def convert_agentic(bfcl_root: Path, dataset_dir: Path | None, output_name: str)
                 "model_id": model_id,
                 "output": output_messages,
                 "scores": scores,
+                "labels": labels,
             }
 
             # Structured error diagnostics from BFCL score record details.
@@ -1771,7 +2006,7 @@ def convert_agentic(bfcl_root: Path, dataset_dir: Path | None, output_name: str)
 
             results_list.append(result_entry)
 
-    # Metrics: same set as tool_calling (correctness, severity, error type, errors, latency)
+    # Metrics: same set as tool_calling (correctness, severity, errors, latency)
     # plus bfcl_turn_count for multi-turn depth analysis.
     metrics = [
         {
@@ -1783,8 +2018,12 @@ def convert_agentic(bfcl_root: Path, dataset_dir: Path | None, output_name: str)
             "aggregator": "majority",
             "order": "ascending",
             "values": [
-                {"value": "correct",   "numeric_value": 1, "display_value": "Correct"},
-                {"value": "incorrect", "numeric_value": 0, "display_value": "Incorrect"},
+                {"value": "correct", "numeric_value": 1, "display_value": "Correct"},
+                {
+                    "value": "incorrect",
+                    "numeric_value": 0,
+                    "display_value": "Incorrect",
+                },
             ],
         },
         {
@@ -1802,20 +2041,29 @@ def convert_agentic(bfcl_root: Path, dataset_dir: Path | None, output_name: str)
             "aggregator": "majority",
             "order": "descending",
             "values": [
-                {"value": "correct",          "numeric_value": 0.0,  "display_value": "Correct"},
-                {"value": "wrong_arguments",  "numeric_value": 0.25, "display_value": "Wrong Arguments"},
-                {"value": "wrong_function",   "numeric_value": 0.5,  "display_value": "Wrong Function"},
-                {"value": "unknown",          "numeric_value": 0.5,  "display_value": "Unknown"},
-                {"value": "irrelevance_error","numeric_value": 0.75, "display_value": "Irrelevance Error"},
-                {"value": "malformed_output", "numeric_value": 1.0,  "display_value": "Malformed Output"},
+                {"value": "correct", "numeric_value": 0.0, "display_value": "Correct"},
+                {
+                    "value": "wrong_arguments",
+                    "numeric_value": 0.25,
+                    "display_value": "Wrong Arguments",
+                },
+                {
+                    "value": "wrong_function",
+                    "numeric_value": 0.5,
+                    "display_value": "Wrong Function",
+                },
+                {"value": "unknown", "numeric_value": 0.5, "display_value": "Unknown"},
+                {
+                    "value": "irrelevance_error",
+                    "numeric_value": 0.75,
+                    "display_value": "Irrelevance Error",
+                },
+                {
+                    "value": "malformed_output",
+                    "numeric_value": 1.0,
+                    "display_value": "Malformed Output",
+                },
             ],
-        },
-        {
-            "name": "bfcl_error_type",
-            "display_name": "Error Type",
-            "description": "Raw BFCL error type string. 'none' for correct tasks.",
-            "author": "algorithm",
-            "type": "text",
         },
         {
             "name": "bfcl_errors",
@@ -1866,9 +2114,13 @@ def convert_agentic(bfcl_root: Path, dataset_dir: Path | None, output_name: str)
         },
     ]
 
-    bfcl_categories = sorted({
-        task.get("bfcl_category", "") for task in tasks_list if task.get("bfcl_category")
-    })
+    bfcl_categories = sorted(
+        {
+            task.get("bfcl_category", "")
+            for task in tasks_list
+            if task.get("bfcl_category")
+        }
+    )
 
     models = [
         {"model_id": mid, "name": model_dir_names.get(mid, mid), "owner": ""}
@@ -1892,6 +2144,7 @@ def convert_agentic(bfcl_root: Path, dataset_dir: Path | None, output_name: str)
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(
@@ -1967,7 +2220,9 @@ Examples:
     if args.dataset_dir and not args.dataset_dir.exists():
         sys.exit(f"Error: --dataset-dir path does not exist: {args.dataset_dir}")
 
-    output = args.output if args.output else args.bfcl_root / f"bfcl_{args.task_type}.json"
+    output = (
+        args.output if args.output else args.bfcl_root / f"bfcl_{args.task_type}.json"
+    )
 
     if args.task_type == "tool_calling":
         result = convert_tool_calling(args.bfcl_root, args.dataset_dir, args.name)
