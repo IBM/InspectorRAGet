@@ -329,6 +329,31 @@ describe('processData', () => {
     expect(data.documents).toHaveLength(1);
   });
 
+  // --- labels pass-through ---
+
+  it('preserves labels on qualified results with snake_case keys intact', () => {
+    const raw = minimalData();
+    (raw.results[0] as any).labels = {
+      error_type: 'force_terminated',
+      response_language: null,
+    };
+
+    const [data] = processData(raw);
+    const result = data.results.find(
+      (r) => r.taskId === 't1' && r.modelId === 'm1',
+    );
+    expect(result?.labels).toEqual({
+      error_type: 'force_terminated',
+      response_language: null,
+    });
+  });
+
+  it('qualifies results that have no labels field', () => {
+    const [data] = processData(minimalData());
+    expect(data.results).toHaveLength(2);
+    data.results.forEach((r) => expect(r.labels).toBeUndefined());
+  });
+
   // --- migrated flag ---
 
   it('sets migrated=true on the returned Data when the flag is passed in', () => {

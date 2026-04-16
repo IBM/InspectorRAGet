@@ -75,6 +75,11 @@ if [[ "$VERSION" == "v3" ]]; then
     "possible_answer/BFCL_v3_live_multiple.json"
     "possible_answer/BFCL_v3_live_parallel.json"
     "possible_answer/BFCL_v3_live_parallel_multiple.json"
+    # Multi-turn ground-truth answers (agentic task type)
+    "possible_answer/BFCL_v3_multi_turn_base.json"
+    "possible_answer/BFCL_v3_multi_turn_miss_func.json"
+    "possible_answer/BFCL_v3_multi_turn_miss_param.json"
+    "possible_answer/BFCL_v3_multi_turn_long_context.json"
   )
   # Tool definitions for multi-turn (agentic) tasks.
   # Each file defines the tools available in one virtual environment class.
@@ -125,6 +130,14 @@ else
     "possible_answer/BFCL_v4_live_multiple.json"
     "possible_answer/BFCL_v4_live_parallel.json"
     "possible_answer/BFCL_v4_live_parallel_multiple.json"
+    # Multi-turn ground-truth answers (agentic task type)
+    "possible_answer/BFCL_v4_multi_turn_base.json"
+    "possible_answer/BFCL_v4_multi_turn_miss_func.json"
+    "possible_answer/BFCL_v4_multi_turn_miss_param.json"
+    "possible_answer/BFCL_v4_multi_turn_long_context.json"
+    # V4 agentic category answers
+    "possible_answer/BFCL_v4_memory.json"
+    "possible_answer/BFCL_v4_web_search.json"
   )
   # Tool definitions for multi-turn (agentic) tasks.
   # Each file defines the tools available in one virtual environment class.

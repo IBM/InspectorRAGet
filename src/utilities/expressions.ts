@@ -36,6 +36,10 @@ export enum EXPRESSION_OPERATORS {
   GTE = '$gte',
   LT = '$lt',
   LTE = '$lte',
+
+  // Set membership operators
+  IN = '$in',
+  NIN = '$nin',
 }
 
 export function validate(
@@ -115,6 +119,26 @@ export function validate(
         typeof expression[operator] !== 'number'
       ) {
         return `Comparison operator ("${operator}") must follow primitive data types ("string" or "number")`;
+      }
+    }
+    // Set membership operators condition
+    else if (
+      operator === EXPRESSION_OPERATORS.IN ||
+      operator === EXPRESSION_OPERATORS.NIN
+    ) {
+      if (parent === undefined || parent.startsWith('$')) {
+        return `Set operator ("${operator}") must preceed with model ID`;
+      }
+      if (
+        !Array.isArray(expression[operator]) ||
+        expression[operator].some(
+          (v) => typeof v !== 'string' && typeof v !== 'number',
+        )
+      ) {
+        return `Set operator ("${operator}") must follow with an array of primitive values ("string" or "number")`;
+      }
+      if (expression[operator].length === 0) {
+        return `Set operator ("${operator}") cannot have an empty array`;
       }
     }
   } else {
@@ -293,6 +317,28 @@ export function evaluate(
             satisfy = false;
             break;
           }
+
+          // If comparison operator is "$in"
+          if (operator === EXPRESSION_OPERATORS.IN) {
+            const numericSet = expectation[operator].map((v) =>
+              castToNumber(v, metric.values),
+            );
+            if (isNaN(value) || !numericSet.includes(value)) {
+              satisfy = false;
+              break;
+            }
+          }
+
+          // If comparison operator is "$nin"
+          if (operator === EXPRESSION_OPERATORS.NIN) {
+            const numericSet = expectation[operator].map((v) =>
+              castToNumber(v, metric.values),
+            );
+            if (isNaN(value) || numericSet.includes(value)) {
+              satisfy = false;
+              break;
+            }
+          }
         } else {
           // Primitive expectation: direct equality check
           if (
@@ -317,4 +363,235 @@ export function evaluate(
   }
 
   return eligibleResults;
+}
+
+// --- Label expressions ---
+
+// Validates an expression for use with labels. Same structural rules as
+// validate(), but rejects ordering operators ($gt, $gte, $lt, $lte) because
+// labels are nominal — no ordering exists.
+export function validateLabelExpression(
+  expression: object,
+  modelIds?: string[],
+  parent?: string,
+): string | null {
+  const keys = Object.keys(expression);
+
+  if (keys.length === 0 && parent === undefined) {
+    return 'Expression cannot be empty';
+  }
+
+  const operators = keys.filter((key) => key.startsWith('$'));
+  if (operators.length > 1) {
+    return `More than one operator [${operators.join(', ')}] on the same level in the expression`;
+  }
+
+  if (operators.length === 1 && keys.length > 1) {
+    return 'Additional keys on the same level in the expression';
+  }
+
+  if (operators.length === 1) {
+    const operator = operators[0];
+
+    if (
+      operator === EXPRESSION_OPERATORS.AND ||
+      operator === EXPRESSION_OPERATORS.OR
+    ) {
+      if (parent && modelIds && modelIds.includes(parent)) {
+        return `Logical operator ("${operator}") must not preceed with model ID`;
+      }
+      if (
+        !Array.isArray(expression[operator]) ||
+        expression[operator].some((value) => typeof value !== 'object')
+      ) {
+        return `Logical operator ("${operator}") must follow with array of expressions`;
+      }
+      if (
+        isEmpty(expression[operator]) ||
+        expression[operator].some((entry) => isEmpty(entry))
+      ) {
+        return `Logical operator ("${operator}") cannot have empty expression value`;
+      }
+      for (let index = 0; index < expression[operator].length; index++) {
+        const nestedError = validateLabelExpression(
+          expression[operator][index],
+          modelIds,
+        );
+        if (nestedError) return nestedError;
+      }
+    } else if (
+      operator === EXPRESSION_OPERATORS.EQ ||
+      operator === EXPRESSION_OPERATORS.NEQ
+    ) {
+      if (parent === undefined || parent.startsWith('$')) {
+        return `Comparison operator ("${operator}") must preceed with model ID`;
+      }
+      if (
+        typeof expression[operator] !== 'string' &&
+        typeof expression[operator] !== 'number'
+      ) {
+        return `Comparison operator ("${operator}") must follow primitive data types ("string" or "number")`;
+      }
+    } else if (
+      operator === EXPRESSION_OPERATORS.IN ||
+      operator === EXPRESSION_OPERATORS.NIN
+    ) {
+      if (parent === undefined || parent.startsWith('$')) {
+        return `Set operator ("${operator}") must preceed with model ID`;
+      }
+      if (
+        !Array.isArray(expression[operator]) ||
+        expression[operator].some(
+          (v) => typeof v !== 'string' && typeof v !== 'number',
+        )
+      ) {
+        return `Set operator ("${operator}") must follow with an array of primitive values ("string" or "number")`;
+      }
+      if (expression[operator].length === 0) {
+        return `Set operator ("${operator}") cannot have an empty array`;
+      }
+    } else if (
+      operator === EXPRESSION_OPERATORS.GT ||
+      operator === EXPRESSION_OPERATORS.GTE ||
+      operator === EXPRESSION_OPERATORS.LT ||
+      operator === EXPRESSION_OPERATORS.LTE
+    ) {
+      return `Ordering operator ("${operator}") is not valid for labels — labels have no ordering`;
+    } else {
+      return `Unknown operator ("${operator}")`;
+    }
+  } else {
+    for (let idx = 0; idx < keys.length; idx++) {
+      if (modelIds && !modelIds.includes(keys[idx])) {
+        return `Model ("${keys[idx]}") does not exist. Please use one of the following models: ${modelIds.join(', ')}`;
+      }
+      const value = expression[keys[idx]];
+      if (
+        typeof value !== 'object' &&
+        typeof value !== 'string' &&
+        typeof value !== 'number'
+      ) {
+        return `Model ("${keys[idx]}") must follow either expression or primitive data types ("string" or "number")`;
+      }
+      if (typeof value === 'object') {
+        const nestedError = validateLabelExpression(
+          expression[keys[idx]],
+          modelIds,
+          keys[idx],
+        );
+        if (nestedError) return nestedError;
+      }
+    }
+  }
+
+  return null;
+}
+
+// Evaluates a label expression against a labelsIndex slice.
+//
+// labelSlice: Map<taskId, Map<modelId, string>> — the labelsIndex entry for
+// one label key. Values are raw producer strings or "N/A" for absent/null.
+//
+// Returns the set of taskIds whose per-model label values satisfy the expression.
+// Supports $eq, $neq, $in, $nin, $and, $or. Ordering operators are not supported
+// and should be rejected by validateLabelExpression before reaching here.
+export function evaluateLabels(
+  labelSlice: Map<string, Map<string, string>>,
+  expression: object,
+): Set<string> {
+  const keys = Object.keys(expression);
+  const operators = keys.filter((key) => key.startsWith('$'));
+
+  if (operators.length === 1) {
+    const operator = operators[0];
+
+    if (
+      operator === EXPRESSION_OPERATORS.AND ||
+      operator === EXPRESSION_OPERATORS.OR
+    ) {
+      const subResults: Set<string>[] = expression[operator].map((condition) =>
+        evaluateLabels(labelSlice, condition),
+      );
+
+      if (operator === EXPRESSION_OPERATORS.AND) {
+        // Intersection: start from the first set, keep only items in all others
+        return subResults.reduce((acc, set) => {
+          const result = new Set<string>();
+          for (const taskId of acc) {
+            if (set.has(taskId)) result.add(taskId);
+          }
+          return result;
+        });
+      } else {
+        // Union: merge all sets
+        return subResults.reduce((acc, set) => {
+          for (const taskId of set) acc.add(taskId);
+          return acc;
+        }, new Set<string>());
+      }
+    }
+  }
+
+  // No logical operator: evaluate per-model conditions against each task
+  const matched = new Set<string>();
+
+  for (const [taskId, modelValues] of labelSlice) {
+    let satisfy = true;
+
+    for (let idx = 0; idx < keys.length; idx++) {
+      const modelId = keys[idx];
+      // Value for this model on this task, defaulting to N/A if not present
+      const value = modelValues.get(modelId) ?? 'N/A';
+      const expectation = expression[modelId];
+
+      if (typeof expectation === 'object') {
+        const operator = Object.keys(expectation).find((k) =>
+          k.startsWith('$'),
+        );
+        if (!operator) {
+          satisfy = false;
+          break;
+        }
+
+        if (
+          operator === EXPRESSION_OPERATORS.EQ &&
+          value !== expectation[operator]
+        ) {
+          satisfy = false;
+          break;
+        }
+        if (
+          operator === EXPRESSION_OPERATORS.NEQ &&
+          value === expectation[operator]
+        ) {
+          satisfy = false;
+          break;
+        }
+        if (
+          operator === EXPRESSION_OPERATORS.IN &&
+          !expectation[operator].includes(value)
+        ) {
+          satisfy = false;
+          break;
+        }
+        if (
+          operator === EXPRESSION_OPERATORS.NIN &&
+          expectation[operator].includes(value)
+        ) {
+          satisfy = false;
+          break;
+        }
+      } else {
+        // Primitive shorthand: { "model-a": "value_x" } means $eq
+        if (value !== String(expectation)) {
+          satisfy = false;
+          break;
+        }
+      }
+    }
+
+    if (satisfy) matched.add(taskId);
+  }
+
+  return matched;
 }

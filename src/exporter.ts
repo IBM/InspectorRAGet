@@ -43,6 +43,7 @@ export function exportData(
           modelId: evaluation.modelId,
           output: evaluation.output,
           scores: evaluation.scores,
+          ...(evaluation.labels && { labels: evaluation.labels }),
           ...(evaluation.contexts && { contexts: evaluation.contexts }),
         };
       }),

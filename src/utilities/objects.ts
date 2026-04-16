@@ -35,16 +35,22 @@ export function camelCaseKeys(
     'display_name',
     'depends_on',
   ],
+  // Keys whose values are passed through as-is without recursing into them.
+  // 'labels' is in the default set because label keys are producer vocabulary
+  // (e.g. "error_type") and must not be silently renamed by camelCase conversion.
+  skipKeys: string[] = ['labels'],
 ) {
   if (isArray(obj)) {
-    return obj.map((v) => camelCaseKeys(v));
+    return obj.map((v) => camelCaseKeys(v, keys, skipKeys));
   } else if (isPlainObject(obj)) {
     return Object.keys(obj).reduce(
       (result, key) => ({
         ...result,
-        ...(keys.includes(key)
-          ? { [camelCase(key)]: camelCaseKeys(obj[key]) }
-          : { [key]: camelCaseKeys(obj[key]) }),
+        ...(skipKeys.includes(key)
+          ? { [key]: obj[key] }
+          : keys.includes(key)
+            ? { [camelCase(key)]: camelCaseKeys(obj[key], keys, skipKeys) }
+            : { [key]: camelCaseKeys(obj[key], keys, skipKeys) }),
       }),
       {},
     );
@@ -66,16 +72,22 @@ export function snakeCaseKeys(
     'displayName',
     'dependsOn',
   ],
+  // Keys whose values are passed through as-is without recursing into them.
+  // 'labels' is in the default set because label keys are producer vocabulary
+  // and must survive the export round-trip unchanged.
+  skipKeys: string[] = ['labels'],
 ) {
   if (isArray(obj)) {
-    return obj.map((v) => snakeCaseKeys(v));
+    return obj.map((v) => snakeCaseKeys(v, keys, skipKeys));
   } else if (isPlainObject(obj)) {
     return Object.keys(obj).reduce(
       (result, key) => ({
         ...result,
-        ...(keys.includes(key)
-          ? { [snakeCase(key)]: snakeCaseKeys(obj[key]) }
-          : { [key]: snakeCaseKeys(obj[key]) }),
+        ...(skipKeys.includes(key)
+          ? { [key]: obj[key] }
+          : keys.includes(key)
+            ? { [snakeCase(key)]: snakeCaseKeys(obj[key], keys, skipKeys) }
+            : { [key]: snakeCaseKeys(obj[key], keys, skipKeys) }),
       }),
       {},
     );

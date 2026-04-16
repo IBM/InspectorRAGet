@@ -72,6 +72,24 @@ describe('camelCaseKeys', () => {
     expect(camelCaseKeys([] as any)).toEqual([]);
   });
 
+  it('does not recurse into labels — snake_case label keys pass through unchanged', () => {
+    const input = {
+      task_id: 't1',
+      labels: { error_type: 'force_terminated', response_language: 'fr' },
+    };
+    const result = camelCaseKeys(input);
+    expect(result).toEqual({
+      taskId: 't1',
+      labels: { error_type: 'force_terminated', response_language: 'fr' },
+    });
+  });
+
+  it('does not recurse into labels when the value is null', () => {
+    const input = { task_id: 't1', labels: { error_type: null } };
+    const result = camelCaseKeys(input);
+    expect(result).toEqual({ taskId: 't1', labels: { error_type: null } });
+  });
+
   it('converts all default keys', () => {
     const input = {
       task_id: 'a',
@@ -138,6 +156,18 @@ describe('snakeCaseKeys', () => {
     const result = snakeCaseKeys(input, ['fooBar']);
     expect(result).toHaveProperty('foo_bar', 'val');
     expect(result).toHaveProperty('taskId', 'keep');
+  });
+
+  it('does not recurse into labels — label keys pass through unchanged on export round-trip', () => {
+    const input = {
+      taskId: 't1',
+      labels: { error_type: 'ast_decoder:decoder_failed' },
+    };
+    const result = snakeCaseKeys(input);
+    expect(result).toEqual({
+      task_id: 't1',
+      labels: { error_type: 'ast_decoder:decoder_failed' },
+    });
   });
 });
 

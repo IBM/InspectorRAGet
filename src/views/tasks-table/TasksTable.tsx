@@ -67,6 +67,10 @@ interface Props {
   filters: { [key: string]: string[] };
   annotator?: string;
   onClick: Function;
+  // When provided, takes precedence over metric scores for per-model column
+  // values. Keys are taskId → modelId → display string. Callers pass this when
+  // the column content is not a metric (e.g. label values in ModelCharacteristics).
+  columnValues?: Map<string, Map<string, string>>;
 }
 
 // --- Compute functions ---
@@ -83,6 +87,7 @@ function populateTable(
   taskInputMap: { [key: string]: any },
   filters: { [key: string]: string[] },
   annotator?: string,
+  columnValues?: Map<string, Map<string, string>>,
 ): [{ key: string; header: string }[], EvaluationRow[]] {
   const modelIds = new Set<string>();
   const applicableFilters = new Set<string>();
@@ -111,25 +116,31 @@ function populateTable(
       }
     }
 
-    // Add annotations
-    entry[`${evaluation.modelId}::value`] = {};
-    metrics.forEach((metric) => {
-      if (annotator && evaluation.hasOwnProperty(metric.name)) {
-        entry[`${evaluation.modelId}::value`][metric.name] =
-          extractMetricDisplayValue(
-            evaluation[metric.name][annotator].value,
-            metric.values,
-          );
-      } else if (evaluation.hasOwnProperty(`${metric.name}_agg`)) {
-        entry[`${evaluation.modelId}::value`][metric.name] =
-          extractMetricDisplayValue(
-            evaluation[`${metric.name}_agg`].value,
-            metric.values,
-          );
-      } else {
-        entry[`${evaluation.modelId}::value`][metric.name] = '-';
-      }
-    });
+    // columnValues takes precedence: use the caller-supplied display string
+    // directly rather than deriving it from metric scores.
+    if (columnValues) {
+      entry[`${evaluation.modelId}::value`] =
+        columnValues.get(evaluation.taskId)?.get(evaluation.modelId) ?? '-';
+    } else {
+      entry[`${evaluation.modelId}::value`] = {};
+      metrics.forEach((metric) => {
+        if (annotator && evaluation.hasOwnProperty(metric.name)) {
+          entry[`${evaluation.modelId}::value`][metric.name] =
+            extractMetricDisplayValue(
+              evaluation[metric.name][annotator].value,
+              metric.values,
+            );
+        } else if (evaluation.hasOwnProperty(`${metric.name}_agg`)) {
+          entry[`${evaluation.modelId}::value`][metric.name] =
+            extractMetricDisplayValue(
+              evaluation[`${metric.name}_agg`].value,
+              metric.values,
+            );
+        } else {
+          entry[`${evaluation.modelId}::value`][metric.name] = '-';
+        }
+      });
+    }
 
     resultsMap.set(evaluation.taskId, entry);
     modelIds.add(evaluation.modelId);
@@ -262,6 +273,7 @@ export default function TasksTable({
   filters,
   annotator,
   onClick,
+  columnValues,
 }: Props) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -309,8 +321,17 @@ export default function TasksTable({
           taskInputMap,
           filters,
           annotator,
+          columnValues,
         ),
-      [results, metrics, models, filters, taskInputMap, annotator],
+      [
+        results,
+        metrics,
+        models,
+        filters,
+        taskInputMap,
+        annotator,
+        columnValues,
+      ],
     );
 
   useEffect(() => {

@@ -30,6 +30,7 @@ import {
   ChartMultitype,
   Compare,
   HeatMap_03,
+  Tag,
 } from '@carbon/icons-react';
 
 import { Data, ModelResult } from '@/src/types';
@@ -47,6 +48,7 @@ import AnnotatorBehavior from '@/src/views/annotator-behavior/AnnotatorBehavior'
 import ModelBehavior from '@/src/views/model-behavior/ModelBehavior';
 import ModelComparator from '@/src/views/model-comparator/ModelComparator';
 import MetricBehavior from '@/src/views/metric-behavior/MetricBehavior';
+import ModelCharacteristics from '@/src/views/model-characteristics/ModelCharacteristics';
 
 import classes from './Example.module.scss';
 
@@ -233,6 +235,58 @@ export default memo(function Example({ data }: { data: Data }) {
     ];
   }, [data.results, data.tasks, data.models, data.filters, eligibleMetricsMap]);
 
+  // labelsIndex: Map<labelKey, Map<taskId, Map<modelId, string>>>
+  //
+  // Built from result.labels on each qualified result. Absent or explicit null
+  // values are stored as "N/A" so the expression evaluator and value selector
+  // can treat "N/A" as a regular string — a user who sees an N/A bar in the
+  // chart must be able to write { "model-a": { "$eq": "N/A" } } and get results.
+  //
+  // The index is dense: once a label key is seen anywhere, every (taskId, modelId)
+  // pair gets an explicit entry for it (defaulting to "N/A"), so evaluateLabels
+  // never needs to distinguish "key absent" from "key present with null value".
+  const labelsIndex = useMemo(() => {
+    const index = new Map<string, Map<string, Map<string, string>>>();
+
+    // First pass: discover all label keys and seed the index with N/A for
+    // every (taskId, modelId) pair, so the index is dense before we fill values.
+    const allLabelKeys = new Set<string>();
+    data.results.forEach((evaluation) => {
+      if (evaluation.labels) {
+        Object.keys(evaluation.labels).forEach((key) => allLabelKeys.add(key));
+      }
+    });
+
+    if (allLabelKeys.size === 0) return index;
+
+    allLabelKeys.forEach((key) => {
+      const taskMap = new Map<string, Map<string, string>>();
+      data.tasks.forEach((task) => {
+        const modelMap = new Map<string, string>();
+        data.models.forEach((model) => modelMap.set(model.modelId, 'N/A'));
+        taskMap.set(task.taskId, modelMap);
+      });
+      index.set(key, taskMap);
+    });
+
+    // Second pass: fill in the actual label values from each result.
+    data.results.forEach((evaluation) => {
+      if (!evaluation.labels) return;
+      for (const [key, rawValue] of Object.entries(evaluation.labels)) {
+        const taskMap = index.get(key);
+        if (!taskMap) continue;
+        const modelMap = taskMap.get(evaluation.taskId);
+        if (!modelMap) continue;
+        modelMap.set(
+          evaluation.modelId,
+          rawValue === null || rawValue === undefined ? 'N/A' : rawValue,
+        );
+      }
+    });
+
+    return index;
+  }, [data.results, data.tasks, data.models]);
+
   const {} = useBackButton();
 
   return (
@@ -279,6 +333,9 @@ export default memo(function Example({ data }: { data: Data }) {
             </Tab>
             <Tab key={'metric-behavior-tab'} renderIcon={HeatMap_03}>
               Metric Behavior
+            </Tab>
+            <Tab key={'model-characteristics-tab'} renderIcon={Tag}>
+              Model Characteristics
             </Tab>
           </TabList>
           <TabPanels>
@@ -356,6 +413,20 @@ export default memo(function Example({ data }: { data: Data }) {
                     setSelectedTaskId(taskId);
                   }}
                 ></MetricBehavior>
+              )}
+            </TabPanel>
+            <TabPanel key={'model-characteristics-panel'}>
+              {labelsIndex.size === 0 ? (
+                <DisabledTab message="This dataset has no labels. Add a 'labels' field to model results to explore model characteristics." />
+              ) : (
+                <ModelCharacteristics
+                  labelsIndex={labelsIndex}
+                  models={data.models}
+                  filters={filters}
+                  onTaskSelection={(taskId) => {
+                    setSelectedTaskId(taskId);
+                  }}
+                />
               )}
             </TabPanel>
           </TabPanels>
