@@ -6,11 +6,13 @@ Each converter reads the native output format of a specific benchmark runner and
 
 ## Available converters
 
-| Converter                  | Benchmark                                    | Task type                 | Status    |
-| -------------------------- | -------------------------------------------- | ------------------------- | --------- |
-| [`bfcl/`](bfcl/)           | Berkeley Function-Calling Leaderboard (BFCL) | `tool_calling`, `agentic` | Available |
-| [`acebench/`](acebench/)   | ACEBench                                     | `tool_calling`, `agentic` | Available |
-| [`tau2bench/`](tau2bench/) | tau^2-bench                                  | `agentic`                 | Available |
+| Converter                        | Benchmark                                    | Task type                 | Status    |
+| -------------------------------- | -------------------------------------------- | ------------------------- | --------- |
+| [`bfcl/`](bfcl/)                 | Berkeley Function-Calling Leaderboard (BFCL) | `tool_calling`, `agentic` | Available |
+| [`acebench/`](acebench/)         | ACEBench                                     | `tool_calling`, `agentic` | Available |
+| [`tau2bench/`](tau2bench/)       | tau^2-bench                                  | `agentic`                 | Available |
+| [`ifeval/`](ifeval/)             | IFEval                                       | `generation`              | Available |
+| [`complexbench/`](complexbench/) | ComplexBench                                 | `generation`              | Available |
 
 ## Requirements
 
