@@ -167,13 +167,18 @@ export interface ToolCallRecord {
 
 // --- TraceEvent ---
 
-// A single event in an agentic execution trace. Three variants:
+// A single event on the path a model took to produce its output. Four variants:
 // 'invocation'    — one LLM inference call, carrying the model's output message and
 //                   an optional recursive sub-agent trace.
 // 'tool_execution'— one tool call result from the environment.
 // 'observation'   — feedback injected by the runner/benchmark between invocations:
 //                   decode errors, orchestrator notes, user simulator turns, etc.
 //                   Signals what the model observed before its next invocation.
+// 'program'       — source code the model authored as part of producing the output.
+//                   Used by program-synthesis style pipelines where the model emits
+//                   a program (in some language) that, when executed, yields the
+//                   final output. The program is the artifact, not a step-by-step
+//                   replay of its execution.
 // The recursive trace? field on 'invocation' enables multi-level agent hierarchies.
 export type TraceEvent =
   | {
@@ -192,6 +197,12 @@ export type TraceEvent =
   | {
       type: 'observation';
       content: string; // text injected by runner/benchmark before next invocation
+      label?: string; // optional — free-form marker for cross-referencing source data
+    }
+  | {
+      type: 'program';
+      language?: string; // syntax-highlight hint, e.g. 'python'; falls back to plain monospace
+      source: string; // the program source as authored
       label?: string; // optional — free-form marker for cross-referencing source data
     };
 

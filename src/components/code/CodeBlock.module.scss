@@ -1,0 +1,42 @@
+/**
+ *
+ * Copyright 2023-present InspectorRAGet Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ **/
+
+@use '@carbon/react/scss/spacing' as *;
+
+// Carbon-themed shell around the Prism-rendered <pre>. The Prism theme paints
+// the tokens; this wrapper supplies the surface (background, border, radius)
+// so the block sits well inside Carbon layouts in both g10 and g90.
+.codeBlock {
+  background-color: var(--cds-layer-01);
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 2px;
+  overflow: auto;
+  font-family: var(--cds-code-01-font-family, monospace);
+
+  // The Prism wrapper renders its own <pre>; ensure it doesn't double up margins
+  // and that line numbers use a muted color from the active theme.
+  pre {
+    margin: 0 !important;
+    background: transparent !important;
+  }
+
+  :global(.linenumber) {
+    color: var(--cds-text-helper) !important;
+    opacity: 0.6;
+  }
+}

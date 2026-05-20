@@ -23,6 +23,7 @@ import {
   Bot,
   Tools,
   InformationFilled,
+  Code,
   ChevronRight,
   ChevronDown,
 } from '@carbon/icons-react';
@@ -32,6 +33,7 @@ import {
   ToolCallCard,
   ToolResponseCard,
 } from '@/src/components/tools/ToolCards';
+import CodeBlock from '@/src/components/code/CodeBlock';
 
 import classes from './TraceItem.module.scss';
 
@@ -47,12 +49,14 @@ const typeLabel: Record<TraceEvent['type'], string> = {
   invocation: 'Invocation',
   tool_execution: 'Tool Execution',
   observation: 'Observation',
+  program: 'Program',
 };
 
 const typeColorClass: Record<TraceEvent['type'], string> = {
   invocation: classes.tagInvocation,
   tool_execution: classes.tagToolExecution,
   observation: classes.tagObservation,
+  program: classes.tagProgram,
 };
 
 function TraceIcon({ type }: { type: TraceEvent['type'] }) {
@@ -63,6 +67,8 @@ function TraceIcon({ type }: { type: TraceEvent['type'] }) {
       return <Tools size={16} />;
     case 'observation':
       return <InformationFilled size={16} />;
+    case 'program':
+      return <Code size={16} />;
   }
 }
 
@@ -79,6 +85,9 @@ function hasContent(event: TraceEvent): boolean {
   }
   if (event.type === 'observation') {
     return !!event.content;
+  }
+  if (event.type === 'program') {
+    return !!event.source;
   }
   return false;
 }
@@ -118,14 +127,17 @@ export default function TraceItem({ event }: Props) {
 
   const expandable = hasContent(event);
 
-  // Show agent name for invocations, tool_call_id for tool_execution; nothing for observation.
+  // Show agent name for invocations, tool_call_id for tool_execution, language for program;
+  // nothing for observation.
   const subtitle =
     event.type === 'invocation'
       ? event.agent
       : event.type === 'tool_execution' &&
           typeof (event.result as any)?.tool_call_id === 'string'
         ? (event.result as any).tool_call_id
-        : undefined;
+        : event.type === 'program'
+          ? event.language
+          : undefined;
 
   const label = event.label;
 
@@ -175,6 +187,10 @@ export default function TraceItem({ event }: Props) {
           )}
 
           {event.type === 'observation' && <p>{event.content}</p>}
+
+          {event.type === 'program' && (
+            <CodeBlock language={event.language} source={event.source} />
+          )}
         </div>
       )}
     </div>

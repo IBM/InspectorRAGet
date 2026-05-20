@@ -42,3 +42,6 @@ converters/*/runs/
 # Development tracking files (local only)
 CLAUDE.md
 .claude
+
+# Private/local files
+private_*
