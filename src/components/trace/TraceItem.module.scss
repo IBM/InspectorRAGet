@@ -74,6 +74,11 @@
   color: var(--cds-tag-color-purple);
 }
 
+.tagProgram {
+  background-color: var(--cds-tag-background-gray);
+  color: var(--cds-tag-color-gray);
+}
+
 .traceName {
   display: inline-flex;
   align-items: center;
