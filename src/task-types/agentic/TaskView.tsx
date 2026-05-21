@@ -46,7 +46,7 @@ import { truncate } from '@/src/utilities/strings';
 import EvaluationsPanel from '@/src/components/evaluations/EvaluationsPanel';
 import TraceGroup from '@/src/components/trace/TraceGroup';
 import AvailableToolsPanel from '@/src/components/tools/AvailableToolsPanel';
-import ChatLine from '@/src/task-types/rag/components/ChatLine';
+import ChatLine from '@/src/components/chat/ChatLine';
 import AgenticCopier from '@/src/task-types/agentic/Copier';
 
 import classes from './TaskView.module.scss';

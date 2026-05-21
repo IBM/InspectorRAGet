@@ -303,25 +303,21 @@ def convert(run_dir: Path, output_name: str) -> dict:
                 "PS": {
                     ANNOTATOR: {
                         "value": "pass" if ps_pass else "fail",
-                        "numeric_value": 1 if ps_pass else 0,
                     }
                 },
                 "IS": {
                     ANNOTATOR: {
                         "value": round(is_rate, 4),
-                        "numeric_value": round(is_rate, 4),
                     }
                 },
                 "PL": {
                     ANNOTATOR: {
                         "value": "pass" if pl_pass else "fail",
-                        "numeric_value": 1 if pl_pass else 0,
                     }
                 },
                 "IL": {
                     ANNOTATOR: {
                         "value": round(il_rate, 4),
-                        "numeric_value": round(il_rate, 4),
                     }
                 },
             }
@@ -423,7 +419,7 @@ def convert(run_dir: Path, output_name: str) -> dict:
         },
     ]
 
-    models = [{"model_id": name, "name": name, "owner": ""} for name in all_model_names]
+    models = [{"model_id": name, "name": name} for name in all_model_names]
 
     output_doc = {
         "schema_version": SCHEMA_VERSION,

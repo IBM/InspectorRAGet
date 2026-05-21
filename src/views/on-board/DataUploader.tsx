@@ -142,13 +142,11 @@ export default function DataUploaderView({ onNext, onPrev }: Props) {
   "models": [
     {
       "model_id": "model_a",
-      "name": "Model A",
-      "owner": "xyz@company.com"
+      "name": "Model A"
     },
     {
       "model_id": "model_b",
-      "name": "Model B",
-      "owner": "abc@company.com"
+      "name": "Model B"
     }
   ],
   "metrics": [

@@ -13,6 +13,7 @@ Each converter reads the native output format of a specific benchmark runner and
 | [`tau2bench/`](tau2bench/)       | tau^2-bench                                  | `agentic`                 | Available |
 | [`ifeval/`](ifeval/)             | IFEval                                       | `generation`              | Available |
 | [`complexbench/`](complexbench/) | ComplexBench                                 | `generation`              | Available |
+| [`agentif/`](agentif/)           | AgentIF                                      | `generation`              | Available |
 
 ## Requirements
 

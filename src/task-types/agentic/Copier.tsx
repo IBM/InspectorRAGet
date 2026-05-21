@@ -22,7 +22,7 @@ import { useMemo, useState } from 'react';
 import { Modal, RadioTile, CodeSnippet } from '@carbon/react';
 
 import { Metric, Model, Task, ModelResult, ToolCallRecord } from '@/src/types';
-import { Message } from '@/src/task-types/rag/types';
+import { Message } from '@/src/types';
 
 import classes from './Copier.module.scss';
 

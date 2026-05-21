@@ -21,7 +21,14 @@
 import { useState, useMemo } from 'react';
 import { Modal, RadioTile, CodeSnippet } from '@carbon/react';
 
-import { Metric, Model, Task, ModelResult, outputAsText } from '@/src/types';
+import {
+  Metric,
+  Model,
+  Message,
+  Task,
+  ModelResult,
+  outputAsText,
+} from '@/src/types';
 import { WarningAlt } from '@carbon/icons-react';
 
 import classes from './Copier.module.scss';
@@ -35,6 +42,19 @@ interface Props {
   open: boolean;
 }
 
+function inputAsText(input: unknown): string {
+  if (typeof input === 'string') return input.trim();
+  if (Array.isArray(input)) {
+    return (input as Message[])
+      .map(
+        (m) =>
+          `[${m.role}]: ${typeof m.content === 'string' ? m.content : JSON.stringify(m.content)}`,
+      )
+      .join('\n\n');
+  }
+  return '';
+}
+
 function prepareText(
   models: Model[],
   metrics: Metric[],
@@ -42,11 +62,8 @@ function prepareText(
   results: ModelResult[],
 ): string {
   const separator = '=======================================================\n';
-  let input, responses;
-
-  if (typeof task.input === 'string') {
-    input = `${separator}Input\n${separator}${task.input.trim()}`;
-  }
+  const input = `${separator}Input\n${separator}${inputAsText(task.input)}`;
+  let responses = '';
 
   if (results && results.length) {
     responses = `${separator}Responses\n${separator}`;
@@ -60,7 +77,7 @@ function prepareText(
     });
   }
 
-  return `${input.trim()}\n${responses ? responses : ''}`;
+  return `${input.trim()}\n${responses}`;
 }
 
 function prepareLaTEXT(
@@ -69,11 +86,8 @@ function prepareLaTEXT(
   task: Task,
   results: ModelResult[],
 ): string {
-  let input, responses;
-
-  if (typeof task.input === 'string') {
-    input = `\\multicolumn{1}{|c|}{\\textbf{Input}} \\\\ \n\t\\toprule \n\t${task.input.trim()}  \\\\ \n\t`;
-  }
+  const input = `\\multicolumn{1}{|c|}{\\textbf{Input}} \\\\ \n\t\\toprule \n\t${inputAsText(task.input).trim()}  \\\\ \n\t`;
+  let responses = '';
 
   if (results && results.length) {
     responses =
@@ -87,7 +101,7 @@ function prepareLaTEXT(
     responses += '\\bottomrule \n\t';
   }
 
-  return `\\begin{table*}\n\\small\n\t\\begin{tabular}{p{15.5cm}}\n\t\\toprule\n\t${input}${responses ? responses : ''}\\end{tabular}\n\\end{table*}`;
+  return `\\begin{table*}\n\\small\n\t\\begin{tabular}{p{15.5cm}}\n\t\\toprule\n\t${input}${responses}\\end{tabular}\n\\end{table*}`;
 }
 
 function prepareJSON(

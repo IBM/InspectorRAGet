@@ -69,10 +69,20 @@
   flex-direction: column;
 }
 
+// Carbon ContainedList and ContainedListItem don't propagate flex height,
+// so we cap the list item content directly rather than relying on the chain.
 .inputContent {
   overflow-y: auto;
+  max-height: 80vh;
   line-height: 1.4em;
   padding-block: $spacing-03;
+}
+
+.inputMessages {
+  overflow-y: auto;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .overlapDisclaimer {

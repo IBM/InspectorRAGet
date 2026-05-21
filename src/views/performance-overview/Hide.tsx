@@ -68,7 +68,7 @@ export default function HidePanel({
           <div className={classes.hideBtnElements}>
             {show ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
             <div className={classes.hideBtnCaptionElements}>
-              <h5>Hide Models & Metrics</h5>
+              <h5>Models & Metrics</h5>
               <SubtractAlt />
             </div>
           </div>

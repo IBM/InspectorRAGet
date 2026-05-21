@@ -23,10 +23,6 @@ function isValidModel(model): boolean {
   if (!model.hasOwnProperty('name')) {
     return false;
   }
-  if (!model.hasOwnProperty('owner')) {
-    return false;
-  }
-
   return true;
 }
 

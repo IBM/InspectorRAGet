@@ -38,7 +38,7 @@ import EvaluationsPanel from '@/src/components/evaluations/EvaluationsPanel';
 import TraceGroup from '@/src/components/trace/TraceGroup';
 import AvailableToolsPanel from '@/src/components/tools/AvailableToolsPanel';
 import { ToolCallCard } from '@/src/components/tools/ToolCards';
-import ChatLine from '@/src/task-types/rag/components/ChatLine';
+import ChatLine from '@/src/components/chat/ChatLine';
 import ToolCallingCopier from '@/src/task-types/tool_calling/Copier';
 
 import classes from './TaskView.module.scss';

@@ -38,7 +38,7 @@ import { truncate } from '@/src/utilities/strings';
 
 import EvaluationsPanel from '@/src/components/evaluations/EvaluationsPanel';
 import TraceGroup from '@/src/components/trace/TraceGroup';
-import ChatLine from '@/src/task-types/rag/components/ChatLine';
+import ChatLine from '@/src/components/chat/ChatLine';
 import RAGCopier from '@/src/task-types/rag/Copier';
 
 import classes from './TaskView.module.scss';

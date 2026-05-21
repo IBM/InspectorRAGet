@@ -1130,13 +1130,11 @@ def convert_tool_calling(runs_dir: Path, dataset_dir: Path, output_name: str) ->
                 "ace_correctness": {
                     "ace": {
                         "value": "correct" if is_valid else "incorrect",
-                        "numeric_value": 1 if is_valid else 0,
                     }
                 },
                 "ace_error_severity": {
                     "ace": {
                         "value": sev_value,
-                        "numeric_value": sev_numeric,
                         "display_value": sev_display,
                     }
                 },
@@ -1152,7 +1150,7 @@ def convert_tool_calling(runs_dir: Path, dataset_dir: Path, output_name: str) ->
             })
 
     ace_categories = sorted({t.get("ace_category", "") for t in tasks_list if t.get("ace_category")})
-    models = [{"model_id": mid, "name": display_names.get(mid, mid), "owner": ""} for mid in all_model_ids]
+    models = [{"model_id": mid, "name": display_names.get(mid, mid)} for mid in all_model_ids]
 
     output_doc: dict = {
         "schema_version": SCHEMA_VERSION,
@@ -1333,19 +1331,16 @@ def convert_agentic(runs_dir: Path, dataset_dir: Path, output_name: str) -> dict
                 "ace_correctness": {
                     "ace": {
                         "value": "correct" if is_valid else "incorrect",
-                        "numeric_value": 1 if is_valid else 0,
                     }
                 },
                 "ace_process_accuracy": {
                     "ace": {
                         "value": process_accuracy,
-                        "numeric_value": process_accuracy,
                     }
                 },
                 "ace_error_severity": {
                     "ace": {
                         "value": sev_value,
-                        "numeric_value": sev_numeric,
                         "display_value": sev_display,
                     }
                 },
@@ -1361,7 +1356,7 @@ def convert_agentic(runs_dir: Path, dataset_dir: Path, output_name: str) -> dict
             })
 
     ace_categories = sorted({t.get("ace_category", "") for t in tasks_list if t.get("ace_category")})
-    models = [{"model_id": mid, "name": display_names.get(mid, mid), "owner": ""} for mid in all_model_ids]
+    models = [{"model_id": mid, "name": display_names.get(mid, mid)} for mid in all_model_ids]
 
     output_doc: dict = {
         "schema_version": SCHEMA_VERSION,

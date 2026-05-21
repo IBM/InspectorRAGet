@@ -34,13 +34,21 @@ import {
 } from '@carbon/react';
 import { TextHighlight } from '@carbon/icons-react';
 
-import { Model, ModelResult, Task, Metric, outputAsText } from '@/src/types';
+import {
+  Model,
+  ModelResult,
+  Message,
+  Task,
+  Metric,
+  outputAsText,
+} from '@/src/types';
 import { useDataStore } from '@/src/store';
 import { truncate, overlaps } from '@/src/utilities/strings';
 import { mark } from '@/src/utilities/highlighter';
 
 import EvaluationsPanel from '@/src/components/evaluations/EvaluationsPanel';
 import TraceGroup from '@/src/components/trace/TraceGroup';
+import ChatLine from '@/src/components/chat/ChatLine';
 import GenerationCopier from '@/src/task-types/generation/Copier';
 
 import classes from './TaskView.module.scss';
@@ -170,6 +178,23 @@ export default function GenerationTaskView({
                           ),
                         )}
                       </p>
+                    </div>
+                  </ContainedListItem>
+                </ContainedList>
+              </div>
+            )}
+            {Array.isArray(task.input) && (
+              <div className={classes.inputSection}>
+                <ContainedList label="Input" kind="on-page">
+                  <ContainedListItem>
+                    <div className={classes.inputMessages}>
+                      {(task.input as Message[]).map((message, idx) => (
+                        <ChatLine
+                          key={`input-message--${idx}`}
+                          messageId={`input-message--${idx}`}
+                          message={message}
+                        />
+                      ))}
                     </div>
                   </ContainedListItem>
                 </ContainedList>
