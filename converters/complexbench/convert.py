@@ -59,19 +59,23 @@ def load_final_results(path: Path) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
-def find_model_dirs(run_dir: Path) -> list[Path]:
+def find_model_results(run_dir: Path) -> list[tuple[str, Path]]:
     """
-    Return subdirectories of run_dir that contain a ComplexBench score file at
-    <model_dir>/complexbench/evaluated_model_final_results.json.
+    Return (model_id, results_path) pairs for all ComplexBench score files found
+    under run_dir (public runner layout).
+
+    The public runner writes one flat file per model:
+        <run_dir>/<model_id>_final_results.json
+
+    The model ID is extracted from the filename by stripping the
+    '_final_results.json' suffix. Files are returned in sorted order so output
+    is deterministic.
     """
-    model_dirs = []
-    for entry in sorted(run_dir.iterdir()):
-        if not entry.is_dir():
-            continue
-        score_file = entry / "complexbench" / "evaluated_model_final_results.json"
-        if score_file.exists():
-            model_dirs.append(entry)
-    return model_dirs
+    results = []
+    for path in sorted(run_dir.glob("*_final_results.json")):
+        model_id = path.name[: -len("_final_results.json")]
+        results.append((model_id, path))
+    return results
 
 
 # ---------------------------------------------------------------------------
@@ -138,7 +142,10 @@ def build_labels(
     for q, passed in zip(scoring_questions, point_judges_rely):
         for dim in q.get("constraint_dimensions", []):
             dim_results.setdefault(dim, []).append(passed)
-    return {dim: ("pass" if all(verdicts) else "fail") for dim, verdicts in dim_results.items()}
+    return {
+        dim: ("pass" if all(verdicts) else "fail")
+        for dim, verdicts in dim_results.items()
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -146,44 +153,48 @@ def build_labels(
 # ---------------------------------------------------------------------------
 
 
-def convert(run_dir: Path, output_name: str) -> dict:
+def convert(
+    run_dir: Path,
+    output_name: str,
+    results_finder=None,
+) -> dict:
     """
-    Walk run_dir, collect all model variant subdirectories containing ComplexBench
-    results, and produce an InspectorRAGet JSON document with task_type "generation".
+    Walk run_dir, collect all ComplexBench result files, and produce an
+    InspectorRAGet JSON document with task_type "generation".
 
-    Each model directory must contain:
-        complexbench/evaluated_model_final_results.json
+    Each model's results must be a flat file at:
+        <run_dir>/<model_id>_final_results.json
 
     The main_id field is used as the stable join key across models. All models
     must have been evaluated on the same task set.
+
+    results_finder is an optional callable(run_dir) -> list[tuple[str, Path]] that
+    overrides find_model_results. Private wrappers can use this to supply internal
+    path logic without modifying the public converter.
     """
-    model_dirs = find_model_dirs(run_dir)
-    if not model_dirs:
-        sys.exit(
-            f"Error: no model directories with complexbench/ results found under {run_dir}"
-        )
+    model_results = (results_finder or find_model_results)(run_dir)
+    if not model_results:
+        sys.exit(f"Error: no ComplexBench result files found under {run_dir}")
 
     print(
-        f"Found {len(model_dirs)} model director{'y' if len(model_dirs) == 1 else 'ies'} under {run_dir}"
+        f"Found {len(model_results)} model result{'s' if len(model_results) != 1 else ''} under {run_dir}"
     )
 
     # records_by_model[model_name][main_id] = record dict
     records_by_model: dict[str, dict[int, dict]] = {}
 
-    for model_dir in model_dirs:
-        model_name = model_dir.name
-        score_file = model_dir / "complexbench" / "evaluated_model_final_results.json"
+    for model_name, score_file in model_results:
         print(f"\nProcessing: {model_name}")
         records = load_final_results(score_file)
         records_by_model[model_name] = {r["main_id"]: r for r in records}
         print(f"  Records: {len(records)}")
 
     # Build the ordered task list from the first model (tasks are identical across models).
-    first_model_name = model_dirs[0].name
+    first_model_name = model_results[0][0]
     first_model_records = records_by_model[first_model_name]
     ordered_ids = sorted(first_model_records.keys())
 
-    all_model_names = [d.name for d in model_dirs]
+    all_model_names = [name for name, _ in model_results]
     print(
         f"\nBuilding output for {len(ordered_ids)} tasks across {len(all_model_names)} model(s)..."
     )
@@ -196,7 +207,9 @@ def convert(run_dir: Path, output_name: str) -> dict:
 
         # Task-level fields are invariant across models; read from the first model.
         ref_record = first_model_records[main_id]
-        instruction = ref_record.get("instruction_en") or ref_record.get("instruction", "")
+        instruction = ref_record.get("instruction_en") or ref_record.get(
+            "instruction", ""
+        )
 
         task: dict = {
             "task_id": task_id,
@@ -237,7 +250,9 @@ def convert(run_dir: Path, output_name: str) -> dict:
                 },
                 "failed_constraints": {
                     ANNOTATOR: {
-                        "value": failed_constraints_text(scoring_questions, point_judges_rely),
+                        "value": failed_constraints_text(
+                            scoring_questions, point_judges_rely
+                        ),
                     }
                 },
             }
@@ -346,8 +361,9 @@ Examples:
         required=True,
         type=Path,
         help=(
-            "Root directory containing one subdirectory per model variant. "
-            "Each subdirectory must contain complexbench/evaluated_model_final_results.json."
+            "Directory containing ComplexBench result files. "
+            "Public runner layout: <run_dir>/<model_id>_final_results.json. "
+            "Internal runner layout: <run_dir>/<model_id>/complexbench/evaluated_model_final_results.json."
         ),
     )
     parser.add_argument(

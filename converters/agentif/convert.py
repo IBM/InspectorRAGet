@@ -58,18 +58,20 @@ def load_results(path: Path) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
-def find_model_dirs(run_dir: Path) -> list[Path]:
+def find_model_dirs(run_dir: Path) -> list[tuple[Path, Path]]:
     """
-    Return subdirectories of run_dir that contain AgentIF result files at
-    <model_dir>/agentif/merged_for_eval/results.json.
+    Return (model_dir, score_file) pairs for subdirectories of run_dir that
+    contain AgentIF result files at <model_dir>/eval/results.json
+    (public runner layout).
     """
-    model_dirs = []
+    results = []
     for entry in sorted(run_dir.iterdir()):
         if not entry.is_dir():
             continue
-        if (entry / "agentif" / "merged_for_eval" / "results.json").exists():
-            model_dirs.append(entry)
-    return model_dirs
+        score_file = entry / "eval" / "results.json"
+        if score_file.exists():
+            results.append((entry, score_file))
+    return results
 
 
 # ---------------------------------------------------------------------------
@@ -109,9 +111,9 @@ def per_task_csr(constraints: list[dict], exclude_meta: bool = False) -> float:
     Returns 0.0 when no scored constraints exist.
     """
     scored = [
-        c for c in constraints
-        if c.get("score") is not None
-        and (not exclude_meta or not c.get("is_meta"))
+        c
+        for c in constraints
+        if c.get("score") is not None and (not exclude_meta or not c.get("is_meta"))
     ]
     if not scored:
         return 0.0
@@ -132,13 +134,11 @@ def task_passes(constraints: list[dict], exclude_meta: bool = False) -> bool:
     Returns False when no scored constraints exist.
     """
     scored = [
-        c for c in constraints
-        if c.get("score") is not None
-        and (not exclude_meta or not c.get("is_meta"))
+        c
+        for c in constraints
+        if c.get("score") is not None and (not exclude_meta or not c.get("is_meta"))
     ]
     return bool(scored) and all(c["score"] is True for c in scored)
-
-
 
 
 def failed_constraints_text(constraints: list[dict]) -> str:
@@ -230,40 +230,48 @@ def filter_fields_for(record: dict) -> dict[str, str]:
 # ---------------------------------------------------------------------------
 
 
-def convert(run_dir: Path, output_name: str) -> dict:
+def convert(
+    run_dir: Path,
+    output_name: str,
+    results_finder=None,
+) -> dict:
     """
     Walk run_dir, collect all model variant subdirectories containing AgentIF
     results, and produce an InspectorRAGet JSON document with task_type
     "generation".
 
     Each model directory must contain:
-        agentif/merged_for_eval/results.json
+        <model_dir>/eval/results.json
 
     Records are joined across models by positional index. All model directories
     must contain results for the same ordered task list.
+
+    results_finder is an optional callable(run_dir) -> list[tuple[Path, Path]] that
+    overrides find_model_dirs. Each tuple is (model_dir, score_file). Private
+    wrappers use this to supply internal path logic without modifying the public
+    converter.
     """
-    model_dirs = find_model_dirs(run_dir)
-    if not model_dirs:
+    model_entries = (results_finder or find_model_dirs)(run_dir)
+    if not model_entries:
         sys.exit(
             f"Error: no model directories with agentif/ results found under {run_dir}"
         )
 
     print(
-        f"Found {len(model_dirs)} model director{'y' if len(model_dirs) == 1 else 'ies'} under {run_dir}"
+        f"Found {len(model_entries)} model director{'y' if len(model_entries) == 1 else 'ies'} under {run_dir}"
     )
 
     # records_by_model[model_name] = list of records in original order
     records_by_model: dict[str, list[dict]] = {}
 
-    for model_dir in model_dirs:
+    for model_dir, score_file in model_entries:
         model_name = model_dir.name
-        score_file = model_dir / "agentif" / "merged_for_eval" / "results.json"
         print(f"\nProcessing: {model_name}")
         records = load_results(score_file)
         records_by_model[model_name] = records
         print(f"  Records: {len(records)}")
 
-    first_model_name = model_dirs[0].name
+    first_model_name = model_entries[0][0].name
     first_records = records_by_model[first_model_name]
     n_tasks = len(first_records)
 
@@ -275,7 +283,7 @@ def convert(run_dir: Path, output_name: str) -> dict:
                 f"'{first_model_name}' has {n_tasks}. All models must cover the same task set."
             )
 
-    all_model_names = [d.name for d in model_dirs]
+    all_model_names = [model_dir.name for model_dir, _ in model_entries]
     print(
         f"\nBuilding output for {n_tasks} tasks across {len(all_model_names)} model(s)..."
     )
@@ -465,7 +473,8 @@ Examples:
         type=Path,
         help=(
             "Root directory containing one subdirectory per model variant. "
-            "Each subdirectory must contain agentif/merged_for_eval/results.json."
+            "Each subdirectory must contain eval/results.json (public runner) "
+            "or agentif/merged_for_eval/results.json (internal runner)."
         ),
     )
     parser.add_argument(
