@@ -48,10 +48,6 @@ IFEval is fully self-contained. The evaluation result files include the prompt t
 
 Each invocation of `convert.py` converts one experiment. `--run-dir` points to the experiment directory. Each model evaluated in that experiment is a subdirectory inside `--run-dir`.
 
-The converter accepts two layouts:
-
-**Flat** — standard output from the google-research IFEval runner:
-
 ```
 runs/
 └── my_experiment/               ← pass this as --run-dir
@@ -63,22 +59,7 @@ runs/
         └── eval_results_loose.jsonl
 ```
 
-**Nested** — output from runners that co-locate multiple benchmark results under one model directory:
-
-```
-runs/
-└── my_experiment/
-    ├── model_a/
-    │   └── ifeval/
-    │       ├── eval_results_strict.jsonl
-    │       └── eval_results_loose.jsonl
-    └── model_b/
-        └── ifeval/
-            ├── eval_results_strict.jsonl
-            └── eval_results_loose.jsonl
-```
-
-Flat layout takes priority when both are present. `converters/ifeval/runs/` is gitignored and is a convenient local scratch space.
+This matches the standard output layout of the [google-research IFEval runner](https://github.com/google-research/google-research/tree/master/instruction_following_eval). `converters/ifeval/runs/` is gitignored and is a convenient local scratch space.
 
 To compare multiple models, place each model's directory as a sibling under a shared experiment root and point `--run-dir` at that root.
 

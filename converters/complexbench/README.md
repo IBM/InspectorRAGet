@@ -10,18 +10,16 @@ ComplexBench evaluates LLM instruction-following on complex, compositional promp
 
 ```
 run_dir/
-    <model_id_1>/
-        complexbench/
-            evaluated_model_final_results.json
-    <model_id_2>/
-        complexbench/
-            evaluated_model_final_results.json
+    <model_id_1>_final_results.json
+    <model_id_2>_final_results.json
     ...
 ```
 
-- Each immediate subdirectory of `run_dir` that contains `complexbench/evaluated_model_final_results.json` is treated as one model variant.
-- The subdirectory name becomes the `model_id` in the output.
-- All model directories must contain results for the same task set (joined on `main_id`).
+- Each `*_final_results.json` file in `run_dir` is treated as one model variant.
+- The model ID is the filename with `_final_results.json` stripped.
+- All files must contain results for the same task set (joined on `main_id`).
+
+This matches the output layout of the [public ComplexBench runner](https://github.com/thu-coai/ComplexBench): `eval.sh` writes `<model_id>_final_results.json` to a shared output directory. Run `eval.sh` once per model pointing at the same output directory, then pass that directory as `--run-dir`.
 
 ## Usage
 
@@ -32,11 +30,11 @@ python convert.py \
     --name "My ComplexBench Run"
 ```
 
-| Argument    | Required | Default                       | Description                                            |
-| ----------- | -------- | ----------------------------- | ------------------------------------------------------ |
-| `--run-dir` | yes      | —                             | Root directory with one subdirectory per model variant |
-| `--output`  | no       | `<run_dir>/complexbench.json` | Output file path                                       |
-| `--name`    | no       | `ComplexBench Evaluation`     | Display name shown in InspectorRAGet                   |
+| Argument    | Required | Default                       | Description                                                      |
+| ----------- | -------- | ----------------------------- | ---------------------------------------------------------------- |
+| `--run-dir` | yes      | —                             | Directory containing `*_final_results.json` files, one per model |
+| `--output`  | no       | `<run_dir>/complexbench.json` | Output file path                                                 |
+| `--name`    | no       | `ComplexBench Evaluation`     | Display name shown in InspectorRAGet                             |
 
 ## Output
 
@@ -83,7 +81,7 @@ The origin/coherent tests measure compositional robustness across a group of tas
 
 - Run data lives at `runs/` (gitignored scratch space).
 - Do **not** write output files to `data/` — that directory is for shipped pre-loaded examples only.
-- Regenerate with: `python convert.py --run-dir runs/<your_run>`
+- Regenerate with: `python convert.py --run-dir runs/<your_run>` where `<your_run>` contains `*_final_results.json` files.
 
 ## Private wrapper
 

@@ -67,40 +67,25 @@ def load_jsonl(path: Path) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
-def _ifeval_dir(model_dir: Path) -> Path:
+def find_model_dirs(run_dir: Path) -> list[tuple[Path, Path]]:
     """
-    Resolve the directory containing IFEval result files for a model.
+    Return (model_dir, ifeval_dir) pairs for subdirectories of run_dir that
+    contain IFEval result files (public runner layout).
 
-    Accepts two layouts:
-      - Flat:   model_dir/eval_results_strict.jsonl   (standard google-research runner)
-      - Nested: model_dir/ifeval/eval_results_strict.jsonl  (multi-benchmark runners)
-
-    Flat layout takes priority. Falls back to nested if the flat files are absent.
+    The public google-research runner writes results directly into the model
+    output directory:
+        <model_dir>/eval_results_strict.jsonl
+        <model_dir>/eval_results_loose.jsonl
     """
-    for candidate in (
-        model_dir / "eval_results_strict.jsonl",
-        model_dir / "eval_results_loose.jsonl",
-    ):
-        if candidate.exists():
-            return model_dir
-    return model_dir / "ifeval"
-
-
-def find_model_dirs(run_dir: Path) -> list[Path]:
-    """
-    Return subdirectories of run_dir that contain IFEval result files,
-    in either flat or nested layout. Each such directory is one model variant.
-    """
-    model_dirs = []
+    results = []
     for entry in sorted(run_dir.iterdir()):
         if not entry.is_dir():
             continue
-        d = _ifeval_dir(entry)
-        if (d / "eval_results_strict.jsonl").exists() or (
-            d / "eval_results_loose.jsonl"
+        if (entry / "eval_results_strict.jsonl").exists() or (
+            entry / "eval_results_loose.jsonl"
         ).exists():
-            model_dirs.append(entry)
-    return model_dirs
+            results.append((entry, entry))
+    return results
 
 
 # ---------------------------------------------------------------------------
@@ -108,9 +93,9 @@ def find_model_dirs(run_dir: Path) -> list[Path]:
 # ---------------------------------------------------------------------------
 
 
-def load_ifeval_scores(model_dir: Path) -> tuple[dict[str, dict], dict[str, dict]]:
+def load_ifeval_scores(ifeval_dir: Path) -> tuple[dict[str, dict], dict[str, dict]]:
     """
-    Load strict and loose IFEval eval results for one model directory.
+    Load strict and loose IFEval eval results from ifeval_dir.
 
     Returns (strict_map, loose_map) where each map is:
         prompt_text → record dict (with follow_all_instructions, follow_instruction_list,
@@ -120,10 +105,8 @@ def load_ifeval_scores(model_dir: Path) -> tuple[dict[str, dict], dict[str, dict
     output files (the original google-research runner omits the 'key' field from
     outputs; some forks include it but it cannot be relied upon).
     """
-    d = _ifeval_dir(model_dir)
-
     def _load(filename: str) -> dict[str, dict]:
-        path = d / filename
+        path = ifeval_dir / filename
         if not path.exists():
             return {}
         result = {}
@@ -188,26 +171,31 @@ def constraint_labels(
 # ---------------------------------------------------------------------------
 
 
-def convert(run_dir: Path, output_name: str) -> dict:
+def convert(run_dir: Path, output_name: str, results_finder=None) -> dict:
     """
     Walk run_dir, collect all model variant subdirectories that contain IFEval
     results, and produce an InspectorRAGet JSON document with task_type "generation".
 
-    Each model directory must contain:
-        ifeval/eval_results_strict.jsonl
-        ifeval/eval_results_loose.jsonl   (optional but recommended)
+    Each model directory must contain (public google-research runner layout):
+        <model_dir>/eval_results_strict.jsonl
+        <model_dir>/eval_results_loose.jsonl   (optional but recommended)
 
     The prompt text is used as the join key across models and between strict/loose
     files. All models must have been run on the same prompt set.
+
+    results_finder is an optional callable(run_dir) -> list[tuple[Path, Path]]
+    that overrides find_model_dirs. Each tuple is (model_dir, ifeval_dir). Private
+    wrappers use this to supply internal path logic without modifying the public
+    converter.
     """
-    model_dirs = find_model_dirs(run_dir)
-    if not model_dirs:
+    model_entries = (results_finder or find_model_dirs)(run_dir)
+    if not model_entries:
         sys.exit(
-            f"Error: no model directories with ifeval/ results found under {run_dir}"
+            f"Error: no model directories with IFEval results found under {run_dir}"
         )
 
     print(
-        f"Found {len(model_dirs)} model director{'y' if len(model_dirs) == 1 else 'ies'} under {run_dir}"
+        f"Found {len(model_entries)} model director{'y' if len(model_entries) == 1 else 'ies'} under {run_dir}"
     )
 
     # strict_scores[model_name][prompt] = record
@@ -215,10 +203,10 @@ def convert(run_dir: Path, output_name: str) -> dict:
     strict_scores: dict[str, dict[str, dict]] = {}
     loose_scores: dict[str, dict[str, dict]] = {}
 
-    for model_dir in model_dirs:
+    for model_dir, ifeval_dir in model_entries:
         model_name = model_dir.name
         print(f"\nProcessing: {model_name}")
-        strict, loose = load_ifeval_scores(model_dir)
+        strict, loose = load_ifeval_scores(ifeval_dir)
         strict_scores[model_name] = strict
         loose_scores[model_name] = loose
         print(f"  Strict: {len(strict)} records")
@@ -229,7 +217,7 @@ def convert(run_dir: Path, output_name: str) -> dict:
     all_prompts: list[str] = []
     seen: set[str] = set()
     # Preserve order from the first model to keep task ordering stable.
-    first_model = model_dirs[0].name
+    first_model = model_entries[0][0].name
     for prompt in strict_scores.get(first_model, {}):
         if prompt not in seen:
             all_prompts.append(prompt)
@@ -242,7 +230,7 @@ def convert(run_dir: Path, output_name: str) -> dict:
                 all_prompts.append(prompt)
                 seen.add(prompt)
 
-    all_model_names = [d.name for d in model_dirs]
+    all_model_names = [model_dir.name for model_dir, _ in model_entries]
     print(
         f"\nBuilding output for {len(all_prompts)} tasks across {len(all_model_names)} model(s)..."
     )
@@ -458,7 +446,8 @@ Examples:
         type=Path,
         help=(
             "Root directory containing one subdirectory per model variant. "
-            "Each subdirectory must contain ifeval/eval_results_strict.jsonl."
+            "Each subdirectory must contain eval_results_strict.jsonl "
+            "(standard google-research IFEval runner layout)."
         ),
     )
     parser.add_argument(

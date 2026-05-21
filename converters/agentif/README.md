@@ -23,19 +23,19 @@ Both metrics are emitted in two variants: one including meta constraints (matchi
 ```
 run_dir/
     <model_id_1>/
-        agentif/
-            merged_for_eval/
-                results.json
+        eval/
+            results.json
     <model_id_2>/
-        agentif/
-            merged_for_eval/
-                results.json
+        eval/
+            results.json
     ...
 ```
 
-- Each immediate subdirectory of `run_dir` that contains `agentif/merged_for_eval/results.json` is treated as one model variant.
+- Each immediate subdirectory of `run_dir` that contains `eval/results.json` is treated as one model variant.
 - The subdirectory name becomes the `model_id` in the output.
 - Records are joined across models by positional index — all model directories must contain the same ordered task list.
+
+This matches the output layout of the [public AgentIF runner](https://github.com/THU-KEG/AgentIF): `run.sh` writes scored results to `results/scores/<model_id>/eval/results.json`.
 
 ## Usage
 
@@ -104,7 +104,7 @@ The `CSR` value in `accuracy.json` is a pool-level number: `total_constraints_pa
 
 - Run data lives at `runs/` (gitignored scratch space).
 - Do **not** write output files to `data/` — that directory is for shipped pre-loaded examples only.
-- Regenerate with: `python convert.py --run-dir runs/<your_run>`
+- Regenerate with: `python convert.py --run-dir runs/<your_run>` where `<your_run>` contains per-model subdirectories each with `eval/results.json`.
 
 ## Private wrapper
 
