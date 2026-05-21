@@ -19,7 +19,7 @@
 'use client';
 
 import { Metric, Model, Task, ModelResult } from '@/src/types';
-import { RetrievedDocument } from '@/src/task-types/qa/types';
+import { RetrievedDocument } from '@/src/types';
 import { taskTypeRegistry } from '@/src/task-types';
 
 interface Props {

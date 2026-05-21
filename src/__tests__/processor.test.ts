@@ -26,8 +26,8 @@ function minimalData(overrides?: Partial<RawData>): RawData {
   return {
     name: 'Test',
     models: [
-      { modelId: 'm1', name: 'Model 1', owner: 'owner1' },
-      { modelId: 'm2', name: 'Model 2', owner: 'owner2' },
+      { modelId: 'm1', name: 'Model 1' },
+      { modelId: 'm2', name: 'Model 2' },
     ],
     metrics: [
       {

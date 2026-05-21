@@ -228,13 +228,11 @@ def convert(run_dir: Path, output_name: str) -> dict:
                 "DRFR": {
                     ANNOTATOR: {
                         "value": round(drfr, 4),
-                        "numeric_value": round(drfr, 4),
                     }
                 },
                 "task_pass": {
                     ANNOTATOR: {
                         "value": "pass" if task_passed else "fail",
-                        "numeric_value": 1 if task_passed else 0,
                     }
                 },
                 "failed_constraints": {
@@ -308,7 +306,7 @@ def convert(run_dir: Path, output_name: str) -> dict:
 
     filters = ["category", "ability", "constraints"]
 
-    models = [{"model_id": name, "name": name, "owner": ""} for name in all_model_names]
+    models = [{"model_id": name, "name": name} for name in all_model_names]
 
     output_doc = {
         "schema_version": SCHEMA_VERSION,

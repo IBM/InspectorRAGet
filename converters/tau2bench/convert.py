@@ -417,7 +417,7 @@ def convert(runs_dir: Path, name: str, output: Path) -> None:
 
     # Build models list (one entry per unique model directory).
     ig_models = [
-        {"model_id": n, "name": display_names[n], "owner": ""}
+        {"model_id": n, "name": display_names[n]}
         for n in model_names
     ]
 
@@ -443,7 +443,6 @@ def convert(runs_dir: Path, name: str, output: Path) -> None:
                         "tau2_reward": {
                             "tau2": {
                                 "value": "pass" if reward == 1.0 else "fail",
-                                "numeric_value": reward,
                                 "display_value": "Pass" if reward == 1.0 else "Fail",
                             }
                         },

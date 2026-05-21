@@ -36,9 +36,9 @@ import {
   MessageRetry,
   ToolMessage,
   AssistantMessage,
-} from '@/src/task-types/rag/types';
-import Avatar from '@/src/task-types/rag/components/Avatar';
-import DocumentsViewer from '@/src/task-types/rag/components/DocumentsViewer';
+} from '@/src/types';
+import Avatar from '@/src/components/chat/Avatar';
+import DocumentsViewer from '@/src/components/chat/DocumentsViewer';
 
 import classes from './ChatLine.module.scss';
 

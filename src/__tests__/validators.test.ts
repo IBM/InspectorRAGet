@@ -23,7 +23,7 @@ import { validateInputData } from '@/src/validators';
 
 function validData() {
   return {
-    models: [{ modelId: 'm1', name: 'Model 1', owner: 'owner1' }],
+    models: [{ modelId: 'm1', name: 'Model 1' }],
     metrics: [
       {
         name: 'accuracy',
@@ -52,7 +52,7 @@ function validData() {
 
 function validQAData() {
   return {
-    models: [{ modelId: 'm1', name: 'Model 1', owner: 'owner1' }],
+    models: [{ modelId: 'm1', name: 'Model 1' }],
     metrics: [
       {
         name: 'faithfulness',
@@ -119,13 +119,6 @@ describe('validateInputData', () => {
   it('rejects a model missing name', () => {
     const data = validData();
     delete (data.models[0] as any).name;
-    const result = validateInputData(data);
-    expect(result.valid).toBe(false);
-  });
-
-  it('rejects a model missing owner', () => {
-    const data = validData();
-    delete (data.models[0] as any).owner;
     const result = validateInputData(data);
     expect(result.valid).toBe(false);
   });

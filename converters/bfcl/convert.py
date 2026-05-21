@@ -1001,13 +1001,11 @@ def convert_tool_calling(
                 "bfcl_correctness": {
                     "bfcl": {
                         "value": "correct" if is_valid else "incorrect",
-                        "numeric_value": 1 if is_valid else 0,
                     }
                 },
                 "bfcl_error_severity": {
                     "bfcl": {
                         "value": severity_value,
-                        "numeric_value": severity_numeric,
                         "display_value": severity_display,
                     }
                 },
@@ -1167,7 +1165,7 @@ def convert_tool_calling(
 
     # --- Build models block ---
     models = [
-        {"model_id": mid, "name": model_dir_names.get(mid, mid), "owner": ""}
+        {"model_id": mid, "name": model_dir_names.get(mid, mid)}
         for mid in sorted(result_map.keys())
     ]
 
@@ -1953,13 +1951,11 @@ def convert_agentic(
                 "bfcl_correctness": {
                     "bfcl": {
                         "value": "correct" if is_valid else "incorrect",
-                        "numeric_value": 1 if is_valid else 0,
                     }
                 },
                 "bfcl_error_severity": {
                     "bfcl": {
                         "value": severity_value,
-                        "numeric_value": severity_numeric,
                         "display_value": severity_display,
                     }
                 },
@@ -2123,7 +2119,7 @@ def convert_agentic(
     )
 
     models = [
-        {"model_id": mid, "name": model_dir_names.get(mid, mid), "owner": ""}
+        {"model_id": mid, "name": model_dir_names.get(mid, mid)}
         for mid in all_model_ids
     ]
 

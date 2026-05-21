@@ -42,10 +42,7 @@ import {
   Metric,
   outputAsText,
 } from '@/src/types';
-import {
-  RetrievedDocument,
-  RetrievedDocumentAnnotation,
-} from '@/src/task-types/qa/types';
+import { RetrievedDocument, RetrievedDocumentAnnotation } from '@/src/types';
 import { useDataStore } from '@/src/store';
 import { truncate, overlaps } from '@/src/utilities/strings';
 import { mark } from '@/src/utilities/highlighter';

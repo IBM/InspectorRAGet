@@ -18,7 +18,7 @@
 
 import { snakeCaseKeys } from '@/src/utilities/objects';
 import { Data, Task, RawData } from '@/src/types';
-import { RetrievedDocument } from '@/src/task-types/qa/types';
+import { RetrievedDocument } from '@/src/types';
 import { CURRENT_SCHEMA_VERSION } from '@/src/migrator';
 
 export function exportData(

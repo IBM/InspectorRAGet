@@ -16,27 +16,48 @@
  *
  **/
 
-// Task-type-specific types live in their respective task-types/ slices.
-// Re-exported here so existing consumers don't need to update import paths yet.
-export type {
-  RetrievedDocument,
-  RetrievedDocumentAnnotation,
-} from '@/src/task-types/qa/types';
-export type {
-  Message,
-  MessageRetry,
-  SystemMessage,
-  DeveloperMessage,
-  UserMessage,
-  ToolMessageDocument,
-  ToolMessage,
-  AssistantMessage,
-} from '@/src/task-types/rag/types';
-export type { ToolDefinition } from '@/src/task-types/tool_calling/types';
+// --- Tool definition ---
 
-import type { RetrievedDocument } from '@/src/task-types/qa/types';
-import type { Message } from '@/src/task-types/rag/types';
-import type { ToolDefinition } from '@/src/task-types/tool_calling/types';
+// OpenAI-compatible tool definition. parameters follows JSON Schema object format.
+export interface ToolDefinition {
+  name: string;
+  description?: string;
+  parameters?: {
+    type: 'object';
+    properties?: Record<
+      string,
+      {
+        type?: string;
+        description?: string;
+        enum?: unknown[];
+        [key: string]: unknown;
+      }
+    >;
+    required?: string[];
+    [key: string]: unknown;
+  };
+}
+
+// --- Retrieved document ---
+
+export interface RetrievedDocumentAnnotation {
+  text: string;
+  authors: string[];
+  color?: string;
+}
+
+export interface RetrievedDocument {
+  documentId: string;
+  text: string;
+  formattedText?: string;
+  url?: string;
+  title?: string;
+  score?: number;
+  query?: {};
+  annotations?: RetrievedDocumentAnnotation[];
+}
+
+// --- Notification ---
 
 export interface Notification {
   title: string;
@@ -90,7 +111,6 @@ export interface HomePageAttributes {
 export interface Model {
   modelId: string;
   name: string;
-  owner: string;
   description?: string;
   baseModel?: string;
   baseModelId?: string;
@@ -205,6 +225,67 @@ export type TraceEvent =
       source: string; // the program source as authored
       label?: string; // optional — free-form marker for cross-referencing source data
     };
+
+// --- Message ---
+
+// A retry attempt the model made before arriving at the final output.
+// Captures intermediate content/tool_calls and any error that triggered the retry.
+export interface MessageRetry {
+  content?: string;
+  tool_calls?: ToolCallRecord[];
+  error?: string;
+  trace?: TraceEvent[];
+}
+
+export interface Message {
+  role: 'system' | 'developer' | 'user' | 'tool' | 'assistant';
+  utterance_id?: string;
+  content?: any;
+  name?: string;
+  timestamp?: number;
+  // tool_calls is declared here so that output[0].tool_calls is accessible without
+  // casting when iterating over Message[] output. The concrete type is ToolCallRecord[].
+  tool_calls?: ToolCallRecord[];
+  // Per-message execution trace. Optional — views degrade gracefully when absent.
+  trace?: TraceEvent[];
+  retries?: MessageRetry[];
+  // Benchmark-supplied metadata. Keys are benchmark-specific; the UI renders
+  // known keys (e.g. metadata.status) and ignores unknown ones.
+  // Known keys: status — 'pass' | 'fail' | 'warn' (stamped by converters).
+  metadata?: Record<string, unknown>;
+}
+
+export interface SystemMessage extends Message {
+  role: 'system';
+}
+
+export interface DeveloperMessage extends Message {
+  role: 'developer';
+}
+
+export interface UserMessage extends Message {
+  role: 'user';
+}
+
+export interface ToolMessageDocument {
+  text: string;
+  url?: string;
+  title?: string;
+  score?: number;
+}
+
+export interface ToolMessage extends Message {
+  role: 'tool';
+  tool_call_id: string;
+  type?: 'text' | 'documents' | 'json';
+  content: string | object | ToolMessageDocument[];
+}
+
+export interface AssistantMessage extends Message {
+  role: 'assistant';
+  refusal?: string;
+  tool_calls?: ToolCallRecord[];
+}
 
 // --- Output helper ---
 
