@@ -50,10 +50,10 @@
     "@carbon/themes": "^11.67.0",
     "d3": "^7.9.0",
     "date-fns": "^2.30.0",
-    "dompurify": "3.2.4",
+    "dompurify": "3.4.15",
     "html-react-parser": "^5.1.1",
     "lodash": "^4.17.23",
-    "next": "^16.1.6",
+    "next": "^16.3.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-intl": "^6.8.0",
@@ -62,13 +62,13 @@
     "react-wrap-balancer": "^1.1.1",
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.1",
-    "statistics.js": "^1.0.0",
-    "uuid": "^9.0.1"
+    "statistics.js": "^1.0.0"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,json,scss,css,md}": "prettier --write"
   },
   "overrides": {
-    "@carbon/styles": "^1.100.0"
+    "@carbon/styles": "^1.100.0",
+    "eslint-plugin-react-hooks": "7.0.1"
   }
 }
