@@ -140,29 +140,29 @@ export default function Filters({
                           }
                           className={classes.filterSelector}
                         >
+                          <div className={classes.filterLabel}>
+                            <span>{filterType}</span>
+                            <Button
+                              kind="ghost"
+                              size="sm"
+                              onClick={() =>
+                                setSelectedFilters((prevState) => {
+                                  return {
+                                    ...prevState,
+                                    [filterType]: values,
+                                  };
+                                })
+                              }
+                            >
+                              select all
+                            </Button>
+                          </div>
                           <FilterableMultiSelect
                             id={
                               `${keyPrefix}-filter` + filterType + '-selector'
                             }
-                            titleText={
-                              <div className={classes.filterLabel}>
-                                <span>{filterType}</span>
-                                <Button
-                                  kind="ghost"
-                                  size="sm"
-                                  onClick={() =>
-                                    setSelectedFilters((prevState) => {
-                                      return {
-                                        ...prevState,
-                                        [filterType]: values,
-                                      };
-                                    })
-                                  }
-                                >
-                                  select all
-                                </Button>
-                              </div>
-                            }
+                            titleText={filterType}
+                            hideLabel
                             items={values}
                             selectedItems={
                               selectedFilters && selectedFilters[filterType]
@@ -226,27 +226,27 @@ export default function Filters({
                     }
                     className={classes.filterSelector}
                   >
+                    <div className={classes.filterLabel}>
+                      <span>{filterType}</span>
+                      <Button
+                        kind="ghost"
+                        size="sm"
+                        onClick={() =>
+                          setSelectedFilters((prevState) => {
+                            return {
+                              ...prevState,
+                              [filterType]: values,
+                            };
+                          })
+                        }
+                      >
+                        select all
+                      </Button>
+                    </div>
                     <FilterableMultiSelect
                       id={`${keyPrefix}-filter` + filterType + '-selector'}
-                      titleText={
-                        <div className={classes.filterLabel}>
-                          <span>{filterType}</span>
-                          <Button
-                            kind="ghost"
-                            size="sm"
-                            onClick={() =>
-                              setSelectedFilters((prevState) => {
-                                return {
-                                  ...prevState,
-                                  [filterType]: values,
-                                };
-                              })
-                            }
-                          >
-                            select all
-                          </Button>
-                        </div>
-                      }
+                      titleText={filterType}
+                      hideLabel
                       items={values}
                       selectedItems={
                         selectedFilters && selectedFilters[filterType]

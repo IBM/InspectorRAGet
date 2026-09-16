@@ -198,51 +198,51 @@ function ExpressionBuilderForLabels({
 
   return (
     <div>
+      <div className={classes.expressionLabel}>
+        <span>Expression</span>
+        <Toggletip align="bottom-left">
+          <ToggletipButton label="Syntax reference">
+            <Information />
+          </ToggletipButton>
+          <ToggletipContent>
+            <p>
+              <strong>Operators</strong>
+            </p>
+            <p>Comparison: $eq &nbsp;$neq</p>
+            <p>Set: $in &nbsp;$nin</p>
+            <p>Logical: $and &nbsp;$or</p>
+            <p>
+              <strong>Examples</strong>
+            </p>
+            <UnorderedList>
+              <ListItem>
+                {`{ "model-id": { "$eq": "force_terminated" } }`}
+              </ListItem>
+              <ListItem>
+                {`{ "model-a": { "$in": ["force_terminated", "N/A"] } }`}
+              </ListItem>
+              <ListItem>
+                {`{ "$and": [{ "model-a": { "$eq": "foo" } }, { "model-b": { "$neq": "foo" } }] }`}
+              </ListItem>
+            </UnorderedList>
+            {models.length > 0 && (
+              <p>
+                <strong>Model IDs: </strong>
+                {models.map((m) => m.modelId).join(', ')}
+              </p>
+            )}
+            {valueOptions.length > 0 && (
+              <p>
+                <strong>All values for {labelKey}: </strong>
+                {valueOptions.join(', ')}
+              </p>
+            )}
+          </ToggletipContent>
+        </Toggletip>
+      </div>
       <TextArea
-        labelText={
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span>Expression</span>
-            <Toggletip align="bottom-left">
-              <ToggletipButton label="Syntax reference">
-                <Information />
-              </ToggletipButton>
-              <ToggletipContent>
-                <p>
-                  <strong>Operators</strong>
-                </p>
-                <p>Comparison: $eq &nbsp;$neq</p>
-                <p>Set: $in &nbsp;$nin</p>
-                <p>Logical: $and &nbsp;$or</p>
-                <p>
-                  <strong>Examples</strong>
-                </p>
-                <UnorderedList>
-                  <ListItem>
-                    {`{ "model-id": { "$eq": "force_terminated" } }`}
-                  </ListItem>
-                  <ListItem>
-                    {`{ "model-a": { "$in": ["force_terminated", "N/A"] } }`}
-                  </ListItem>
-                  <ListItem>
-                    {`{ "$and": [{ "model-a": { "$eq": "foo" } }, { "model-b": { "$neq": "foo" } }] }`}
-                  </ListItem>
-                </UnorderedList>
-                {models.length > 0 && (
-                  <p>
-                    <strong>Model IDs: </strong>
-                    {models.map((m) => m.modelId).join(', ')}
-                  </p>
-                )}
-                {valueOptions.length > 0 && (
-                  <p>
-                    <strong>All values for {labelKey}: </strong>
-                    {valueOptions.join(', ')}
-                  </p>
-                )}
-              </ToggletipContent>
-            </Toggletip>
-          </div>
-        }
+        labelText="Expression"
+        hideLabel
         placeholder={PLACEHOLDER_EXPRESSION_TEXT}
         value={displayText}
         disabled={disabled}
@@ -253,7 +253,7 @@ function ExpressionBuilderForLabels({
         rows={3}
         id={`text-area__label-expression-${labelKey}`}
       />
-      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+      <div className={classes.expressionActions}>
         <Button
           kind="primary"
           disabled={disabled || validationError !== null}
@@ -554,34 +554,34 @@ export default function ModelCharacteristics({
 
         {selectedLabelKey && (
           <div className={classes.valueSelector}>
+            <div className={classes.valueSelectorLabel}>
+              <span>Choose a value</span>
+              {focusedOtherValues.length > 0 && (
+                <Toggletip align="bottom-left">
+                  <ToggletipButton label="Values grouped under Other">
+                    <Information size={16} />
+                  </ToggletipButton>
+                  <ToggletipContent>
+                    <p>
+                      <strong>
+                        {focusedOtherValues.length} value
+                        {focusedOtherValues.length !== 1 ? 's' : ''} grouped
+                        under Other:
+                      </strong>
+                    </p>
+                    <ul className={classes.otherList}>
+                      {focusedOtherValues.map((v) => (
+                        <li key={v}>{v}</li>
+                      ))}
+                    </ul>
+                  </ToggletipContent>
+                </Toggletip>
+              )}
+            </div>
             <Select
               id="model-characteristics-value-selector"
-              labelText={
-                <div className={classes.valueSelectorLabel}>
-                  <span>Choose a value</span>
-                  {focusedOtherValues.length > 0 && (
-                    <Toggletip align="bottom-left">
-                      <ToggletipButton label="Values grouped under Other">
-                        <Information size={16} />
-                      </ToggletipButton>
-                      <ToggletipContent>
-                        <p>
-                          <strong>
-                            {focusedOtherValues.length} value
-                            {focusedOtherValues.length !== 1 ? 's' : ''} grouped
-                            under Other:
-                          </strong>
-                        </p>
-                        <ul className={classes.otherList}>
-                          {focusedOtherValues.map((v) => (
-                            <li key={v}>{v}</li>
-                          ))}
-                        </ul>
-                      </ToggletipContent>
-                    </Toggletip>
-                  )}
-                </div>
-              }
+              labelText="Choose a value"
+              hideLabel
               value={selectedValue}
               disabled={!isEmpty(expression)}
               onChange={(e) => setSelectedValue(e.target.value)}

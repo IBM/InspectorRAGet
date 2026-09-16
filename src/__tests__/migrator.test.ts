@@ -21,7 +21,7 @@ import { migrateData, CURRENT_SCHEMA_VERSION } from '@/src/migrator';
 
 // --- Helpers ---
 
-function v1Base(taskOverrides: Record<string, any> = {}) {
+function v1Base(taskOverrides: Record<string, any> = {}): Record<string, any> {
   return {
     // No schema_version field — implicit v1
     name: 'Test',

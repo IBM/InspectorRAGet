@@ -48,6 +48,18 @@
   column-gap: $spacing-02;
 }
 
+.expressionLabel {
+  display: flex;
+  align-items: center;
+  column-gap: $spacing-03;
+}
+
+.expressionActions {
+  margin-top: $spacing-03;
+  display: flex;
+  column-gap: $spacing-03;
+}
+
 .tagList {
   :global(.cds--tag) {
     margin: $spacing-01;

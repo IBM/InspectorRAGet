@@ -155,9 +155,8 @@ describe('processData', () => {
   // --- Disqualification: missing models ---
 
   it('disqualifies a task when not all models have results', () => {
-    const raw = minimalData();
     // Remove result for m2
-    raw.results = [raw.results[0]];
+    const raw = minimalData({ results: [minimalData().results[0]] });
 
     const [data, disqualified] = processData(raw);
     expect(data.tasks).toHaveLength(0);
@@ -219,21 +218,21 @@ describe('processData', () => {
           ],
         },
       ],
+      results: [
+        {
+          taskId: 't1',
+          modelId: 'm1',
+          output: { type: 'text', value: 'Hi' },
+          scores: { quality: { human1: { value: 'high' } } },
+        },
+        {
+          taskId: 't1',
+          modelId: 'm2',
+          output: { type: 'text', value: 'Hey' },
+          scores: { quality: { human1: { value: 'low' } } },
+        },
+      ] as any,
     });
-    raw.results = [
-      {
-        taskId: 't1',
-        modelId: 'm1',
-        output: { type: 'text', value: 'Hi' },
-        scores: { quality: { human1: { value: 'high' } } },
-      },
-      {
-        taskId: 't1',
-        modelId: 'm2',
-        output: { type: 'text', value: 'Hey' },
-        scores: { quality: { human1: { value: 'low' } } },
-      },
-    ] as any;
 
     const [data] = processData(raw);
     const qualityMetric = data.metrics.find((m) => m.name === 'quality');
@@ -254,21 +253,21 @@ describe('processData', () => {
           ],
         },
       ],
+      results: [
+        {
+          taskId: 't1',
+          modelId: 'm1',
+          output: { type: 'text', value: 'Hi' },
+          scores: { quality: { h: { value: 'good' } } },
+        },
+        {
+          taskId: 't1',
+          modelId: 'm2',
+          output: { type: 'text', value: 'Hey' },
+          scores: { quality: { h: { value: 'bad' } } },
+        },
+      ] as any,
     });
-    raw.results = [
-      {
-        taskId: 't1',
-        modelId: 'm1',
-        output: { type: 'text', value: 'Hi' },
-        scores: { quality: { h: { value: 'good' } } },
-      },
-      {
-        taskId: 't1',
-        modelId: 'm2',
-        output: { type: 'text', value: 'Hey' },
-        scores: { quality: { h: { value: 'bad' } } },
-      },
-    ] as any;
 
     const [data] = processData(raw);
     const metric = data.metrics.find((m) => m.name === 'quality');

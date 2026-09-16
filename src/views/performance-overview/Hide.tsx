@@ -77,20 +77,20 @@ export default function HidePanel({
       {show ? (
         <div className={cx(classes.container, show && classes.visible)}>
           <div key={'models-limiter'} className={classes.selector}>
+            <div className={classes.selectorLabel}>
+              <span>Models</span>
+              <Button
+                kind="ghost"
+                size="sm"
+                onClick={() => setIgnoredModels(models)}
+              >
+                select all
+              </Button>
+            </div>
             <FilterableMultiSelect
               id={'model--limiter'}
-              titleText={
-                <div className={classes.selectorLabel}>
-                  <span>Models</span>
-                  <Button
-                    kind="ghost"
-                    size="sm"
-                    onClick={() => setIgnoredModels(models)}
-                  >
-                    select all
-                  </Button>
-                </div>
-              }
+              titleText={'Models'}
+              hideLabel
               items={models}
               selectedItems={ignoredModels}
               itemToString={(item) => (item ? item.name || item.modelId : '')}
@@ -112,20 +112,20 @@ export default function HidePanel({
             </div>
           </div>
           <div key={'metrics-limiter'} className={classes.selector}>
+            <div className={classes.selectorLabel}>
+              <span>Metrics</span>
+              <Button
+                kind="ghost"
+                size="sm"
+                onClick={() => setIgnoredMetrics(metrics)}
+              >
+                select all
+              </Button>
+            </div>
             <FilterableMultiSelect
               id={'metrics--limiter'}
-              titleText={
-                <div className={classes.selectorLabel}>
-                  <span>Metrics</span>
-                  <Button
-                    kind="ghost"
-                    size="sm"
-                    onClick={() => setIgnoredMetrics(metrics)}
-                  >
-                    select all
-                  </Button>
-                </div>
-              }
+              titleText={'Metrics'}
+              hideLabel
               items={metrics}
               selectedItems={ignoredMetrics}
               itemToString={(item) =>
